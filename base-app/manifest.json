@@ -1,0 +1,30 @@
+{
+  "name": "base-app",
+  "appid": "__UNI__BASEAPP",
+  "description": "Base Room 移动端",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "app": {},
+  "h5": {
+    "title": "base-app",
+    "router": {
+      "mode": "hash"
+    },
+    "devServer": {
+      "port": 8081,
+      "proxy": {
+        "/api": {
+          "target": "http://localhost:3000",
+          "changeOrigin": true
+        }
+      }
+    }
+  },
+  "mp-weixin": {
+    "appid": "",
+    "setting": {
+      "urlCheck": false
+    }
+  }
+}

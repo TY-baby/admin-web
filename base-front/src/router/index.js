@@ -1,0 +1,80 @@
+import Vue from 'vue'
+import VueRouter from 'vue-router'
+import Layout from '@/views/layout/index.vue'
+
+Vue.use(VueRouter)
+
+const routes = [
+  { path: '/login', component: () => import('@/views/login/index.vue'), hidden: true },
+  { path: '/bigscreen', component: () => import('@/views/bigscreen/full.vue') },
+  {
+    path: '/',
+    component: Layout,
+    redirect: '/dashboard',
+    children: [
+      { path: 'dashboard', name: 'Dashboard', component: () => import('@/views/dashboard/index.vue'), meta: { title: '工作台', icon: 'el-icon-s-home' } }
+    ]
+  },
+  {
+    path: '/customer',
+    component: Layout,
+    meta: { title: '客户管理', icon: 'el-icon-user' },
+    children: [
+      { path: 'list', name: 'CustomerList', component: () => import('@/views/customer/index.vue'), meta: { title: '客户列表' } },
+      { path: 'detail/:id', name: 'CustomerDetail', component: () => import('@/views/customer/detail.vue'), meta: { title: '客户详情' }, hidden: true }
+    ]
+  },
+  {
+    path: '/business',
+    component: Layout,
+    meta: { title: '商机管理', icon: 'el-icon-s-flag' },
+    children: [
+      { path: 'opportunity', name: 'Opportunity', component: () => import('@/views/opportunity/index.vue'), meta: { title: '商机列表' } }
+    ]
+  },
+  {
+    path: '/order',
+    component: Layout,
+    meta: { title: '订单管理', icon: 'el-icon-s-order' },
+    children: [
+      { path: 'list', name: 'OrderList', component: () => import('@/views/order/index.vue'), meta: { title: '订单列表' } }
+    ]
+  },
+  {
+    path: '/digest',
+    component: Layout,
+    meta: { title: '消化跟进', icon: 'el-icon-phone' },
+    children: [
+      { path: 'follow', name: 'FollowList', component: () => import('@/views/follow/index.vue'), meta: { title: '跟进记录' } },
+      { path: 'product', name: 'ProductList', component: () => import('@/views/product/index.vue'), meta: { title: '产品资料' } }
+    ]
+  },
+  {
+    path: '/vip',
+    component: Layout,
+    meta: { title: 'VIP会员', icon: 'el-icon-s-finance' },
+    children: [
+      { path: 'member', name: 'VipMember', component: () => import('@/views/vip/index.vue'), meta: { title: '会员管理' } }
+    ]
+  },
+  {
+    path: '/workflow',
+    component: Layout,
+    meta: { title: '流程引擎', icon: 'el-icon-s-claim' },
+    children: [
+      { path: 'list', name: 'WorkflowList', component: () => import('@/views/workflow/index.vue'), meta: { title: '流程管理' } }
+    ]
+  },
+  { path: '*', redirect: '/' }
+]
+
+const router = new VueRouter({ mode: 'history', routes })
+
+router.beforeEach((to, from, next) => {
+  if (to.path === '/login' || to.path === '/bigscreen') return next()
+  const token = localStorage.getItem('base_token')
+  if (!token) return next('/login')
+  next()
+})
+
+export default router
