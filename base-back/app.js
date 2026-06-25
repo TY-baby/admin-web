@@ -7,8 +7,16 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
+// Ensure all JSON responses use UTF-8 charset
+app.use((req, res, next) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8')
+  next()
+})
+
 async function start() {
+  console.log('[APP] Starting initialization...')
   await initTable()
+  console.log('[APP] Initialization complete, setting up routes...')
 
   app.use('/api/auth', require('./routes/auth'))
   app.use('/api/users', require('./routes/users'))
@@ -25,16 +33,17 @@ async function start() {
   app.get('/', (req, res) => res.json({ message: 'Base Room CRM API is running' }))
 
   app.use((err, req, res, next) => {
-    console.error(err.stack)
+    console.error('[ERROR]', err.stack)
     res.status(500).json({ code: 1, message: err.message || '服务器内部错误' })
   })
 
   app.listen(config.port, () => {
-    console.log('Server running on http://localhost:' + config.port)
+    console.log('[APP] Server running on http://localhost:' + config.port)
   })
 }
 
 start().catch(err => {
-  console.error('启动失败:', err)
+  console.error('[APP] Startup failed:', err.message)
+  console.error(err.stack)
   process.exit(1)
 })

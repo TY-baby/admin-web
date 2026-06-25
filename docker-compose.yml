@@ -10,6 +10,7 @@ services:
       MYSQL_DATABASE: base_room
       MYSQL_USER: base_user
       MYSQL_PASSWORD: base_pass_2026
+      LANG: en_US.UTF-8
     volumes:
       - mysql_data:/var/lib/mysql
       - ./base-back/models/init.sql:/docker-entrypoint-initdb.d/init.sql

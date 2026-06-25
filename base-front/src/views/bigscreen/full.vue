@@ -264,7 +264,11 @@ export default {
   },
   watch: {
     activeTab() {
-      this.$nextTick(() => this.initTabCharts())
+      // 延迟确保v-show切换完成后再初始化/resize图表
+      setTimeout(() => {
+        this.initTabCharts()
+        this.charts.forEach(c => c && c.resize())
+      }, 100)
     }
   },
   async mounted() {
