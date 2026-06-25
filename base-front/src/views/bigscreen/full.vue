@@ -6,7 +6,7 @@
         <el-button class='switch-btn' size='mini' round>轮播切换大屏</el-button>
       </div>
       <div class='header-tabs'>
-        <div v-for='tab in tabs' :key='tab' :class='['tab-item', { active: activeTab === tab }]'' @click='activeTab = tab'>
+        <div v-for='tab in tabs' :key='tab' :class="['tab-item', { active: activeTab === tab }]" @click='activeTab = tab'>
           <i :class='tabIcon[tab]'></i> {{ tab }}
         </div>
       </div>

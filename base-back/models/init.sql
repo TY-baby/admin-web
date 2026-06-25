@@ -350,9 +350,9 @@ INSERT INTO roles (name, code, permissions) VALUES
 ('销售专员', 'sales', '["customer:view","customer:add","opportunity:view","opportunity:add","follow:*"]');
 
 INSERT INTO users (username, password, real_name, phone, dept_id, role_id) VALUES
-('admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5EO', '管理员', '13800138000', 1, 1),
-('zhangsan', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5EO', '张三', '13800138001', 1, 3),
-('lisi', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5EO', '李四', '13800138002', 1, 3);
+('admin', '$2a$10$Tg9fTGPcWmmDqba08TnN3.heZwr.hYetEeS62Tp4CG35HUxoozuhO', '管理员', '13800138000', 1, 1),
+('zhangsan', '$2a$10$Tg9fTGPcWmmDqba08TnN3.heZwr.hYetEeS62Tp4CG35HUxoozuhO', '张三', '13800138001', 1, 3),
+('lisi', '$2a$10$Tg9fTGPcWmmDqba08TnN3.heZwr.hYetEeS62Tp4CG35HUxoozuhO', '李四', '13800138002', 1, 3);
 
 INSERT INTO sys_dicts (dict_type, dict_code, dict_label, dict_value, sort) VALUES
 ('customer_status', 'potential', '潜在客户', '潜在客户', 1),
