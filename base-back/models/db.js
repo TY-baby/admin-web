@@ -6,7 +6,7 @@ const config = require('../config')
 const pool = mysql.createPool(config.db)
 
 async function query(sql, params) {
-  const [rows] = await pool.execute(sql, params)
+  const [rows] = await pool.query(sql, params)
   return rows
 }
 
@@ -41,7 +41,10 @@ async function initTable() {
   await ensureDatabase()
 
   const sql = fs.readFileSync(path.join(__dirname, 'init.sql'), 'utf8')
-  const statements = sql.split(';').filter(s => s.trim())
+  const statements = sql.split(';').filter(s => {
+    const t = s.trim()
+    return t && !t.toUpperCase().startsWith('USE ') && !t.toUpperCase().startsWith('CREATE DATABASE')
+  })
 
   // Run CREATE statements first
   const createStmts = statements.filter(s => !s.trim().toUpperCase().startsWith('INSERT'))
