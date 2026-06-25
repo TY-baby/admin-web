@@ -525,9 +525,10 @@ export default {
 
 <style lang="scss" scoped>
 .dashboard {
-  padding: 0;
-  background: #0f172a;
-  min-height: calc(100vh - 120px);
+  padding: 20px;
+  background: linear-gradient(135deg, #0f172a 0%, #1a2332 100%);
+  min-height: calc(100vh - 56px);
+  margin: -20px;
 }
 
 /* 统计卡片 */

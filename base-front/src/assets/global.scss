@@ -1,2 +1,100 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
-html, body { height: 100%; background: #f0f2f5; }
+html, body {
+  height: 100%;
+  background: #f0f2f7;
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Element UI 全局覆盖 */
+.el-card {
+  border: none !important;
+  border-radius: 12px !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04) !important;
+}
+
+.el-button--primary {
+  background: linear-gradient(135deg, #4f46e5, #6366f1) !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+  transition: all 0.25s ease !important;
+
+  &:hover, &:focus {
+    background: linear-gradient(135deg, #4338ca, #4f46e5) !important;
+    box-shadow: 0 4px 14px rgba(99,102,241,0.35) !important;
+    transform: translateY(-1px);
+  }
+}
+
+.el-input__inner {
+  border-radius: 8px !important;
+  border-color: #e2e8f0 !important;
+  transition: all 0.25s !important;
+
+  &:focus {
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.1) !important;
+  }
+}
+
+.el-table {
+  border-radius: 12px;
+  overflow: hidden;
+
+  th { background: #f8fafc !important; color: #475569 !important; font-weight: 600 !important; }
+  td { color: #64748b !important; }
+  tr:hover td { background: #f0f2ff !important; }
+}
+
+.el-pagination {
+  margin-top: 16px;
+  text-align: right;
+}
+
+.el-dialog {
+  border-radius: 16px !important;
+  overflow: hidden;
+
+  .el-dialog__header {
+    border-bottom: 1px solid #f1f5f9;
+    padding: 16px 20px;
+  }
+
+  .el-dialog__title {
+    font-weight: 600;
+    color: #1e293b;
+  }
+}
+
+.el-tag {
+  border-radius: 6px;
+  border: none;
+}
+
+/* 下拉菜单美化 */
+.el-dropdown-menu {
+  border-radius: 10px !important;
+  padding: 6px !important;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.12) !important;
+  border: 1px solid #f1f5f9 !important;
+
+  .el-dropdown-menu__item {
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 13px;
+    transition: all 0.2s;
+
+    &:hover {
+      background: #eef2ff;
+      color: #4f46e5;
+    }
+  }
+}
+
+/* 滚动条全局美化 */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
