@@ -31,7 +31,7 @@ async function ensureDatabase() {
   delete dbConfig.database
   const tempPool = mysql.createPool(dbConfig)
   try {
-    await tempPool.execute(`CREATE DATABASE IF NOT EXISTS ${config.db.database} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`)
+    await tempPool.query(`CREATE DATABASE IF NOT EXISTS \`${config.db.database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`)
   } finally {
     await tempPool.end()
   }

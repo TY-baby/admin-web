@@ -271,12 +271,10 @@ export default {
     this.updateTime()
     this.timer = setInterval(this.updateTime, 1000)
     this.startAutoPlay()
-    try {
-      this.stats = await getStats()
-    } catch (e) {
-      console.warn('数据加载失败，使用默认数据')
-    }
+    // 立即用默认数据渲染图表，不等待API
     this.$nextTick(() => this.initTabCharts())
+    // 后台加载数据，成功后更新图表
+    this.loadDataAsync()
     window.addEventListener('resize', this.handleResize)
   },
   beforeDestroy() {
@@ -286,6 +284,16 @@ export default {
     this.charts.forEach(c => c && c.dispose())
   },
   methods: {
+    loadDataAsync() {
+      // 3秒超时，不阻塞页面渲染
+      const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
+      Promise.race([getStats(), timeout]).then(data => {
+        this.stats = data
+        this.$nextTick(() => this.initTabCharts())
+      }).catch(() => {
+        console.warn('数据加载超时，使用默认数据')
+      })
+    },
     switchTab(tab) {
       this.activeTab = tab
     },

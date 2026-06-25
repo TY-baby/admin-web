@@ -13,6 +13,11 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
       - ./base-back/models/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pbase_room_root_2026"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
     ports:
       - "3306:3306"
     networks:
@@ -22,8 +27,6 @@ services:
     build: ./base-back
     container_name: base-room-backend
     restart: always
-    env_file:
-      - ./base-back/.env
     environment:
       DB_HOST: mysql
       DB_PORT: 3306
@@ -32,10 +35,13 @@ services:
       DB_NAME: base_room
       NODE_ENV: production
       PORT: 3000
+      JWT_SECRET: base-room-secret-key-2026
+      JWT_EXPIRES_IN: 24h
     ports:
       - "3000:3000"
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     networks:
       - base-room-net
 
