@@ -1,9 +1,18 @@
 <template>
   <div class="big-screen" ref="screenRef">
+    <!-- 背景装饰 -->
+    <div class="bg-decoration">
+      <div class="bg-grid"></div>
+      <div class="bg-glow bg-glow-1"></div>
+      <div class="bg-glow bg-glow-2"></div>
+    </div>
+
     <header class="screen-header">
+      <div class="header-deco-left"></div>
+      <div class="header-deco-right"></div>
       <div class="header-left">
         <h1 class="title">鲸跃会展轮播大屏</h1>
-        <el-button class="switch-btn" size="mini" round>轮播切换大屏</el-button>
+        <el-button class="switch-btn" size="mini" round>轮播切换</el-button>
       </div>
       <div class="header-tabs">
         <div v-for="tab in tabs" :key="tab"
@@ -13,8 +22,8 @@
         </div>
       </div>
       <div class="header-right">
-        <span class="time">{{ currentTime }}</span>
-        <span class="fullscreen" @click="toggleFull"><i class="el-icon-full-screen"></i> 全屏模式</span>
+        <span class="time"><i class="el-icon-time"></i> {{ currentTime }}</span>
+        <span class="fullscreen" @click="toggleFull"><i class="el-icon-full-screen"></i> 全屏</span>
       </div>
     </header>
 
@@ -24,25 +33,27 @@
         <div v-if="activeTab === '销售'" key="sales" class="tab-content">
           <section class="top-section">
             <div class="panel sales-overview">
-              <div class="panel-title"><span>销售总览</span><i class="el-icon-warning-outline"></i></div>
+              <div class="panel-title"><span>销售总览</span><i class="el-icon-warning-outline title-icon"></i></div>
               <div class="overview-cards">
                 <div class="ov-card" v-for="(c, i) in overview" :key="i">
                   <div class="ov-icon" :style="{background: c.bg}"><i :class="c.icon"></i></div>
                   <div class="ov-info">
                     <div class="ov-label">{{ c.label }}</div>
                     <div class="ov-value">{{ c.value }}</div>
-                    <div class="ov-change" :class="c.change.startsWith('+') ? 'up' : 'down'">较昨日 {{ c.change }}</div>
+                    <div class="ov-change" :class="c.change.startsWith('+') ? 'up' : 'down'">
+                      <i :class="c.change.startsWith('+') ? 'el-icon-top' : 'el-icon-bottom'"></i> {{ c.change }}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
             <div class="panel top5-panel">
-              <div class="panel-title"><span>销售额 TOP5 展会</span><span class="more">更多</span></div>
+              <div class="panel-title"><span>销售额 TOP5 展会</span><span class="more">更多 <i class="el-icon-arrow-right"></i></span></div>
               <div class="top5-table">
                 <div class="th"><span>展会名称</span><span>销售额（元）</span><span>占比</span></div>
                 <div class="tr" v-for="(row, idx) in topExhibitions" :key="idx">
                   <span><span :class="['rank', 'rank' + (idx + 1)]">{{ idx + 1 }}</span>{{ row.name }}</span>
-                  <span>{{ row.value }}万</span>
+                  <span class="amount-val">{{ row.value }}万</span>
                   <span><span class="ratio-bar"><span :style="{width: row.ratio + '%'}"></span></span>{{ row.ratio }}%</span>
                 </div>
               </div>
@@ -78,12 +89,8 @@
               <div class="metric-body">
                 <div class="metric-label">{{ m.label }}</div>
                 <div class="metric-value">{{ m.value }}</div>
-                <div class="metric-change" :class="String(m.change).startsWith('+') ? 'up' : 'down'">较昨日 {{ m.change }}</div>
-                <div class="sparkline">
-                  <svg viewBox="0 0 120 30" preserveAspectRatio="none">
-                    <polyline :points="sparkPoints(m.spark)" fill="none"
-                              :stroke="String(m.change).startsWith('+') ? '#67C23A' : '#F56C6C'" stroke-width="2" />
-                  </svg>
+                <div class="metric-change" :class="String(m.change).startsWith('+') ? 'up' : 'down'">
+                  <i :class="String(m.change).startsWith('+') ? 'el-icon-top' : 'el-icon-bottom'" style="font-size:10px"></i> {{ m.change }}
                 </div>
               </div>
             </div>
@@ -174,22 +181,21 @@
 
     <footer class="screen-footer">
       <div class="ctrl-left">
-        <span class="ctrl-label">轮播控制</span>
         <span class="play-state" @click="autoPlay = !autoPlay">
           <i :class="autoPlay ? 'el-icon-video-pause' : 'el-icon-video-play'"></i>
           {{ autoPlay ? '自动播放中' : '已暂停' }}
         </span>
       </div>
       <div class="ctrl-center">
-        <span>当前页面</span>
-        <span class="page-num">{{ currentPage }} / {{ totalPages }}</span>
         <i class="el-icon-arrow-left arrow" @click="prevTab"></i>
-        <i :class="autoPlay ? 'el-icon-video-pause' : 'el-icon-video-play'" class="pause" @click="autoPlay = !autoPlay"></i>
+        <div class="page-dots">
+          <span v-for="(tab, idx) in tabs" :key="idx" :class="['dot', { active: activeTab === tab }]" @click="switchTab(tab)"></span>
+        </div>
         <i class="el-icon-arrow-right arrow" @click="nextTab"></i>
       </div>
       <div class="ctrl-right">
-        <span>播放间隔 {{ autoPlayInterval }}s</span>
-        <span>切换效果 滑动</span>
+        <span>间隔 {{ autoPlayInterval }}s</span>
+        <span>{{ activeTab }} {{ currentPage }}/{{ totalPages }}</span>
       </div>
     </footer>
   </div>
@@ -217,7 +223,7 @@ export default {
       autoPlay: true,
       autoPlayInterval: 15,
       stats: {},
-      channelColors: ['#6366f1', '#ec4899', '#f59e0b', '#06b6d4', '#10b981'],
+      channelColors: ['#00d4ff', '#a78bfa', '#fbbf24', '#34d399', '#f472b6'],
       charts: []
     }
   },
@@ -227,10 +233,10 @@ export default {
     overview() {
       const s = this.stats
       return [
-        { label: '销售额（元）', value: s.totalAmount ? s.totalAmount + '万' : '8,756.32万', change: '+8.6%', icon: 'el-icon-money', bg: 'linear-gradient(135deg,#6366f1,#818cf8)' },
-        { label: '订单量（笔）', value: s.totalOrders || '23,856', change: '+6.3%', icon: 'el-icon-s-order', bg: 'linear-gradient(135deg,#06b6d4,#22d3ee)' },
+        { label: '销售额（元）', value: s.totalAmount ? s.totalAmount + '万' : '8,756.32万', change: '+8.6%', icon: 'el-icon-money', bg: 'linear-gradient(135deg,#0ea5e9,#00d4ff)' },
+        { label: '订单量（笔）', value: s.totalOrders || '23,856', change: '+6.3%', icon: 'el-icon-s-order', bg: 'linear-gradient(135deg,#8b5cf6,#a78bfa)' },
         { label: '客单价（元）', value: s.avgPrice || '987.12', change: '+5.6%', icon: 'el-icon-user', bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)' },
-        { label: '转化率', value: (s.convertRate || '3.62') + '%', change: '+0.42pt', icon: 'el-icon-data-line', bg: 'linear-gradient(135deg,#ec4899,#f472b6)' }
+        { label: '转化率', value: (s.convertRate || '3.62') + '%', change: '+0.42pt', icon: 'el-icon-data-line', bg: 'linear-gradient(135deg,#10b981,#34d399)' }
       ]
     },
     topExhibitions() {
@@ -264,11 +270,9 @@ export default {
   },
   watch: {
     activeTab() {
-      // 等待 v-if 切换 + transition(out-in 0.4s) 完成后再初始化图表
       clearTimeout(this._tabTimer)
       this._tabTimer = setTimeout(() => {
         this.initTabCharts()
-        // resize所有已存在的图表
         this.charts.forEach(c => {
           try { c.resize() } catch(e) {}
         })
@@ -279,9 +283,7 @@ export default {
     this.updateTime()
     this.timer = setInterval(this.updateTime, 1000)
     this.startAutoPlay()
-    // 立即用默认数据渲染图表，不等待API
     this.$nextTick(() => this.initTabCharts())
-    // 后台加载数据，成功后更新图表
     this.loadDataAsync()
     window.addEventListener('resize', this.handleResize)
   },
@@ -294,7 +296,6 @@ export default {
   },
   methods: {
     loadDataAsync() {
-      // 3秒超时，不阻塞页面渲染
       const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
       Promise.race([getStats(), timeout]).then(data => {
         this.stats = data
@@ -303,9 +304,7 @@ export default {
         console.warn('数据加载超时，使用默认数据')
       })
     },
-    switchTab(tab) {
-      this.activeTab = tab
-    },
+    switchTab(tab) { this.activeTab = tab },
     prevTab() {
       const idx = this.tabs.indexOf(this.activeTab)
       this.activeTab = this.tabs[(idx - 1 + this.tabs.length) % this.tabs.length]
@@ -325,17 +324,10 @@ export default {
       if (!document.fullscreenElement) el.requestFullscreen && el.requestFullscreen()
       else document.exitFullscreen && document.exitFullscreen()
     },
-    handleResize() {
-      this.charts.forEach(c => c && c.resize())
-    },
-    sparkPoints(arr) {
-      const data = (arr || []).map((v, i) => [i * 10, 30 - v / 5].join(','))
-      return data.join(' ')
-    },
+    handleResize() { this.charts.forEach(c => c && c.resize()) },
     makeChart(ref) {
       const el = this.$refs[ref]
       if (!el) return null
-      // Clean up stale chart instances (DOM may have been destroyed by v-if)
       this.charts = this.charts.filter(c => {
         if (!c || !c.getDom() || !document.contains(c.getDom())) {
           try { c.dispose() } catch(e) {}
@@ -349,40 +341,45 @@ export default {
       this.charts.push(chart)
       return chart
     },
-
     initTabCharts() {
-      if (this.activeTab === '销售') {
-        this.initTrendChart()
-        this.initChannelChart()
-      } else if (this.activeTab === '用户') {
-        this.initUserCharts()
-      } else if (this.activeTab === '商品') {
-        this.initProductCharts()
-      } else if (this.activeTab === '订单') {
-        this.initOrderCharts()
-      } else if (this.activeTab === '财务') {
-        this.initFinanceCharts()
+      if (this.activeTab === '销售') { this.initTrendChart(); this.initChannelChart() }
+      else if (this.activeTab === '用户') { this.initUserCharts() }
+      else if (this.activeTab === '商品') { this.initProductCharts() }
+      else if (this.activeTab === '订单') { this.initOrderCharts() }
+      else if (this.activeTab === '财务') { this.initFinanceCharts() }
+    },
+
+    // ===== 图表配色主题 =====
+    chartTheme() {
+      return {
+        axisLine: '#2a3a5e',
+        axisLabel: '#6b8ab5',
+        splitLine: '#1a2744',
+        tooltipBg: 'rgba(8,18,46,0.95)',
+        tooltipBorder: '#1e3a5f',
+        colors: ['#00d4ff','#a78bfa','#fbbf24','#34d399','#f472b6','#0ea5e9','#8b5cf6']
       }
     },
 
     initTrendChart() {
       const chart = this.makeChart('trendChart')
       if (!chart) return
+      const t = this.chartTheme()
       const x = (this.stats.amountTrend || []).map(i => i.date)
       const y1 = (this.stats.amountTrend || []).map(i => i.value * 1000)
       const y2 = y1.map(v => v * 0.9)
       chart.setOption({
         grid: { top: 30, right: 20, bottom: 30, left: 50, containLabel: true },
-        tooltip: { trigger: 'axis', backgroundColor: 'rgba(15,23,42,0.9)', borderColor: '#1e3a5f', textStyle: { color: '#e2e8f0' } },
-        xAxis: { type: 'category', data: x.length ? x : ['06-19','06-20','06-21','06-22','06-23','06-24','06-25'], axisLine: { lineStyle: { color: '#4c5b70' } }, axisLabel: { color: '#8fa2b5' }, axisTick: { show: false } },
-        yAxis: { type: 'value', splitLine: { lineStyle: { color: '#1f2d3d', type: 'dashed' } }, axisLabel: { color: '#8fa2b5', formatter: v => v >= 1000 ? (v/1000) + 'k' : v }, axisLine: { show: false } },
+        tooltip: { trigger: 'axis', backgroundColor: t.tooltipBg, borderColor: t.tooltipBorder, textStyle: { color: '#e2e8f0', fontSize: 12 } },
+        xAxis: { type: 'category', data: x.length ? x : ['06-19','06-20','06-21','06-22','06-23','06-24','06-25'], axisLine: { lineStyle: { color: t.axisLine } }, axisLabel: { color: t.axisLabel }, axisTick: { show: false } },
+        yAxis: { type: 'value', splitLine: { lineStyle: { color: t.splitLine, type: 'dashed' } }, axisLabel: { color: t.axisLabel, formatter: v => v >= 1000 ? (v/1000) + 'k' : v }, axisLine: { show: false } },
         series: [
           { name: '销售额', type: 'line', smooth: true, data: y1.length ? y1 : [120000,220000,380000,520000,680000,850000,920000],
-            lineStyle: { color: '#6366f1', width: 3, shadowColor: 'rgba(99,102,241,0.5)', shadowBlur: 12 },
-            areaStyle: { color: { type: 'linear', x:0,y:0,x2:0,y2:1, colorStops:[{offset:0,color:'rgba(99,102,241,0.4)'},{offset:1,color:'rgba(99,102,241,0)'}] } },
-            itemStyle: { color: '#6366f1' }, symbolSize: 6 },
+            lineStyle: { color: '#00d4ff', width: 3, shadowColor: 'rgba(0,212,255,0.5)', shadowBlur: 12 },
+            areaStyle: { color: { type: 'linear', x:0,y:0,x2:0,y2:1, colorStops:[{offset:0,color:'rgba(0,212,255,0.25)'},{offset:1,color:'rgba(0,212,255,0)'}] } },
+            itemStyle: { color: '#00d4ff' }, symbolSize: 6 },
           { name: '较昨日', type: 'line', smooth: true, data: y2.length ? y2 : [110000,200000,340000,480000,600000,720000,800000],
-            lineStyle: { color: '#ec4899', width: 2, type: 'dashed' }, itemStyle: { color: '#ec4899' }, symbolSize: 4 }
+            lineStyle: { color: '#a78bfa', width: 2, type: 'dashed' }, itemStyle: { color: '#a78bfa' }, symbolSize: 4 }
         ],
         animationDuration: 1200, animationEasing: 'cubicOut'
       })
@@ -391,12 +388,13 @@ export default {
     initChannelChart() {
       const chart = this.makeChart('channelChart')
       if (!chart) return
+      const t = this.chartTheme()
       const data = this.channelData.map((c, i) => ({ name: c.name, value: c.ratio, itemStyle: { color: this.channelColors[i] } }))
       chart.setOption({
-        tooltip: { trigger: 'item', backgroundColor: 'rgba(15,23,42,0.9)', borderColor: '#1e3a5f', textStyle: { color: '#e2e8f0' } },
+        tooltip: { trigger: 'item', backgroundColor: t.tooltipBg, borderColor: t.tooltipBorder, textStyle: { color: '#e2e8f0' } },
         series: [{ type: 'pie', radius: ['50%', '72%'], center: ['50%', '50%'], label: { show: false },
           emphasis: { label: { show: true, color: '#e2e8f0', fontWeight: 'bold' }, itemStyle: { shadowBlur: 20, shadowColor: 'rgba(0,0,0,0.3)' } },
-          itemStyle: { borderRadius: 4, borderColor: '#020617', borderWidth: 2 },
+          itemStyle: { borderRadius: 6, borderColor: '#0c1a3a', borderWidth: 3 },
           data: data.length ? data : [{value:37,name:'展会现场'},{value:25,name:'线上商城'},{value:18,name:'代理分销'},{value:12,name:'企业直销'},{value:8,name:'其他'}]
         }],
         animationDuration: 1200
@@ -404,26 +402,27 @@ export default {
     },
 
     initUserCharts() {
+      const t = this.chartTheme()
       const trend = this.makeChart('userTrendChart')
       if (trend) {
         trend.setOption({
           grid: { top: 20, right: 20, bottom: 25, left: 40 },
-          tooltip: { trigger: 'axis' },
-          xAxis: { type: 'category', data: ['周一','周二','周三','周四','周五','周六','周日'], axisLabel: { color: '#8fa2b5' }, axisLine: { lineStyle: { color: '#334155' } } },
-          yAxis: { type: 'value', splitLine: { lineStyle: { color: '#1f2d3d', type: 'dashed' } }, axisLabel: { color: '#8fa2b5' } },
+          tooltip: { trigger: 'axis', backgroundColor: t.tooltipBg, borderColor: t.tooltipBorder, textStyle: { color: '#e2e8f0' } },
+          xAxis: { type: 'category', data: ['周一','周二','周三','周四','周五','周六','周日'], axisLabel: { color: t.axisLabel }, axisLine: { lineStyle: { color: t.axisLine } }, axisTick: { show: false } },
+          yAxis: { type: 'value', splitLine: { lineStyle: { color: t.splitLine, type: 'dashed' } }, axisLabel: { color: t.axisLabel } },
           series: [
-            { name: '新增用户', type: 'bar', data: [45,62,38,71,55,89,67], itemStyle: { color: new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#818cf8'},{offset:1,color:'#6366f1'}]), borderRadius: [4,4,0,0] }, barWidth: '40%' },
-            { name: '活跃用户', type: 'line', smooth: true, data: [320,380,350,420,390,510,480], lineStyle: { color: '#ec4899', width: 2 }, itemStyle: { color: '#ec4899' }, areaStyle: { color: { type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:'rgba(236,72,153,0.3)'},{offset:1,color:'rgba(236,72,153,0)'}] } } }
+            { name: '新增用户', type: 'bar', data: [45,62,38,71,55,89,67], itemStyle: { color: new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#00d4ff'},{offset:1,color:'#0ea5e9'}]), borderRadius: [6,6,0,0] }, barWidth: '40%' },
+            { name: '活跃用户', type: 'line', smooth: true, data: [320,380,350,420,390,510,480], lineStyle: { color: '#a78bfa', width: 2.5 }, itemStyle: { color: '#a78bfa' }, areaStyle: { color: { type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:'rgba(167,139,250,0.2)'},{offset:1,color:'rgba(167,139,250,0)'}] } } }
           ]
         })
       }
       const source = this.makeChart('userSourceChart')
       if (source) {
         source.setOption({
-          tooltip: { trigger: 'item' },
-          color: ['#6366f1','#ec4899','#f59e0b','#06b6d4','#10b981'],
-          series: [{ type: 'pie', radius: '65%', roseType: 'area', label: { color: '#8fa2b5', fontSize: 11 },
-            itemStyle: { borderRadius: 5, borderColor: '#020617', borderWidth: 2 },
+          tooltip: { trigger: 'item', backgroundColor: t.tooltipBg, borderColor: t.tooltipBorder, textStyle: { color: '#e2e8f0' } },
+          color: t.colors,
+          series: [{ type: 'pie', radius: '65%', roseType: 'area', label: { color: t.axisLabel, fontSize: 11 },
+            itemStyle: { borderRadius: 6, borderColor: '#0c1a3a', borderWidth: 3 },
             data: [{name:'官网',value:35},{name:'推广',value:28},{name:'转介绍',value:22},{name:'展会',value:18},{name:'其他',value:12}]
           }]
         })
@@ -434,36 +433,37 @@ export default {
         const vals = [98,87,76,72,68,65,61,58,52,48]
         rank.setOption({
           grid: { top: 10, right: 80, bottom: 10, left: 10, containLabel: true },
-          tooltip: { trigger: 'axis' },
-          xAxis: { type: 'value', splitLine: { lineStyle: { color: '#1f2d3d', type: 'dashed' } }, axisLabel: { color: '#8fa2b5' } },
-          yAxis: { type: 'category', data: names.reverse(), axisLabel: { color: '#e2e8f0', fontSize: 12 }, axisLine: { show: false }, axisTick: { show: false } },
-          series: [{ type: 'bar', data: vals.reverse().map((v,i) => ({value:v, itemStyle: { color: new echarts.graphic.LinearGradient(0,0,1,0,[{offset:0,color:['#06b6d4','#6366f1','#ec4899','#f59e0b','#10b981'][i%5]},{offset:1,color:['#22d3ee','#818cf8','#f472b6','#fbbf24','#34d399'][i%5]}]), borderRadius:[0,4,4,0] }})), barWidth: '50%',
-            label: { show: true, position: 'right', color: '#e2e8f0', fontSize: 12 }
+          tooltip: { trigger: 'axis', backgroundColor: t.tooltipBg, borderColor: t.tooltipBorder, textStyle: { color: '#e2e8f0' } },
+          xAxis: { type: 'value', splitLine: { lineStyle: { color: t.splitLine, type: 'dashed' } }, axisLabel: { color: t.axisLabel } },
+          yAxis: { type: 'category', data: names.reverse(), axisLabel: { color: '#c8d8ec', fontSize: 12 }, axisLine: { show: false }, axisTick: { show: false } },
+          series: [{ type: 'bar', data: vals.reverse().map((v,i) => ({value:v, itemStyle: { color: new echarts.graphic.LinearGradient(0,0,1,0,[{offset:0,color:t.colors[i%7]},{offset:1,color:t.colors[(i+1)%7]}]), borderRadius:[0,6,6,0] }})), barWidth: '50%',
+            label: { show: true, position: 'right', color: '#c8d8ec', fontSize: 12 }
           }]
         })
       }
     },
 
     initProductCharts() {
+      const t = this.chartTheme()
       const rank = this.makeChart('productRankChart')
       if (rank) {
         rank.setOption({
           grid: { top: 10, right: 20, bottom: 25, left: 40 },
-          tooltip: { trigger: 'axis' },
-          xAxis: { type: 'category', data: ['CRM标准版','CRM高级版','数据大屏','实施服务','定制开发'], axisLabel: { color: '#8fa2b5', rotate: 15 }, axisLine: { lineStyle: { color: '#334155' } } },
-          yAxis: { type: 'value', splitLine: { lineStyle: { color: '#1f2d3d', type: 'dashed' } }, axisLabel: { color: '#8fa2b5' } },
-          series: [{ type: 'bar', data: [156,98,72,45,32].map((v,i) => ({value:v, itemStyle:{color:['#6366f1','#818cf8','#ec4899','#f59e0b','#06b6d4'][i]}})), barWidth: '45%', itemStyle: { borderRadius: [5,5,0,0] },
-            label: { show: true, position: 'top', color: '#e2e8f0', fontSize: 12 }
+          tooltip: { trigger: 'axis', backgroundColor: t.tooltipBg, borderColor: t.tooltipBorder, textStyle: { color: '#e2e8f0' } },
+          xAxis: { type: 'category', data: ['CRM标准版','CRM高级版','数据大屏','实施服务','定制开发'], axisLabel: { color: t.axisLabel, rotate: 15 }, axisLine: { lineStyle: { color: t.axisLine } }, axisTick: { show: false } },
+          yAxis: { type: 'value', splitLine: { lineStyle: { color: t.splitLine, type: 'dashed' } }, axisLabel: { color: t.axisLabel } },
+          series: [{ type: 'bar', data: [156,98,72,45,32].map((v,i) => ({value:v, itemStyle:{color:t.colors[i]}})), barWidth: '45%', itemStyle: { borderRadius: [6,6,0,0] },
+            label: { show: true, position: 'top', color: '#c8d8ec', fontSize: 12 }
           }]
         })
       }
       const cat = this.makeChart('productCatChart')
       if (cat) {
         cat.setOption({
-          tooltip: { trigger: 'item' },
-          color: ['#6366f1','#ec4899','#f59e0b','#06b6d4','#10b981'],
-          series: [{ type: 'pie', radius: ['40%','70%'], label: { color: '#8fa2b5' },
-            itemStyle: { borderRadius: 5, borderColor: '#020617', borderWidth: 2 },
+          tooltip: { trigger: 'item', backgroundColor: t.tooltipBg, borderColor: t.tooltipBorder, textStyle: { color: '#e2e8f0' } },
+          color: t.colors,
+          series: [{ type: 'pie', radius: ['40%','70%'], label: { color: t.axisLabel },
+            itemStyle: { borderRadius: 6, borderColor: '#0c1a3a', borderWidth: 3 },
             data: [{name:'软件',value:68},{name:'服务',value:18},{name:'硬件',value:8},{name:'培训',value:4},{name:'其他',value:2}]
           }]
         })
@@ -472,39 +472,40 @@ export default {
       if (stock) {
         stock.setOption({
           grid: { top: 30, right: 20, bottom: 30, left: 50 },
-          tooltip: { trigger: 'axis' },
-          legend: { data: ['入库','出库','库存'], top: 0, textStyle: { color: '#8fa2b5' } },
-          xAxis: { type: 'category', data: ['1月','2月','3月','4月','5月','6月'], axisLabel: { color: '#8fa2b5' }, axisLine: { lineStyle: { color: '#334155' } } },
-          yAxis: { type: 'value', splitLine: { lineStyle: { color: '#1f2d3d', type: 'dashed' } }, axisLabel: { color: '#8fa2b5' } },
+          tooltip: { trigger: 'axis', backgroundColor: t.tooltipBg, borderColor: t.tooltipBorder, textStyle: { color: '#e2e8f0' } },
+          legend: { data: ['入库','出库','库存'], top: 0, textStyle: { color: t.axisLabel } },
+          xAxis: { type: 'category', data: ['1月','2月','3月','4月','5月','6月'], axisLabel: { color: t.axisLabel }, axisLine: { lineStyle: { color: t.axisLine } }, axisTick: { show: false } },
+          yAxis: { type: 'value', splitLine: { lineStyle: { color: t.splitLine, type: 'dashed' } }, axisLabel: { color: t.axisLabel } },
           series: [
-            { name: '入库', type: 'bar', data: [120,150,90,180,130,160], itemStyle: { color: '#6366f1', borderRadius: [4,4,0,0] }, barWidth: '25%' },
-            { name: '出库', type: 'bar', data: [100,130,110,160,120,140], itemStyle: { color: '#ec4899', borderRadius: [4,4,0,0] }, barWidth: '25%' },
-            { name: '库存', type: 'line', smooth: true, data: [500,520,500,520,530,550], lineStyle: { color: '#f59e0b', width: 2 }, itemStyle: { color: '#f59e0b' }, areaStyle: { color: { type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:'rgba(245,158,11,0.2)'},{offset:1,color:'rgba(245,158,11,0)'}] } } }
+            { name: '入库', type: 'bar', data: [120,150,90,180,130,160], itemStyle: { color: '#00d4ff', borderRadius: [4,4,0,0] }, barWidth: '25%' },
+            { name: '出库', type: 'bar', data: [100,130,110,160,120,140], itemStyle: { color: '#a78bfa', borderRadius: [4,4,0,0] }, barWidth: '25%' },
+            { name: '库存', type: 'line', smooth: true, data: [500,520,500,520,530,550], lineStyle: { color: '#fbbf24', width: 2.5 }, itemStyle: { color: '#fbbf24' }, areaStyle: { color: { type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:'rgba(251,191,36,0.15)'},{offset:1,color:'rgba(251,191,36,0)'}] } } }
           ]
         })
       }
     },
 
     initOrderCharts() {
+      const t = this.chartTheme()
       const trend = this.makeChart('orderTrendChart')
       if (trend) {
         trend.setOption({
           grid: { top: 20, right: 20, bottom: 25, left: 40 },
-          tooltip: { trigger: 'axis' },
-          xAxis: { type: 'category', data: ['周一','周二','周三','周四','周五','周六','周日'], axisLabel: { color: '#8fa2b5' }, axisLine: { lineStyle: { color: '#334155' } } },
-          yAxis: { type: 'value', splitLine: { lineStyle: { color: '#1f2d3d', type: 'dashed' } }, axisLabel: { color: '#8fa2b5' } },
+          tooltip: { trigger: 'axis', backgroundColor: t.tooltipBg, borderColor: t.tooltipBorder, textStyle: { color: '#e2e8f0' } },
+          xAxis: { type: 'category', data: ['周一','周二','周三','周四','周五','周六','周日'], axisLabel: { color: t.axisLabel }, axisLine: { lineStyle: { color: t.axisLine } }, axisTick: { show: false } },
+          yAxis: { type: 'value', splitLine: { lineStyle: { color: t.splitLine, type: 'dashed' } }, axisLabel: { color: t.axisLabel } },
           series: [
-            { type: 'bar', data: [28,35,22,41,38,52,45].map((v,i) => ({value:v, itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#818cf8'},{offset:1,color:'#6366f1'}])}})), barWidth: '40%', itemStyle: { borderRadius: [5,5,0,0] } }
+            { type: 'bar', data: [28,35,22,41,38,52,45].map((v,i) => ({value:v, itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#00d4ff'},{offset:1,color:'#0ea5e9'}])}})), barWidth: '40%', itemStyle: { borderRadius: [6,6,0,0] } }
           ]
         })
       }
       const status = this.makeChart('orderStatusChart')
       if (status) {
         status.setOption({
-          tooltip: { trigger: 'item' },
-          color: ['#6366f1','#10b981','#f59e0b','#06b6d4','#ec4899','#94a3b8'],
-          series: [{ type: 'pie', radius: ['40%','70%'], label: { color: '#8fa2b5', fontSize: 11 },
-            itemStyle: { borderRadius: 5, borderColor: '#020617', borderWidth: 2 },
+          tooltip: { trigger: 'item', backgroundColor: t.tooltipBg, borderColor: t.tooltipBorder, textStyle: { color: '#e2e8f0' } },
+          color: t.colors,
+          series: [{ type: 'pie', radius: ['40%','70%'], label: { color: t.axisLabel, fontSize: 11 },
+            itemStyle: { borderRadius: 6, borderColor: '#0c1a3a', borderWidth: 3 },
             data: [{name:'待确认',value:18},{name:'已确认',value:25},{name:'生产中',value:15},{name:'已发货',value:22},{name:'已完成',value:38},{name:'已取消',value:5}]
           }]
         })
@@ -513,14 +514,14 @@ export default {
       if (amount) {
         amount.setOption({
           grid: { top: 30, right: 20, bottom: 30, left: 50 },
-          tooltip: { trigger: 'axis', formatter: p => p[0].name + '<br/>金额: ¥' + p[0].value.toLocaleString() },
-          xAxis: { type: 'category', data: ['周一','周二','周三','周四','周五','周六','周日'], axisLabel: { color: '#8fa2b5' }, axisLine: { lineStyle: { color: '#334155' } } },
-          yAxis: { type: 'value', splitLine: { lineStyle: { color: '#1f2d3d', type: 'dashed' } }, axisLabel: { color: '#8fa2b5', formatter: v => v >= 10000 ? (v/10000) + 'w' : v } },
+          tooltip: { trigger: 'axis', backgroundColor: t.tooltipBg, borderColor: t.tooltipBorder, textStyle: { color: '#e2e8f0' }, formatter: p => p[0].name + '<br/>金额: ¥' + p[0].value.toLocaleString() },
+          xAxis: { type: 'category', data: ['周一','周二','周三','周四','周五','周六','周日'], axisLabel: { color: t.axisLabel }, axisLine: { lineStyle: { color: t.axisLine } }, axisTick: { show: false } },
+          yAxis: { type: 'value', splitLine: { lineStyle: { color: t.splitLine, type: 'dashed' } }, axisLabel: { color: t.axisLabel, formatter: v => v >= 10000 ? (v/10000) + 'w' : v } },
           series: [
             { type: 'line', smooth: true, data: [32000,45000,28000,62000,51000,78000,65000],
-              lineStyle: { color: '#ec4899', width: 3, shadowColor: 'rgba(236,72,153,0.4)', shadowBlur: 12 },
-              itemStyle: { color: '#ec4899', borderWidth: 3, borderColor: '#fff' }, symbolSize: 8,
-              areaStyle: { color: { type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:'rgba(236,72,153,0.35)'},{offset:1,color:'rgba(236,72,153,0)'}] } }
+              lineStyle: { color: '#f472b6', width: 3, shadowColor: 'rgba(244,114,182,0.4)', shadowBlur: 12 },
+              itemStyle: { color: '#f472b6', borderWidth: 3, borderColor: '#1a1040' }, symbolSize: 8,
+              areaStyle: { color: { type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:'rgba(244,114,182,0.25)'},{offset:1,color:'rgba(244,114,182,0)'}] } }
             }
           ]
         })
@@ -528,25 +529,26 @@ export default {
     },
 
     initFinanceCharts() {
+      const t = this.chartTheme()
       const income = this.makeChart('incomeTrendChart')
       if (income) {
         income.setOption({
           grid: { top: 20, right: 20, bottom: 25, left: 50 },
-          tooltip: { trigger: 'axis' },
-          xAxis: { type: 'category', data: ['1月','2月','3月','4月','5月','6月'], axisLabel: { color: '#8fa2b5' }, axisLine: { lineStyle: { color: '#334155' } } },
-          yAxis: { type: 'value', splitLine: { lineStyle: { color: '#1f2d3d', type: 'dashed' } }, axisLabel: { color: '#8fa2b5', formatter: v => (v/10000) + 'w' } },
+          tooltip: { trigger: 'axis', backgroundColor: t.tooltipBg, borderColor: t.tooltipBorder, textStyle: { color: '#e2e8f0' } },
+          xAxis: { type: 'category', data: ['1月','2月','3月','4月','5月','6月'], axisLabel: { color: t.axisLabel }, axisLine: { lineStyle: { color: t.axisLine } }, axisTick: { show: false } },
+          yAxis: { type: 'value', splitLine: { lineStyle: { color: t.splitLine, type: 'dashed' } }, axisLabel: { color: t.axisLabel, formatter: v => (v/10000) + 'w' } },
           series: [
-            { type: 'bar', data: [180000,220000,195000,260000,310000,285000].map((v,i) => ({value:v, itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#34d399'},{offset:1,color:'#10b981'}])}})), barWidth: '40%', itemStyle: { borderRadius: [5,5,0,0] } }
+            { type: 'bar', data: [180000,220000,195000,260000,310000,285000].map((v,i) => ({value:v, itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#34d399'},{offset:1,color:'#10b981'}])}})), barWidth: '40%', itemStyle: { borderRadius: [6,6,0,0] } }
           ]
         })
       }
       const expense = this.makeChart('expenseChart')
       if (expense) {
         expense.setOption({
-          tooltip: { trigger: 'item' },
-          color: ['#6366f1','#ec4899','#f59e0b','#06b6d4','#10b981'],
-          series: [{ type: 'pie', radius: '65%', label: { color: '#8fa2b5' },
-            itemStyle: { borderRadius: 5, borderColor: '#020617', borderWidth: 2 },
+          tooltip: { trigger: 'item', backgroundColor: t.tooltipBg, borderColor: t.tooltipBorder, textStyle: { color: '#e2e8f0' } },
+          color: t.colors,
+          series: [{ type: 'pie', radius: '65%', label: { color: t.axisLabel },
+            itemStyle: { borderRadius: 6, borderColor: '#0c1a3a', borderWidth: 3 },
             data: [{name:'人力成本',value:42},{name:'运营费用',value:25},{name:'营销推广',value:18},{name:'技术投入',value:10},{name:'其他',value:5}]
           }]
         })
@@ -555,14 +557,14 @@ export default {
       if (profit) {
         profit.setOption({
           grid: { top: 30, right: 20, bottom: 30, left: 50 },
-          tooltip: { trigger: 'axis' },
-          legend: { data: ['收入','支出','利润'], top: 0, textStyle: { color: '#8fa2b5' } },
-          xAxis: { type: 'category', data: ['1月','2月','3月','4月','5月','6月'], axisLabel: { color: '#8fa2b5' }, axisLine: { lineStyle: { color: '#334155' } } },
-          yAxis: { type: 'value', splitLine: { lineStyle: { color: '#1f2d3d', type: 'dashed' } }, axisLabel: { color: '#8fa2b5', formatter: v => (v/10000) + 'w' } },
+          tooltip: { trigger: 'axis', backgroundColor: t.tooltipBg, borderColor: t.tooltipBorder, textStyle: { color: '#e2e8f0' } },
+          legend: { data: ['收入','支出','利润'], top: 0, textStyle: { color: t.axisLabel } },
+          xAxis: { type: 'category', data: ['1月','2月','3月','4月','5月','6月'], axisLabel: { color: t.axisLabel }, axisLine: { lineStyle: { color: t.axisLine } }, axisTick: { show: false } },
+          yAxis: { type: 'value', splitLine: { lineStyle: { color: t.splitLine, type: 'dashed' } }, axisLabel: { color: t.axisLabel, formatter: v => (v/10000) + 'w' } },
           series: [
-            { name: '收入', type: 'bar', data: [180000,220000,195000,260000,310000,285000], itemStyle: { color: '#6366f1', borderRadius: [4,4,0,0] }, barWidth: '20%' },
-            { name: '支出', type: 'bar', data: [120000,140000,130000,160000,180000,170000], itemStyle: { color: '#ec4899', borderRadius: [4,4,0,0] }, barWidth: '20%' },
-            { name: '利润', type: 'line', smooth: true, data: [60000,80000,65000,100000,130000,115000], lineStyle: { color: '#10b981', width: 3 }, itemStyle: { color: '#10b981' }, areaStyle: { color: { type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:'rgba(16,185,129,0.3)'},{offset:1,color:'rgba(16,185,129,0)'}] } }, symbolSize: 6 }
+            { name: '收入', type: 'bar', data: [180000,220000,195000,260000,310000,285000], itemStyle: { color: '#00d4ff', borderRadius: [5,5,0,0] }, barWidth: '20%' },
+            { name: '支出', type: 'bar', data: [120000,140000,130000,160000,180000,170000], itemStyle: { color: '#a78bfa', borderRadius: [5,5,0,0] }, barWidth: '20%' },
+            { name: '利润', type: 'line', smooth: true, data: [60000,80000,65000,100000,130000,115000], lineStyle: { color: '#34d399', width: 3 }, itemStyle: { color: '#34d399' }, areaStyle: { color: { type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:'rgba(52,211,153,0.2)'},{offset:1,color:'rgba(52,211,153,0)'}] } }, symbolSize: 6 }
           ]
         })
       }
@@ -572,97 +574,208 @@ export default {
 </script>
 
 <style scoped>
-.big-screen { width: 100vw; height: 100vh; background: #020617; color: #fff; overflow: hidden; display: flex; flex-direction: column; font-family: 'Microsoft YaHei', sans-serif; }
-.screen-header { height: 60px; min-height: 60px; background: linear-gradient(90deg, rgba(8,26,56,0.95), rgba(13,42,90,0.95), rgba(8,26,56,0.95)); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 2px solid #1e3a5f; position: relative; }
-.title { font-size: 22px; font-weight: bold; margin: 0; background: linear-gradient(90deg, #fff, #409EFF); -webkit-background-clip: text; color: transparent; }
-.header-left { display: flex; align-items: center; gap: 12px; }
-.switch-btn { background: rgba(64,158,255,0.2); border-color: #409EFF; color: #409EFF; font-size: 12px; }
-.header-tabs { position: absolute; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; }
-.tab-item { padding: 6px 18px; border-radius: 4px; cursor: pointer; color: #8fa2b5; background: rgba(255,255,255,0.05); transition: all 0.3s ease; font-size: 13px; }
-.tab-item:hover { background: rgba(64,158,255,0.15); color: #c0d0e0; }
-.tab-item.active { background: linear-gradient(180deg, rgba(64,158,255,0.3), rgba(64,158,255,0.1)); color: #fff; border-bottom: 2px solid #409EFF; box-shadow: 0 0 15px rgba(64,158,255,0.4); }
-.header-right { display: flex; align-items: center; gap: 16px; color: #8fa2b5; font-size: 13px; }
-.time { font-size: 14px; }
-.fullscreen { cursor: pointer; color: #409EFF; font-size: 13px; }
+/* ===== 全局 ===== */
+.big-screen {
+  width: 100vw; height: 100vh; overflow: hidden; display: flex; flex-direction: column;
+  background: #070d24;
+  color: #e2e8f0;
+  font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  position: relative;
+}
 
-.screen-main { flex: 1; padding: 15px; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+/* ===== 背景装饰 ===== */
+.bg-decoration { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 0; }
+.bg-grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+.bg-glow { position: absolute; border-radius: 50%; filter: blur(120px); opacity: 0.15; }
+.bg-glow-1 { width: 600px; height: 600px; background: #0ea5e9; top: -200px; right: -100px; }
+.bg-glow-2 { width: 500px; height: 500px; background: #8b5cf6; bottom: -150px; left: -100px; }
 
-/* Tab 切换动画 */
+/* ===== 头部 ===== */
+.screen-header {
+  height: 64px; min-height: 64px; position: relative; z-index: 1;
+  background: linear-gradient(180deg, rgba(7,13,36,0.98) 0%, rgba(10,20,50,0.95) 100%);
+  display: flex; align-items: center; justify-content: space-between; padding: 0 24px;
+  border-bottom: 1px solid rgba(0,212,255,0.15);
+}
+.screen-header::after {
+  content: ''; position: absolute; bottom: -1px; left: 50%; transform: translateX(-50%);
+  width: 40%; height: 2px;
+  background: linear-gradient(90deg, transparent, #00d4ff, transparent);
+}
+.header-deco-left, .header-deco-right {
+  position: absolute; top: 50%; width: 80px; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0,212,255,0.4));
+}
+.header-deco-left { left: 220px; }
+.header-deco-right { right: 220px; transform: rotate(180deg); }
+
+.title {
+  font-size: 22px; font-weight: 700; margin: 0; letter-spacing: 3px;
+  background: linear-gradient(135deg, #00d4ff 0%, #a78bfa 50%, #00d4ff 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text; color: transparent;
+  animation: titleShine 4s linear infinite;
+}
+@keyframes titleShine { to { background-position: 200% center; } }
+
+.header-left { display: flex; align-items: center; gap: 14px; z-index: 1; }
+.switch-btn {
+  background: rgba(0,212,255,0.1); border: 1px solid rgba(0,212,255,0.3);
+  color: #00d4ff; font-size: 11px; padding: 5px 14px;
+}
+.switch-btn:hover { background: rgba(0,212,255,0.2); border-color: #00d4ff; color: #00d4ff; }
+
+.header-tabs { position: absolute; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; z-index: 1; }
+.tab-item {
+  padding: 7px 20px; border-radius: 6px; cursor: pointer; color: #6b8ab5;
+  background: rgba(255,255,255,0.03); transition: all 0.3s ease; font-size: 13px;
+  border: 1px solid transparent;
+}
+.tab-item:hover { background: rgba(0,212,255,0.08); color: #a0c4e8; border-color: rgba(0,212,255,0.15); }
+.tab-item.active {
+  background: linear-gradient(135deg, rgba(0,212,255,0.15), rgba(167,139,250,0.1));
+  color: #fff; border-color: rgba(0,212,255,0.4);
+  box-shadow: 0 0 20px rgba(0,212,255,0.15), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.header-right { display: flex; align-items: center; gap: 18px; color: #6b8ab5; font-size: 13px; z-index: 1; }
+.time { font-size: 13px; font-variant-numeric: tabular-nums; }
+.fullscreen { cursor: pointer; color: #00d4ff; font-size: 13px; transition: color 0.2s; }
+.fullscreen:hover { color: #5ce4ff; }
+
+/* ===== 主体 ===== */
+.screen-main { flex: 1; padding: 14px 18px; display: flex; flex-direction: column; min-height: 0; overflow: hidden; position: relative; z-index: 1; }
+
 .fade-slide-enter-active, .fade-slide-leave-active { transition: all 0.4s ease; }
 .fade-slide-enter { opacity: 0; transform: translateX(30px); }
 .fade-slide-leave-to { opacity: 0; transform: translateX(-30px); }
 
 .tab-content { display: flex; flex-direction: column; gap: 12px; height: 100%; }
 
-.panel { background: rgba(10,28,56,0.6); border: 1px solid #1e3a5f; border-radius: 8px; padding: 12px; box-shadow: 0 0 20px rgba(64,158,255,0.08); position: relative; }
-.panel::before, .panel::after { content: ''; position: absolute; width: 10px; height: 10px; border: 2px solid #409EFF; }
-.panel::before { top: -1px; left: -1px; border-right: none; border-bottom: none; border-top-left-radius: 8px; }
-.panel::after { bottom: -1px; right: -1px; border-left: none; border-top: none; border-bottom-right-radius: 8px; }
-.panel-title { display: flex; align-items: center; justify-content: space-between; color: #fff; font-size: 14px; font-weight: bold; margin-bottom: 10px; }
-.more { color: #409EFF; font-size: 12px; cursor: pointer; }
+/* ===== 面板 ===== */
+.panel {
+  background: linear-gradient(135deg, rgba(12,26,58,0.8) 0%, rgba(8,18,46,0.9) 100%);
+  border: 1px solid rgba(0,212,255,0.1);
+  border-radius: 10px; padding: 14px 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.03);
+  position: relative; backdrop-filter: blur(10px);
+}
+.panel::before {
+  content: ''; position: absolute; top: 0; left: 20px; right: 20px; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0,212,255,0.3), transparent);
+}
+.panel-title {
+  display: flex; align-items: center; justify-content: space-between;
+  color: #e2e8f0; font-size: 14px; font-weight: 600; margin-bottom: 12px;
+}
+.title-icon { color: #6b8ab5; font-weight: normal; }
+.more { color: #00d4ff; font-size: 12px; cursor: pointer; font-weight: normal; display: flex; align-items: center; gap: 3px; }
+.more:hover { color: #5ce4ff; }
 
-.top-section { display: flex; gap: 15px; flex-shrink: 0; }
+/* ===== 销售总览卡片 ===== */
+.top-section { display: flex; gap: 14px; flex-shrink: 0; }
 .sales-overview { flex: 2; }
-.overview-cards { display: flex; gap: 10px; }
-.ov-card { flex: 1; background: rgba(255,255,255,0.03); border-radius: 6px; padding: 10px; display: flex; align-items: center; gap: 10px; transition: all 0.3s; }
-.ov-card:hover { background: rgba(255,255,255,0.06); transform: translateY(-2px); }
-.ov-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #fff; flex-shrink: 0; }
-.ov-label { color: #8fa2b5; font-size: 11px; }
-.ov-value { font-size: 20px; font-weight: bold; margin: 2px 0; }
-.ov-change { font-size: 11px; }
-.ov-change.up { color: #67C23A; }
-.ov-change.down { color: #F56C6C; }
+.overview-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ov-card {
+  background: rgba(255,255,255,0.02); border-radius: 8px; padding: 12px;
+  display: flex; align-items: center; gap: 12px; transition: all 0.3s;
+  border: 1px solid rgba(255,255,255,0.04);
+}
+.ov-card:hover { background: rgba(0,212,255,0.04); border-color: rgba(0,212,255,0.15); transform: translateY(-2px); }
+.ov-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #fff; flex-shrink: 0; }
+.ov-label { color: #6b8ab5; font-size: 11px; }
+.ov-value { font-size: 20px; font-weight: 700; margin: 2px 0; color: #fff; font-variant-numeric: tabular-nums; }
+.ov-change { font-size: 11px; display: flex; align-items: center; gap: 2px; }
+.ov-change.up { color: #34d399; }
+.ov-change.down { color: #f87171; }
 
+/* ===== TOP5 表格 ===== */
 .top5-panel { flex: 1; overflow: hidden; }
 .top5-table { font-size: 12px; }
-.top5-table .th { display: flex; color: #8fa2b5; padding: 4px 0; border-bottom: 1px solid #1e3a5f; }
+.top5-table .th { display: flex; color: #6b8ab5; padding: 6px 0; border-bottom: 1px solid rgba(0,212,255,0.1); font-size: 11px; }
 .top5-table .th span, .top5-table .tr span { flex: 1; text-align: center; }
-.top5-table .tr { display: flex; padding: 6px 0; border-bottom: 1px solid rgba(30,58,95,0.4); align-items: center; transition: background 0.2s; }
-.top5-table .tr:hover { background: rgba(64,158,255,0.05); }
-.rank { display: inline-block; width: 16px; height: 16px; line-height: 16px; text-align: center; border-radius: 3px; font-size: 11px; margin-right: 6px; font-style: normal; background: #1e3a5f; }
-.rank1 { background: #F7BA2A; color: #000; }
-.rank2 { background: #C0C4CC; color: #000; }
-.rank3 { background: #E6A23C; color: #000; }
-.ratio-bar { width: 50px; height: 4px; background: #1e3a5f; border-radius: 2px; display: inline-block; margin-right: 6px; vertical-align: middle; }
-.ratio-bar span { display: block; height: 100%; background: linear-gradient(90deg, #6366f1, #818cf8); border-radius: 2px; }
+.top5-table .tr { display: flex; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.03); align-items: center; transition: background 0.2s; }
+.top5-table .tr:hover { background: rgba(0,212,255,0.04); }
+.amount-val { color: #fbbf24; font-weight: 600; }
+.rank { display: inline-block; width: 18px; height: 18px; line-height: 18px; text-align: center; border-radius: 4px; font-size: 11px; margin-right: 6px; font-style: normal; background: rgba(255,255,255,0.06); color: #6b8ab5; }
+.rank1 { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000; font-weight: 700; }
+.rank2 { background: linear-gradient(135deg, #a78bfa, #8b5cf6); color: #fff; font-weight: 700; }
+.rank3 { background: linear-gradient(135deg, #00d4ff, #0ea5e9); color: #fff; font-weight: 700; }
+.ratio-bar { width: 50px; height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; display: inline-block; margin-right: 6px; vertical-align: middle; }
+.ratio-bar span { display: block; height: 100%; background: linear-gradient(90deg, #00d4ff, #0ea5e9); border-radius: 2px; }
 
-.middle-section { display: flex; gap: 15px; flex: 1; min-height: 0; }
+/* ===== 图表区域 ===== */
+.middle-section { display: flex; gap: 14px; flex: 1; min-height: 0; }
 .trend-panel { flex: 1.3; }
 .channel-panel { flex: 1; }
-.legend { font-size: 11px; color: #8fa2b5; font-weight: normal; display: flex; align-items: center; gap: 12px; }
+.legend { font-size: 11px; color: #6b8ab5; font-weight: normal; display: flex; align-items: center; gap: 12px; }
 .legend .dot { width: 10px; height: 3px; display: inline-block; margin-right: 4px; }
-.legend .dot.blue { background: #6366f1; }
-.legend .dot.dashed { background: repeating-linear-gradient(90deg, #ec4899, #ec4899 4px, transparent 4px, transparent 6px); height: 2px; width: 14px; }
+.legend .dot.blue { background: #00d4ff; }
+.legend .dot.dashed { background: repeating-linear-gradient(90deg, #a78bfa, #a78bfa 4px, transparent 4px, transparent 6px); height: 2px; width: 14px; }
 .chart-box { width: 100%; height: 100%; min-height: 0; }
 .donut { height: 180px; }
 .channel-wrap { display: flex; height: calc(100% - 35px); }
-.channel-list { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 10px; padding-left: 8px; }
+.channel-list { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 12px; padding-left: 10px; }
 .channel-item { display: flex; align-items: center; font-size: 12px; }
 .channel-item .dot { width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; flex-shrink: 0; }
-.channel-item .name { flex: 1; color: #8fa2b5; }
-.channel-item .value { width: 70px; color: #fff; text-align: right; }
-.channel-item .ratio { width: 45px; color: #409EFF; text-align: right; }
+.channel-item .name { flex: 1; color: #6b8ab5; }
+.channel-item .value { width: 70px; color: #e2e8f0; text-align: right; font-variant-numeric: tabular-nums; }
+.channel-item .ratio { width: 45px; color: #00d4ff; text-align: right; font-weight: 600; }
 
+/* ===== 关键指标 ===== */
 .key-metrics { display: flex; gap: 10px; flex-shrink: 0; }
-.metric-card { flex: 1; background: rgba(10,28,56,0.6); border-radius: 8px; border: 1px solid #1e3a5f; padding: 10px; display: flex; gap: 8px; transition: all 0.3s; }
-.metric-card:hover { border-color: #409EFF; box-shadow: 0 0 12px rgba(64,158,255,0.2); }
-.metric-icon { width: 32px; height: 32px; background: rgba(64,158,255,0.15); border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #409EFF; font-size: 16px; flex-shrink: 0; }
+.metric-card {
+  flex: 1; background: linear-gradient(135deg, rgba(12,26,58,0.8), rgba(8,18,46,0.9));
+  border-radius: 10px; border: 1px solid rgba(0,212,255,0.1);
+  padding: 12px; display: flex; gap: 10px; transition: all 0.3s;
+  backdrop-filter: blur(10px);
+}
+.metric-card:hover { border-color: rgba(0,212,255,0.3); box-shadow: 0 0 20px rgba(0,212,255,0.1); transform: translateY(-2px); }
+.metric-icon {
+  width: 36px; height: 36px; background: linear-gradient(135deg, rgba(0,212,255,0.15), rgba(0,212,255,0.05));
+  border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  color: #00d4ff; font-size: 16px; flex-shrink: 0; border: 1px solid rgba(0,212,255,0.15);
+}
 .metric-body { flex: 1; min-width: 0; }
-.metric-label { color: #8fa2b5; font-size: 11px; }
-.metric-value { font-size: 17px; font-weight: bold; margin: 2px 0; }
-.metric-change { font-size: 10px; }
-.metric-change.up { color: #67C23A; }
-.metric-change.down { color: #F56C6C; }
-.sparkline { height: 20px; margin-top: 2px; }
-.sparkline svg { width: 100%; height: 100%; }
+.metric-label { color: #6b8ab5; font-size: 11px; }
+.metric-value { font-size: 18px; font-weight: 700; margin: 2px 0; color: #fff; font-variant-numeric: tabular-nums; }
+.metric-change { font-size: 11px; display: flex; align-items: center; gap: 2px; }
+.metric-change.up { color: #34d399; }
+.metric-change.down { color: #f87171; }
 
-.screen-footer { height: 40px; min-height: 40px; background: rgba(10,28,56,0.8); border-top: 1px solid #1e3a5f; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; color: #8fa2b5; font-size: 12px; }
+/* ===== 底部控制栏 ===== */
+.screen-footer {
+  height: 44px; min-height: 44px; position: relative; z-index: 1;
+  background: linear-gradient(0deg, rgba(7,13,36,0.98), rgba(10,20,50,0.95));
+  border-top: 1px solid rgba(0,212,255,0.1);
+  display: flex; align-items: center; justify-content: space-between; padding: 0 24px;
+  color: #6b8ab5; font-size: 12px;
+}
+.screen-footer::before {
+  content: ''; position: absolute; top: -1px; left: 50%; transform: translateX(-50%);
+  width: 30%; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0,212,255,0.3), transparent);
+}
 .ctrl-left, .ctrl-right { display: flex; gap: 15px; align-items: center; }
-.ctrl-label { color: #fff; }
-.play-state { color: #409EFF; cursor: pointer; }
-.ctrl-center { display: flex; align-items: center; gap: 12px; }
-.page-num { color: #fff; font-weight: bold; font-size: 14px; }
-.arrow { font-size: 16px; cursor: pointer; color: #fff; transition: color 0.2s; }
-.arrow:hover { color: #409EFF; }
-.pause { font-size: 22px; cursor: pointer; color: #409EFF; }
+.play-state { color: #00d4ff; cursor: pointer; transition: color 0.2s; }
+.play-state:hover { color: #5ce4ff; }
+.ctrl-center { display: flex; align-items: center; gap: 16px; }
+.page-dots { display: flex; gap: 8px; }
+.page-dots .dot {
+  width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.1);
+  cursor: pointer; transition: all 0.3s;
+}
+.page-dots .dot.active {
+  background: #00d4ff; width: 24px; border-radius: 4px;
+  box-shadow: 0 0 8px rgba(0,212,255,0.5);
+}
+.page-dots .dot:hover:not(.active) { background: rgba(0,212,255,0.3); }
+.arrow { font-size: 16px; cursor: pointer; color: #6b8ab5; transition: color 0.2s; padding: 4px; }
+.arrow:hover { color: #00d4ff; }
 </style>
