@@ -264,11 +264,15 @@ export default {
   },
   watch: {
     activeTab() {
-      // 延迟确保v-show切换完成后再初始化/resize图表
-      setTimeout(() => {
+      // 等待 v-if 切换 + transition(out-in 0.4s) 完成后再初始化图表
+      clearTimeout(this._tabTimer)
+      this._tabTimer = setTimeout(() => {
         this.initTabCharts()
-        this.charts.forEach(c => c && c.resize())
-      }, 100)
+        // resize所有已存在的图表
+        this.charts.forEach(c => {
+          try { c.resize() } catch(e) {}
+        })
+      }, 500)
     }
   },
   async mounted() {
@@ -284,8 +288,9 @@ export default {
   beforeDestroy() {
     clearInterval(this.timer)
     clearInterval(this.autoPlayTimer)
+    clearTimeout(this._tabTimer)
     window.removeEventListener('resize', this.handleResize)
-    this.charts.forEach(c => c && c.dispose())
+    this.charts.forEach(c => { try { c && c.dispose() } catch(e) {} })
   },
   methods: {
     loadDataAsync() {
@@ -330,6 +335,14 @@ export default {
     makeChart(ref) {
       const el = this.$refs[ref]
       if (!el) return null
+      // Clean up stale chart instances (DOM may have been destroyed by v-if)
+      this.charts = this.charts.filter(c => {
+        if (!c || !c.getDom() || !document.contains(c.getDom())) {
+          try { c.dispose() } catch(e) {}
+          return false
+        }
+        return true
+      })
       const existing = this.charts.find(c => c.getDom() === el)
       if (existing) { existing.dispose() }
       const chart = echarts.init(el)
