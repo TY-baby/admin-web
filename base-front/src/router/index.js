@@ -6,7 +6,7 @@ Vue.use(VueRouter)
 
 const routes = [
   { path: '/login', component: () => import('@/views/login/index.vue'), hidden: true },
-  { path: '/bigscreen', component: () => import('@/views/bigscreen/full.vue') },
+  { path: '/bigscreen/fullscreen', component: () => import('@/views/bigscreen/full.vue') },
   {
     path: '/',
     component: Layout,
@@ -65,13 +65,27 @@ const routes = [
       { path: 'list', name: 'WorkflowList', component: () => import('@/views/workflow/index.vue'), meta: { title: '流程管理' } }
     ]
   },
+  {
+    path: '/bigscreen',
+    component: Layout,
+    redirect: '/bigscreen/sales',
+    meta: { title: '大屏展示', icon: 'el-icon-data-board' },
+    children: [
+      { path: 'sales', name: 'BigscreenSales', component: () => import('@/views/bigscreen/sales/index.vue'), meta: { title: '销售轮播大屏' } },
+      { path: 'abnormal', name: 'BigscreenAbnormal', component: () => import('@/views/bigscreen/abnormal/index.vue'), meta: { title: '异常管理驾驶舱' } },
+      { path: 'chemical', name: 'BigscreenChemical', component: () => import('@/views/bigscreen/chemical/index.vue'), meta: { title: '化工生产监控' } },
+      { path: 'sales-rank', name: 'BigscreenSalesRank', component: () => import('@/views/bigscreen/sales-rank/index.vue'), meta: { title: '销售业绩看板' } },
+      { path: 'aviation', name: 'BigscreenAviation', component: () => import('@/views/bigscreen/aviation/index.vue'), meta: { title: '航空运营监控' } },
+      { path: 'hse', name: 'BigscreenHse', component: () => import('@/views/bigscreen/hse/index.vue'), meta: { title: '园区HSE' } }
+    ]
+  },
   { path: '*', redirect: '/' }
 ]
 
 const router = new VueRouter({ mode: 'history', routes })
 
 router.beforeEach((to, from, next) => {
-  if (to.path === '/login' || to.path === '/bigscreen') return next()
+  if (to.path === '/login' || to.path.startsWith('/bigscreen/fullscreen')) return next()
   const token = localStorage.getItem('base_token')
   if (!token) return next('/login')
   next()

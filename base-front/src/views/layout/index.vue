@@ -84,7 +84,7 @@ export default {
     }
   },
   created() {
-    this.routes = this.$router.options.routes.filter(r => r.path !== '/login' && r.path !== '/bigscreen')
+    this.routes = this.$router.options.routes.filter(r => r.path !== '/login' && r.path !== '/bigscreen/fullscreen')
     this.userInfo = JSON.parse(localStorage.getItem('base_user') || '{}')
   },
   methods: {
