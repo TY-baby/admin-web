@@ -79,6 +79,25 @@ const routes = [
       { path: 'hse', name: 'BigscreenHse', component: () => import('@/views/bigscreen/hse/index.vue'), meta: { title: '园区HSE' } }
     ]
   },
+  {
+    path: '/plate',
+    component: Layout,
+    redirect: '/plate/image-detect',
+    meta: { title: '车牌识别', icon: 'el-icon-camera-solid' },
+    children: [
+      { path: 'image-detect', name: 'PlateImageDetect', component: () => import('@/views/plate/image-detect.vue'), meta: { title: '图片车牌检测' } },
+      { path: 'video-detect', name: 'PlateVideoDetect', component: () => import('@/views/plate/video-detect.vue'), meta: { title: '视频车牌检测' } },
+      { path: 'image-resource', name: 'PlateImageResource', component: () => import('@/views/plate/image-resource.vue'), meta: { title: '图片资源管理' } },
+      { path: 'video-resource', name: 'PlateVideoResource', component: () => import('@/views/plate/video-resource.vue'), meta: { title: '视频资源管理' } },
+      { path: 'data-visualization', name: 'PlateDataVisualization', component: () => import('@/views/plate/data-visualization.vue'), meta: { title: '数据可视化大屏' } },
+      { path: 'system-monitor', name: 'PlateSystemMonitor', component: () => import('@/views/plate/system-monitor.vue'), meta: { title: '系统监控' } },
+      { path: 'system-logs', name: 'PlateSystemLogs', component: () => import('@/views/plate/system-logs.vue'), meta: { title: '系统日志' } },
+      { path: 'project-docs', name: 'PlateProjectDocs', component: () => import('@/views/plate/project-docs.vue'), meta: { title: '项目文档' } },
+      { path: 'model-manage', name: 'PlateModelManage', component: () => import('@/views/plate/model-manage.vue'), meta: { title: '模型管理' } },
+      { path: 'llm-chat', name: 'PlateLlmChat', component: () => import('@/views/plate/llm-chat.vue'), meta: { title: '大模型聊天' } },
+      { path: 'multimodal-chat', name: 'PlateMultimodalChat', component: () => import('@/views/plate/multimodal-chat.vue'), meta: { title: '多模态问答' } }
+    ]
+  },
   { path: '*', redirect: '/' }
 ]
 
