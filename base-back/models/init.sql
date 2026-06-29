@@ -421,3 +421,55 @@ INSERT INTO workflow_nodes (workflow_id, node_id, node_name, node_type, approver
 (1, 'start', '开始', 'start', '', 'approval1', 1),
 (1, 'approval1', '销售经理审批', 'approval', '1', 'end', 2),
 (1, 'end', '结束', 'end', '', '', 3);
+
+-- 车牌识别图片表
+CREATE TABLE IF NOT EXISTS plate_images (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  filename VARCHAR(255) NOT NULL COMMENT '文件名',
+  path VARCHAR(500) NOT NULL COMMENT '原始图相对路径',
+  result_path VARCHAR(500) DEFAULT '' COMMENT '结果图相对路径',
+  status VARCHAR(50) DEFAULT 'pending' COMMENT 'pending/detected',
+  size BIGINT DEFAULT 0 COMMENT '文件大小字节',
+  plates JSON COMMENT '识别结果JSON',
+  create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='车牌识别图片';
+
+-- 车牌识别视频表
+CREATE TABLE IF NOT EXISTS plate_videos (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  filename VARCHAR(255) NOT NULL COMMENT '文件名',
+  path VARCHAR(500) NOT NULL COMMENT '原始视频相对路径',
+  result_path VARCHAR(500) DEFAULT '' COMMENT '结果视频相对路径',
+  status VARCHAR(50) DEFAULT 'pending' COMMENT 'pending/detected',
+  size BIGINT DEFAULT 0 COMMENT '文件大小字节',
+  video_codec VARCHAR(50) DEFAULT '' COMMENT '视频编码',
+  transcoded TINYINT DEFAULT 0 COMMENT '是否已转码',
+  frames JSON COMMENT '帧级识别结果JSON',
+  create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='车牌识别视频';
+
+-- 车牌识别模型表
+CREATE TABLE IF NOT EXISTS plate_models (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  filename VARCHAR(255) NOT NULL COMMENT '模型文件名',
+  name VARCHAR(255) DEFAULT '' COMMENT '模型名称',
+  dataset VARCHAR(255) DEFAULT '' COMMENT '数据集',
+  base_model VARCHAR(255) DEFAULT '' COMMENT '基础模型',
+  version VARCHAR(50) DEFAULT '' COMMENT '版本号',
+  accuracy DECIMAL(5,4) DEFAULT 0.0000 COMMENT '准确率',
+  upload_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  description TEXT COMMENT '描述',
+  is_default TINYINT DEFAULT 0 COMMENT '是否默认',
+  is_loaded TINYINT DEFAULT 0 COMMENT '是否已加载'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='车牌识别模型';
+
+-- 车牌识别检测记录表
+CREATE TABLE IF NOT EXISTS plate_records (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  filename VARCHAR(255) DEFAULT '' COMMENT '文件名',
+  type VARCHAR(20) DEFAULT 'image' COMMENT 'image/video',
+  plates JSON COMMENT '识别到的车牌JSON',
+  create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='车牌识别记录';

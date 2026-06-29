@@ -1,10 +1,12 @@
 const express = require('express')
 const cors = require('cors')
+const path = require('path')
 const config = require('./config')
 
 const app = express()
 app.use(cors())
 app.use(express.json())
+app.use('/static', express.static(path.join(__dirname, 'uploads')))
 
 // Ensure all JSON responses use UTF-8 charset
 app.use((req, res, next) => {
@@ -29,6 +31,7 @@ app.use('/api/products', require('./routes/products'))
 app.use('/api/vip', require('./routes/vip'))
 app.use('/api/workflows', require('./routes/workflows'))
 app.use('/api/dashboard', require('./routes/dashboard'))
+app.use('/api/plate', require('./routes/plate'))
 
 app.get('/', (req, res) => res.json({ message: 'Base Room CRM API is running' }))
 
