@@ -17,6 +17,11 @@ function ensureDirs() {
 }
 ensureDirs()
 
+function decodeFilename(filename) {
+  // multer/busboy 默认把 UTF-8 文件名按 latin1 解码，需要转回来
+  return Buffer.from(filename, 'latin1').toString('utf8')
+}
+
 const imageStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, IMAGE_DIR),
   filename: (req, file, cb) => {
@@ -35,7 +40,7 @@ const videoStorage = multer.diskStorage({
 
 const modelStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, MODEL_DIR),
-  filename: (req, file, cb) => cb(null, file.originalname)
+  filename: (req, file, cb) => cb(null, decodeFilename(file.originalname))
 })
 
 exports.uploadImage = multer({ storage: imageStorage, limits: { fileSize: 10 * 1024 * 1024 } }).single('file')
@@ -129,7 +134,7 @@ function buildListWhere(req, table) {
 // ========== 图片 ==========
 exports.imageUpload = async (req, res) => {
   if (!req.file) return res.json({ code: 1, message: '缺少文件' })
-  const filename = req.file.originalname
+  const filename = decodeFilename(req.file.originalname)
   const p = relativePath(req.file.path, 'images')
   const result = await query('INSERT INTO plate_images (filename, path, size) VALUES (?, ?, ?)', [filename, p, req.file.size])
   res.json({ code: 0, data: { id: result.insertId, filename, path: p, size: req.file.size, status: 'pending' }, message: '上传成功' })
@@ -198,7 +203,7 @@ exports.imageBatchDelete = async (req, res) => {
 // ========== 视频 ==========
 exports.videoUpload = async (req, res) => {
   if (!req.file) return res.json({ code: 1, message: '缺少文件' })
-  const filename = req.file.originalname
+  const filename = decodeFilename(req.file.originalname)
   const p = relativePath(req.file.path, 'videos')
   await query('INSERT INTO plate_videos (filename, path, size, video_codec) VALUES (?, ?, ?, ?)', [filename, p, req.file.size, 'h264'])
   res.json({ code: 0, data: { filename, path: p, size: req.file.size, status: 'pending' }, message: '上传成功' })
@@ -408,7 +413,8 @@ exports.modelList = async (req, res) => {
 
 exports.modelUpload = async (req, res) => {
   if (!req.file) return res.json({ code: 1, message: '缺少文件' })
-  const result = await query('INSERT INTO plate_models (filename, name, version, accuracy) VALUES (?, ?, ?, ?)', [req.file.originalname, req.file.originalname.replace(/\.[^.]+$/, ''), '1.0', 0.95])
+  const filename = decodeFilename(req.file.originalname)
+  const result = await query('INSERT INTO plate_models (filename, name, version, accuracy) VALUES (?, ?, ?, ?)', [filename, filename.replace(/\.[^.]+$/, ''), '1.0', 0.95])
   res.json({ code: 0, data: { id: result.insertId }, message: '上传成功' })
 }
 

@@ -115,14 +115,16 @@ export const staticImageUrl = path => {
   if (!path) return ''
   if (path.startsWith('http')) return path
   const base = process.env.VUE_APP_BASE_API || ''
-  return base + '/static/images/' + path.replace(/^\//, '')
+  // 后端 path 为 images/<filename>，直接拼 /static/ 即可
+  return base + '/static/' + path.replace(/^\//, '')
 }
 
 export const staticVideoUrl = path => {
   if (!path) return ''
   if (path.startsWith('http')) return path
   const base = process.env.VUE_APP_BASE_API || ''
-  return base + '/static/videos/' + path.replace(/^\//, '')
+  // 后端 path 为 videos/<filename>，直接拼 /static/ 即可
+  return base + '/static/' + path.replace(/^\//, '')
 }
 
 export const downloadBlob = (blob, filename) => {
