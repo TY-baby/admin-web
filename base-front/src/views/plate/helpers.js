@@ -100,7 +100,7 @@ export const buildLinePath = (points, width, height, min, max) => {
 export const handleReq = async (promise, options = {}) => {
   try {
     const res = await promise
-    return options.raw ? res : (res.data ?? res)
+    return options.raw ? res : (res?.data ?? res)
   } catch (e) {
     const msg = e?.response?.data?.message || e.message || '请求失败'
     if (options.silent) throw e
