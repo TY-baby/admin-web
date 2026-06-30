@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "uni",
-    "dev:h5": "uni",
-    "build": "uni build",
-    "build:h5": "uni build"
+    "dev": "vue-cli-service uni-serve",
+    "dev:h5": "vue-cli-service uni-serve",
+    "build": "vue-cli-service uni-build",
+    "build:h5": "vue-cli-service uni-build"
   },
   "dependencies": {
     "@dcloudio/uni-app": "2.0.2-alpha-5010420260626002",

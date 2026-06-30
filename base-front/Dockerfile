@@ -10,9 +10,11 @@ RUN npm run build
 # ============= 移动端 H5 构建 =============
 FROM node:18-alpine AS mobile-builder
 ENV LANG=C.UTF-8
+ENV NODE_ENV=production
+ENV UNI_PLATFORM=h5
 WORKDIR /app
 COPY base-app/package*.json ./
-RUN npm install
+RUN npm install --legacy-peer-deps
 COPY base-app/ .
 RUN npm run build:h5
 
