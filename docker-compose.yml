@@ -52,6 +52,8 @@ services:
     build:
       context: .
       dockerfile: base-front/Dockerfile
+      args:
+        BUILD_MOBILE: ${BUILD_MOBILE:-true}
     container_name: base-room-frontend
     restart: always
     ports:

@@ -9,14 +9,15 @@ RUN npm run build
 
 # ============= 移动端 H5 构建 =============
 FROM node:18-alpine AS mobile-builder
+ARG BUILD_MOBILE=true
 ENV LANG=C.UTF-8
 ENV NODE_ENV=production
 ENV UNI_PLATFORM=h5
 WORKDIR /app
 COPY base-app/package*.json ./
-RUN npm install --legacy-peer-deps
+RUN if [ "$BUILD_MOBILE" = "true" ]; then npm install --legacy-peer-deps; fi
 COPY base-app/ .
-RUN npm run build:h5
+RUN if [ "$BUILD_MOBILE" = "true" ]; then npm run build:h5; else mkdir -p /app/dist/build/h5; fi
 
 # ============= Nginx 运行 =============
 FROM nginx:alpine
