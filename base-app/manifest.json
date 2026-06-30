@@ -7,7 +7,7 @@
   "transformPx": false,
   "app": {},
   "h5": {
-    "title": "base-app",
+    "title": "Base Room 移动办公",
     "router": {
       "mode": "hash"
     },

@@ -1,4 +1,5 @@
-const BASE_URL = 'http://localhost:3000/api'
+// H5 使用相对路径，开发时走 manifest.json 代理，生产时走 Nginx 代理
+const BASE_URL = '/api'
 const tokenKey = 'base_token'
 
 function request(options) {

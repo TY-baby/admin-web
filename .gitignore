@@ -11,6 +11,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
+**/install.log
+**/npm-install*.log
+**/build.log
 
 # Runtime data
 pids

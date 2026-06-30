@@ -1,3 +1,3 @@
-import { get } from '../utils/request'
+import request from './request'
 
-export const getStats = () => get('/dashboard/stats')
+export const getStats = () => request.get('/dashboard/stats')

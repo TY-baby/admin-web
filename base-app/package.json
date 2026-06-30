@@ -4,23 +4,26 @@
   "private": true,
   "scripts": {
     "dev": "uni",
-    "dev:app": "uni app",
-    "dev:h5": "uni h5",
-    "dev:mp-weixin": "uni mp-weixin",
-    "build": "uni build"
+    "dev:h5": "uni",
+    "build": "uni build",
+    "build:h5": "uni build"
   },
   "dependencies": {
-    "@dcloudio/uni-app": "2.0.2",
-    "@dcloudio/uni-h5": "2.0.2",
-    "@dcloudio/uni-mp-weixin": "2.0.2",
+    "@dcloudio/uni-app": "2.0.2-alpha-5010420260626002",
+    "@dcloudio/uni-h5": "2.0.2-alpha-5010420260626002",
+    "@dcloudio/uni-mp-weixin": "2.0.2-alpha-5010420260626002",
     "vue": "^2.6.14",
     "vuex": "^3.6.2"
   },
   "devDependencies": {
     "@dcloudio/types": "^3.4.0",
-    "@dcloudio/uni-cli-shared": "2.0.2",
-    "@dcloudio/vite-plugin-uni": "2.0.2",
-    "@dcloudio/webpack-uni-pages-loader": "2.0.2",
+    "@dcloudio/uni-cli-shared": "2.0.2-alpha-5010420260626002",
+    "@dcloudio/vue-cli-plugin-uni": "2.0.2-alpha-5010420260626002",
+    "@dcloudio/webpack-uni-pages-loader": "2.0.2-alpha-5010420260626002",
+    "@vue/cli-plugin-babel": "~5.0.8",
+    "@vue/cli-service": "~5.0.8",
+    "eslint": "^7.32.0",
+    "eslint-plugin-vue": "^8.7.1",
     "sass": "^1.69.0",
     "sass-loader": "^13.3.0",
     "vue-template-compiler": "^2.6.14"

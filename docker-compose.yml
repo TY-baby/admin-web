@@ -49,7 +49,9 @@ services:
       - base-room-net
 
   frontend:
-    build: ./base-front
+    build:
+      context: .
+      dockerfile: base-front/Dockerfile
     container_name: base-room-frontend
     restart: always
     ports:

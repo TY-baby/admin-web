@@ -6,6 +6,17 @@
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <link rel="icon" href="<%= BASE_URL %>favicon.ico">
     <title>Base Room CRM</title>
+    <script>
+      // 移动端访问 www.base-room.cn 自动跳转到 /m/ 移动办公 H5
+      (function () {
+        var ua = navigator.userAgent.toLowerCase()
+        var isMobile = /iphone|ipad|ipod|android|mobile|blackberry|webos|incognito|webmate|bada|nokia|lg|ucweb|ios|windows phone/i.test(ua)
+        var alreadyMobile = location.pathname.indexOf('/m/') === 0 || location.search.indexOf('force=pc') > -1
+        if (isMobile && !alreadyMobile) {
+          location.replace('/m/')
+        }
+      })()
+    </script>
   </head>
   <body>
     <noscript>

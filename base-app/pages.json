@@ -1,29 +1,36 @@
 {
-  'pages': [
-    { 'path': 'pages/index/index', 'style': { 'navigationBarTitleText': '工作台' } },
-    { 'path': 'pages/customer/customer', 'style': { 'navigationBarTitleText': '客户管理' } },
-    { 'path': 'pages/opportunity/opportunity', 'style': { 'navigationBarTitleText': '商机管理' } },
-    { 'path': 'pages/order/order', 'style': { 'navigationBarTitleText': '订单管理' } },
-    { 'path': 'pages/follow/follow', 'style': { 'navigationBarTitleText': '跟进记录' } },
-    { 'path': 'pages/bigscreen/bigscreen', 'style': { 'navigationBarTitleText': '智慧大屏' } },
-    { 'path': 'pages/login/login', 'style': { 'navigationBarTitleText': '登录' } },
-    { 'path': 'pages/mine/mine', 'style': { 'navigationBarTitleText': '我的' } }
+  "pages": [
+    { "path": "pages/index/index", "style": { "navigationBarTitleText": "工作台", "navigationStyle": "custom" } },
+    { "path": "pages/login/login", "style": { "navigationBarTitleText": "登录", "navigationStyle": "custom" } },
+    { "path": "pages/customer/customer", "style": { "navigationBarTitleText": "客户管理" } },
+    { "path": "pages/opportunity/opportunity", "style": { "navigationBarTitleText": "商机管理" } },
+    { "path": "pages/order/order", "style": { "navigationBarTitleText": "订单管理" } },
+    { "path": "pages/follow/follow", "style": { "navigationBarTitleText": "跟进记录" } },
+    { "path": "pages/bigscreen/bigscreen", "style": { "navigationBarTitleText": "智慧大屏" } },
+    { "path": "pages/mine/mine", "style": { "navigationBarTitleText": "我的", "navigationStyle": "custom" } },
+    { "path": "pages/oa/attendance", "style": { "navigationBarTitleText": "考勤打卡" } },
+    { "path": "pages/oa/leave", "style": { "navigationBarTitleText": "请假申请" } },
+    { "path": "pages/oa/expense", "style": { "navigationBarTitleText": "费用报销" } },
+    { "path": "pages/oa/approval", "style": { "navigationBarTitleText": "审批中心" } },
+    { "path": "pages/oa/notice", "style": { "navigationBarTitleText": "公司公告" } },
+    { "path": "pages/oa/address-book", "style": { "navigationBarTitleText": "通讯录" } },
+    { "path": "pages/module-settings/module-settings", "style": { "navigationBarTitleText": "应用管理" } }
   ],
-  'globalStyle': {
-    'navigationBarTextStyle': 'black',
-    'navigationBarTitleText': 'Base Room',
-    'navigationBarBackgroundColor': '#F8F8F8',
-    'backgroundColor': '#F8F8F8'
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "Base Room",
+    "navigationBarBackgroundColor": "#F8F8F8",
+    "backgroundColor": "#F5F7FA"
   },
-  'tabBar': {
-    'color': '#7A7E83',
-    'selectedColor': '#409EFF',
-    'borderStyle': 'black',
-    'backgroundColor': '#ffffff',
-    'list': [
-      { 'pagePath': 'pages/index/index', 'text': '首页' },
-      { 'pagePath': 'pages/customer/customer', 'text': '客户' },
-      { 'pagePath': 'pages/mine/mine', 'text': '我的' }
+  "tabBar": {
+    "color": "#7A7E83",
+    "selectedColor": "#4FACFE",
+    "borderStyle": "white",
+    "backgroundColor": "#ffffff",
+    "list": [
+      { "pagePath": "pages/index/index", "text": "首页" },
+      { "pagePath": "pages/customer/customer", "text": "客户" },
+      { "pagePath": "pages/mine/mine", "text": "我的" }
     ]
   }
 }

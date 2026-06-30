@@ -22,6 +22,8 @@
       direction="rtl"
       :show-close="false"
       :size="420"
+      :append-to-body="true"
+      :modal-append-to-body="true"
       class="dh-drawer"
       @opened="onOpened"
     >

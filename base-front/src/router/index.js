@@ -5,8 +5,8 @@ import Layout from '@/views/layout/index.vue'
 Vue.use(VueRouter)
 
 const routes = [
-  { path: '/login', component: () => import('@/views/login/index.vue'), hidden: true },
-  { path: '/bigscreen/fullscreen', component: () => import('@/views/bigscreen/full.vue') },
+  { path: '/login', component: () => import('@/views/login/index.vue'), hidden: true, meta: { title: '登录' } },
+  { path: '/bigscreen/fullscreen', component: () => import('@/views/bigscreen/full.vue'), hidden: true, meta: { title: '全屏大屏' } },
   {
     path: '/',
     component: Layout,
@@ -108,7 +108,7 @@ const routes = [
       { path: 'multimodal-chat', name: 'PlateMultimodalChat', component: () => import('@/views/plate/multimodal-chat.vue'), meta: { title: '多模态问答' } }
     ]
   },
-  { path: '*', redirect: '/' }
+  { path: '*', redirect: '/', hidden: true, meta: { title: '404' } }
 ]
 
 const router = new VueRouter({ mode: 'history', routes })

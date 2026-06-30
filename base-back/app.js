@@ -58,6 +58,11 @@ initTable()
     console.error(err.stack)
   })
 
+// Catch unhandled promise rejections to prevent process crash / nginx 502
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[APP] Unhandled Rejection at:', promise, 'reason:', reason)
+})
+
 // Graceful shutdown
 process.on('SIGTERM', () => {
   console.log('[APP] SIGTERM received, shutting down gracefully...')
