@@ -69,13 +69,17 @@
         </div>
       </el-main>
     </el-container>
+
+    <!-- AI 数字人助手 -->
+    <digital-human />
   </el-container>
 </template>
 
 <script>
 import SidebarItem from './SidebarItem.vue'
+import DigitalHuman from '@/components/DigitalHuman'
 export default {
-  components: { SidebarItem },
+  components: { SidebarItem, DigitalHuman },
   data() {
     return {
       routes: [],
