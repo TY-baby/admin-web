@@ -21,7 +21,7 @@
       <el-table-column prop='level' label='等级' />
       <el-table-column label='操作' width='180'>
         <template slot-scope='scope'>
-          <el-button type='text' @click='$router.push("/customer/detail/" + scope.row.id)'>详情</el-button>
+          <el-button type='text' @click='$router.push("/crm/customer/detail/" + scope.row.id)'>详情</el-button>
           <el-button type='text' @click='openDialog(scope.row)'>编辑</el-button>
           <el-button type='text' style='color:#f56c6c' @click='remove(scope.row.id)'>删除</el-button>
         </template>

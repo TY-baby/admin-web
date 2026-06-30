@@ -200,6 +200,26 @@ exports.imageBatchDelete = async (req, res) => {
   res.json({ code: 0, message: '删除成功' })
 }
 
+exports.imageDetail = async (req, res) => {
+  const id = Number(req.params.id)
+  const [row] = await query('SELECT * FROM plate_images WHERE id = ?', [id])
+  if (!row) return res.json({ code: 1, message: '图片不存在' })
+  let plates = []
+  try { plates = JSON.parse(row.plates || '[]') } catch (e) {}
+  res.json({
+    code: 0,
+    data: {
+      id: row.id,
+      filename: row.filename,
+      path: row.path,
+      result_path: row.result_path || '',
+      status: row.status,
+      plates
+    },
+    message: 'ok'
+  })
+}
+
 // ========== 视频 ==========
 exports.videoUpload = async (req, res) => {
   if (!req.file) return res.json({ code: 1, message: '缺少文件' })
@@ -266,6 +286,28 @@ exports.videoBatchDelete = async (req, res) => {
     await query('DELETE FROM plate_videos WHERE id = ?', [id])
   }
   res.json({ code: 0, message: '删除成功' })
+}
+
+exports.videoDetail = async (req, res) => {
+  const id = Number(req.params.id)
+  const [row] = await query('SELECT * FROM plate_videos WHERE id = ?', [id])
+  if (!row) return res.json({ code: 1, message: '视频不存在' })
+  let frames = []
+  try { frames = JSON.parse(row.frames || '[]') } catch (e) {}
+  res.json({
+    code: 0,
+    data: {
+      id: row.id,
+      filename: row.filename,
+      path: row.path,
+      result_path: row.result_path || '',
+      status: row.status,
+      video_codec: row.video_codec || 'h264',
+      transcoded: row.transcoded || 0,
+      frames
+    },
+    message: 'ok'
+  })
 }
 
 // ========== 资源 ==========

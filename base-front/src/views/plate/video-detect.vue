@@ -71,7 +71,7 @@
 
 <script>
 import {
-  getVideoList, uploadVideo, detectVideo, batchDetectVideo, deleteVideo
+  getVideoList, uploadVideo, detectVideo, batchDetectVideo, deleteVideo, getVideoDetail
 } from '@/api/modules/plate'
 import {
   formatDate, formatSize, formatPercent, getVideoCache, setVideoCache,
@@ -132,16 +132,23 @@ export default {
       this.$message.success('批量检测已提交')
       this.load()
     },
-    showResult(row) {
+    async showResult(row) {
       this.current = row
-      const cache = getVideoCache()
-      const detail = cache[row.id] || { frames: [], video_codec: row.video_codec, transcoded: row.transcoded }
-      this.frames = detail.frames || []
-      this.compatTip = detail.video_codec && detail.video_codec !== 'h264' && !detail.transcoded
-        ? '当前视频编码为 ' + detail.video_codec + '，部分浏览器可能无法直接播放，建议后端转码为 H.264'
-        : ''
       this.compareVisible = true
       this.frameVisible = true
+      this.frames = []
+      this.compatTip = ''
+      try {
+        const detail = await handleReq(getVideoDetail(row.id))
+        this.frames = detail.frames || []
+        const codec = detail.video_codec || row.video_codec
+        const transcoded = detail.transcoded || row.transcoded
+        this.compatTip = codec && codec !== 'h264' && !transcoded
+          ? '当前视频编码为 ' + codec + '，部分浏览器可能无法直接播放，建议后端转码为 H.264'
+          : ''
+      } catch (e) {
+        this.frames = []
+      }
     },
     async remove(row) {
       await this.$confirm('确认删除该视频？', '提示', { type: 'warning' })

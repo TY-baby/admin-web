@@ -90,7 +90,7 @@
 
 <script>
 import {
-  getImageList, uploadImage, detectImage, batchDetectImage, deleteImage
+  getImageList, uploadImage, detectImage, batchDetectImage, deleteImage, getImageDetail
 } from '@/api/modules/plate'
 import {
   formatDate, formatPercent, plateTypeLabel, plateColorLabel, detectionSummary,
@@ -160,12 +160,16 @@ export default {
       this.$message.success('批量检测已提交')
       this.load()
     },
-    showResult(row) {
+    async showResult(row) {
       this.current = row
-      const cache = getImageCache()
-      this.detail = cache[row.id] || { plates: [] }
       this.compareVisible = true
       this.detailVisible = true
+      this.detail = { plates: [] }
+      try {
+        this.detail = await handleReq(getImageDetail(row.id))
+      } catch (e) {
+        this.detail = { plates: [] }
+      }
     },
     preview(row) {
       this.current = row

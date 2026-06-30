@@ -15,56 +15,66 @@ const routes = [
       { path: 'dashboard', name: 'Dashboard', component: () => import('@/views/dashboard/index.vue'), meta: { title: '工作台', icon: 'el-icon-s-home' } }
     ]
   },
+  // CRM 客户管理
   {
-    path: '/customer',
+    path: '/crm',
     component: Layout,
-    meta: { title: '客户管理', icon: 'el-icon-user' },
+    redirect: '/crm/customer',
+    meta: { title: 'CRM', icon: 'el-icon-s-custom' },
     children: [
-      { path: 'list', name: 'CustomerList', component: () => import('@/views/customer/index.vue'), meta: { title: '客户列表' } },
-      { path: 'detail/:id', name: 'CustomerDetail', component: () => import('@/views/customer/detail.vue'), meta: { title: '客户详情' }, hidden: true }
+      { path: 'customer', name: 'CrmCustomer', component: () => import('@/views/customer/index.vue'), meta: { title: '客户管理' } },
+      { path: 'customer/detail/:id', name: 'CrmCustomerDetail', component: () => import('@/views/customer/detail.vue'), meta: { title: '客户详情' }, hidden: true },
+      { path: 'opportunity', name: 'CrmOpportunity', component: () => import('@/views/opportunity/index.vue'), meta: { title: '商机管理' } },
+      { path: 'order', name: 'CrmOrder', component: () => import('@/views/order/index.vue'), meta: { title: '订单管理' } },
+      { path: 'follow', name: 'CrmFollow', component: () => import('@/views/follow/index.vue'), meta: { title: '跟进记录' } },
+      { path: 'product', name: 'CrmProduct', component: () => import('@/views/product/index.vue'), meta: { title: '产品资料' } },
+      { path: 'vip', name: 'CrmVip', component: () => import('@/views/vip/index.vue'), meta: { title: 'VIP会员' } },
+      { path: 'workflow', name: 'CrmWorkflow', component: () => import('@/views/workflow/index.vue'), meta: { title: '流程引擎' } }
     ]
   },
+
+  // ERP 企业资源计划
   {
-    path: '/business',
+    path: '/erp',
     component: Layout,
-    meta: { title: '商机管理', icon: 'el-icon-s-flag' },
+    redirect: '/erp/dashboard',
+    meta: { title: 'ERP', icon: 'el-icon-s-shop' },
     children: [
-      { path: 'opportunity', name: 'Opportunity', component: () => import('@/views/opportunity/index.vue'), meta: { title: '商机列表' } }
+      { path: 'dashboard', name: 'ErpDashboard', component: () => import('@/views/erp/dashboard.vue'), meta: { title: 'ERP概览' } },
+      { path: 'purchase', name: 'ErpPurchase', component: () => import('@/views/erp/purchase.vue'), meta: { title: '采购管理' } },
+      { path: 'supplier', name: 'ErpSupplier', component: () => import('@/views/erp/supplier.vue'), meta: { title: '供应商管理' } },
+      { path: 'inventory', name: 'ErpInventory', component: () => import('@/views/erp/inventory.vue'), meta: { title: '库存管理' } },
+      { path: 'warehouse', name: 'ErpWarehouse', component: () => import('@/views/erp/warehouse.vue'), meta: { title: '仓库管理' } },
+      { path: 'production', name: 'ErpProduction', component: () => import('@/views/erp/production.vue'), meta: { title: '生产管理' } },
+      { path: 'sales', name: 'ErpSales', component: () => import('@/views/erp/sales.vue'), meta: { title: '销售管理' } },
+      { path: 'finance', name: 'ErpFinance', component: () => import('@/views/erp/finance.vue'), meta: { title: '财务管理' } },
+      { path: 'hr', name: 'ErpHr', component: () => import('@/views/erp/hr.vue'), meta: { title: '人事管理' } },
+      { path: 'report', name: 'ErpReport', component: () => import('@/views/erp/report.vue'), meta: { title: '报表中心' } }
     ]
   },
+
+  // OA 办公自动化
   {
-    path: '/order',
+    path: '/oa',
     component: Layout,
-    meta: { title: '订单管理', icon: 'el-icon-s-order' },
+    redirect: '/oa/dashboard',
+    meta: { title: 'OA', icon: 'el-icon-s-check' },
     children: [
-      { path: 'list', name: 'OrderList', component: () => import('@/views/order/index.vue'), meta: { title: '订单列表' } }
+      { path: 'dashboard', name: 'OaDashboard', component: () => import('@/views/oa/dashboard.vue'), meta: { title: 'OA概览' } },
+      { path: 'attendance', name: 'OaAttendance', component: () => import('@/views/oa/attendance.vue'), meta: { title: '考勤管理' } },
+      { path: 'leave', name: 'OaLeave', component: () => import('@/views/oa/leave.vue'), meta: { title: '请假审批' } },
+      { path: 'expense', name: 'OaExpense', component: () => import('@/views/oa/expense.vue'), meta: { title: '费用报销' } },
+      { path: 'meeting', name: 'OaMeeting', component: () => import('@/views/oa/meeting.vue'), meta: { title: '会议室' } },
+      { path: 'notice', name: 'OaNotice', component: () => import('@/views/oa/notice.vue'), meta: { title: '通知公告' } },
+      { path: 'task', name: 'OaTask', component: () => import('@/views/oa/task.vue'), meta: { title: '任务协作' } },
+      { path: 'document', name: 'OaDocument', component: () => import('@/views/oa/document.vue'), meta: { title: '文档中心' } },
+      { path: 'organization', name: 'OaOrganization', component: () => import('@/views/oa/organization.vue'), meta: { title: '组织架构' } },
+      { path: 'address-book', name: 'OaAddressBook', component: () => import('@/views/oa/address-book.vue'), meta: { title: '通讯录' } },
+      { path: 'vehicle', name: 'OaVehicle', component: () => import('@/views/oa/vehicle.vue'), meta: { title: '车辆管理' } },
+      { path: 'recruit', name: 'OaRecruit', component: () => import('@/views/oa/recruit.vue'), meta: { title: '招聘管理' } }
     ]
   },
-  {
-    path: '/digest',
-    component: Layout,
-    meta: { title: '消化跟进', icon: 'el-icon-phone' },
-    children: [
-      { path: 'follow', name: 'FollowList', component: () => import('@/views/follow/index.vue'), meta: { title: '跟进记录' } },
-      { path: 'product', name: 'ProductList', component: () => import('@/views/product/index.vue'), meta: { title: '产品资料' } }
-    ]
-  },
-  {
-    path: '/vip',
-    component: Layout,
-    meta: { title: 'VIP会员', icon: 'el-icon-s-finance' },
-    children: [
-      { path: 'member', name: 'VipMember', component: () => import('@/views/vip/index.vue'), meta: { title: '会员管理' } }
-    ]
-  },
-  {
-    path: '/workflow',
-    component: Layout,
-    meta: { title: '流程引擎', icon: 'el-icon-s-claim' },
-    children: [
-      { path: 'list', name: 'WorkflowList', component: () => import('@/views/workflow/index.vue'), meta: { title: '流程管理' } }
-    ]
-  },
+
   {
     path: '/bigscreen',
     component: Layout,
