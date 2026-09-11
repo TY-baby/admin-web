@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: my-project-db
+    restart: always
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: my_project_root_2026
+      MYSQL_DATABASE: my_project
+      MYSQL_USER: my_user
+      MYSQL_PASSWORD: my_pass_2026
+      LANG: en_US.UTF-8
+      TZ: Asia/Shanghai
+    volumes:
+      - my_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pmy_project_root_2026"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    ports:
+      - "3307:3306"
+    networks:
+      - my-project-net
+
+  backend:
+    build: ./web-back
+    container_name: my-project-backend
+    restart: always
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: my_user
+      DB_PASSWORD: my_pass_2026
+      DB_NAME: my_project
+      JWT_SECRET: my-project-secret-key-2026
+      JWT_EXPIRES_MIN: 1440
+      PORT: 8000
+      TZ: Asia/Shanghai
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - my-project-net
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: my-project-frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - my-project-net
+
+volumes:
+  my_mysql_data:
+
+networks:
+  my-project-net:
+    driver: bridge

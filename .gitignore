@@ -1,0 +1,21 @@
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+__pycache__/
+**/__pycache__/
+*.pyc
+venv/
+.env
+**/.env
+*.log
+.idea/
+.vscode/
+.DS_Store
+ssl/
+*.pem
+*.key
+
+# ---- 本地 SQLite 数据库文件 ----
+*.db
+*.sqlite3
