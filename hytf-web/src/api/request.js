@@ -17,7 +17,7 @@ service.interceptors.request.use(config => {
 service.interceptors.response.use(resp => {
   const body = resp.data
   if (body && typeof body === 'object' && 'code' in body && body.code !== 0) {
-    Message.error(body.msg || '璇锋眰澶辫触')
+    Message.error(body.msg || '请求失败')
     return Promise.reject(new Error(body.msg || 'Error'))
   }
   return resp
@@ -26,13 +26,13 @@ service.interceptors.response.use(resp => {
   if (status === 401) {
     const isAdmin = err.config && err.config.url && err.config.url.indexOf('/admin/') === 0
     if (isAdmin) removeAdminToken(); else removeClientToken()
-    MessageBox.alert('鐧诲綍宸茶繃鏈燂紝璇烽噸鏂扮櫥褰?, '鎻愮ず', { type: 'warning' }).catch(() => {}).then(() => {
+    MessageBox.alert('登录已过期，请重新登录', '提示', { type: 'warning' }).catch(() => {}).then(() => {
       window.location.hash = isAdmin ? '#/admin/login' : '#/client/login'
     })
   } else if (status === 429) {
-    Message.warning('鎿嶄綔杩囦簬棰戠箒锛岃绋嶅悗鍐嶈瘯')
+    Message.warning('操作过于频繁，请稍后再试')
   } else {
-    Message.error((err.response && err.response.data && err.response.data.msg) || err.message || '缃戠粶寮傚父')
+    Message.error((err.response && err.response.data && err.response.data.msg) || err.message || '网络异常')
   }
   return Promise.reject(err)
 })

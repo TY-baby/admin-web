@@ -14,19 +14,19 @@ def get_db():
 
 def _extract(authorization: Optional[str]) -> str:
     if not authorization or not authorization.lower().startswith("bearer "):
-        raise HTTPException(status_code=401, detail="鏈櫥褰曟垨Token缂哄け")
+        raise HTTPException(status_code=401, detail="未登录或Token缺失")
     return authorization.split(" ", 1)[1].strip()
 
 
 def get_current_client(authorization: Optional[str] = Header(default=None)) -> dict:
     payload = decode_token(_extract(authorization))
     if not payload or payload.get("role") != "client":
-        raise HTTPException(status_code=401, detail="Token鏃犳晥")
+        raise HTTPException(status_code=401, detail="Token无效")
     return payload
 
 
 def get_current_admin(authorization: Optional[str] = Header(default=None)) -> dict:
     payload = decode_token(_extract(authorization))
     if not payload or payload.get("role") != "admin":
-        raise HTTPException(status_code=401, detail="绠＄悊鍛楾oken鏃犳晥")
+        raise HTTPException(status_code=401, detail="管理员Token无效")
     return payload

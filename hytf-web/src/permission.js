@@ -7,7 +7,7 @@ NProgress.configure({ showSpinner: false })
 
 router.beforeEach((to, from, next) => {
   NProgress.start()
-  document.title = (to.meta && to.meta.title) ? to.meta.title : '鎭掕€€寮曟搸'
+  document.title = (to.meta && to.meta.title) ? to.meta.title : '恒耀引擎'
   const isClient = to.path.startsWith('/client')
   const isAdmin = to.path.startsWith('/admin')
   if (isClient && to.path !== '/client/login' && !getClientToken()) return next('/client/login')

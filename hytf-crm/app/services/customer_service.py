@@ -24,15 +24,15 @@ def _calc_end(duration: str, custom_days: Optional[int], start: datetime):
 
 def _status_label(a: DouyinAccount) -> str:
     if a.status == "DISABLED":
-        return "绂佺敤"
+        return "禁用"
     if a.auth_end_at is None:
-        return "姝ｅ父"
+        return "正常"
     now = datetime.utcnow()
     if a.auth_end_at <= now:
-        return "宸插埌鏈?
+        return "已到期"
     if (a.auth_end_at - now).days <= 3:
-        return "鍗冲皢鍒版湡"
-    return "姝ｅ父"
+        return "即将到期"
+    return "正常"
 
 
 def list_customers(db: Session, name=None, dyid=None, dfrom=None, dto=None,
@@ -102,7 +102,7 @@ def create_customer(db: Session, req: CustomerCreateReq) -> Customer:
         db.add(FinanceLog(customer_id=cust.id, douyin_account_id=acc.id,
                           change_type="RECHARGE", amount=d.recharge_amount,
                           balance_after=d.recharge_amount, stat_date=start,
-                          remark="绠＄悊鍛樺綍鍏ュ厖鍊?))
+                          remark="管理员录入充值"))
     db.commit()
     db.refresh(cust)
     return cust
@@ -135,7 +135,7 @@ def update_douyin(db: Session, aid: int, req: DouyinUpdateReq) -> DouyinAccount:
         db.add(FinanceLog(customer_id=a.customer_id, douyin_account_id=a.id,
                           change_type="ADJUST" if diff > 0 else "CONSUME",
                           amount=diff, balance_after=a.balance,
-                          stat_date=datetime.utcnow(), remark="绠＄悊鍛樿皟鏁?))
+                          stat_date=datetime.utcnow(), remark="管理员调整"))
     if req.auth_duration is not None:
         a.auth_duration = req.auth_duration
         a.auth_end_at = _calc_end(req.auth_duration, req.auth_days_custom, a.auth_start_at)

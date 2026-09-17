@@ -67,9 +67,9 @@ def export_api(keyword_name: Optional[str] = None, keyword_douyin: Optional[str]
     df = datetime.combine(date_from, time.min) if date_from else None
     dt = datetime.combine(date_to, time.max) if date_to else None
     items, _ = list_customers(db, keyword_name, keyword_douyin, df, dt, 1, 10000)
-    headers = ["瀹㈡埛UID", "瀹㈡埛鍚嶇О", "鑱旂郴浜?, "鎵嬫満鍙?, "鎶栭煶鍙稩D", "鎶栭煶鍙峰悕绉?,
-               "6浣嶄笟鍔＄爜", "鏄电О", "鍏呭€奸噾棰?, "鍓╀綑娴佹按", "妗ｄ綅", "鏃ラ绠?,
-               "鎺堟潈绫诲瀷", "鎺堟潈寮€濮?, "鎺堟潈鍒版湡", "鐘舵€?, "澶囨敞", "娣诲姞鏃堕棿"]
+    headers = ["客户UID", "客户名称", "联系人", "手机号", "抖音号ID", "抖音号名称",
+               "6位业务码", "昵称", "充值金额", "剩余流水", "档位", "日预算",
+               "授权类型", "授权开始", "授权到期", "状态", "备注", "添加时间"]
     rows = []
     for c in items:
         dl = getattr(c, "douyin_list", []) or []
@@ -84,7 +84,7 @@ def export_api(keyword_name: Optional[str] = None, keyword_douyin: Optional[str]
                          float(a.recharge_amount), float(a.balance), a.tier, a.tier_daily_budget,
                          a.auth_duration,
                          a.auth_start_at.strftime("%Y-%m-%d") if a.auth_start_at else "",
-                         a.auth_end_at.strftime("%Y-%m-%d") if a.auth_end_at else "涓嶉檺",
+                         a.auth_end_at.strftime("%Y-%m-%d") if a.auth_end_at else "不限",
                          a.status, a.remark, a.created_at.strftime("%Y-%m-%d %H:%M:%S")])
     content = export_rows_to_xlsx(headers, rows)
     fname = f"customers_{datetime.now().strftime('%Y%m%d%H%M%S')}.xlsx"

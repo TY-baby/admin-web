@@ -1,4 +1,4 @@
--- hytf-crm 鏁版嵁搴撳垵濮嬪寲鑴氭湰锛堢敓浜х幆澧冪敤锛涘紑鍙戠幆澧冨簲鐢ㄥ惎鍔ㄤ細鑷姩寤鸿〃锛?
+-- hytf-crm 数据库初始化脚本（生产环境用；开发环境应用启动会自动建表）
 CREATE DATABASE IF NOT EXISTS hytf_crm DEFAULT CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE hytf_crm;
 

@@ -1,4 +1,4 @@
-"""hytf-crm FastAPI 搴旂敤鍏ュ彛銆?""
+"""hytf-crm FastAPI 应用入口。"""
 import time
 from contextlib import asynccontextmanager
 
@@ -29,7 +29,7 @@ def _bootstrap_admin():
         if db.query(AdminUser).filter(AdminUser.username == "admin").first() is None:
             db.add(AdminUser(username="admin",
                              password_hash=hash_password("admin123"),
-                             real_name="瓒呯骇绠＄悊鍛?, role="super"))
+                             real_name="超级管理员", role="super"))
             db.commit()
             logger.info("[bootstrap] default admin created: admin / admin123")
     except Exception as e:
@@ -71,7 +71,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="hytf-crm API", version=__version__,
-              description="鎭掕€€寮曟搸 CRM 鍚庣",
+              description="恒耀引擎 CRM 后端",
               lifespan=lifespan,
               docs_url="/docs" if settings.APP_DEBUG else None,
               redoc_url=None)
@@ -95,7 +95,7 @@ async def access_log(request: Request, call_next):
     except Exception as e:
         logger.exception(f"[unhandled] path={request.url.path} err={e}")
         return JSONResponse(status_code=500,
-                            content={"code": 500, "msg": "鏈嶅姟鍣ㄥ唴閮ㄩ敊璇?, "data": None})
+                            content={"code": 500, "msg": "服务器内部错误", "data": None})
     ms = (time.perf_counter() - t0) * 1000
     try:
         key = f"qps:{int(time.time())}"

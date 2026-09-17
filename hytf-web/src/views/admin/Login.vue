@@ -1,19 +1,19 @@
 <template>
   <div class="admin-login">
     <div class="box">
-      <div class="brand">鎭掕€€ CRM 绠＄悊绔?/div>
+      <div class="brand">恒耀 CRM 管理员</div>
       <el-form ref="form" :model="form" :rules="rules" label-width="0">
         <el-form-item prop="username">
-          <el-input v-model="form.username" prefix-icon="el-icon-user" placeholder="璐﹀彿" />
+          <el-input v-model="form.username" prefix-icon="el-icon-user" placeholder="账号" />
         </el-form-item>
         <el-form-item prop="password">
           <el-input v-model="form.password" type="password" prefix-icon="el-icon-lock"
-                    placeholder="瀵嗙爜" show-password @keyup.enter.native="onSubmit" />
+                    placeholder="密码" show-password @keyup.enter.native="onSubmit" />
         </el-form-item>
-        <el-button type="primary" style="width:100%" :loading="loading" @click="onSubmit">鐧?褰?/el-button>
+        <el-button type="primary" style="width:100%" :loading="loading" @click="onSubmit">登 录</el-button>
       </el-form>
       <div class="text-muted" style="text-align:center;margin-top:12px;font-size:12px">
-        榛樿璐﹀彿: admin / admin123
+        默认账号: admin / admin123
       </div>
     </div>
   </div>
@@ -27,8 +27,8 @@ export default {
       loading: false,
       form: { username: '', password: '' },
       rules: {
-        username: [{ required: true, message: '璇疯緭鍏ヨ处鍙?, trigger: 'blur' }],
-        password: [{ required: true, message: '璇疯緭鍏ュ瘑鐮?, trigger: 'blur' }]
+        username: [{ required: true, message: '请输入账号', trigger: 'blur' }],
+        password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
       }
     }
   },
@@ -39,9 +39,9 @@ export default {
         this.loading = true
         try {
           await this.$store.dispatch('adminUser/login', this.form)
-          this.$message.success('鐧诲綍鎴愬姛')
+          this.$message.success('登录成功')
           this.$router.push('/admin/dashboard')
-        } catch (e) { /* 鎷︽埅鍣ㄥ凡鎻愮ず */ } finally { this.loading = false }
+        } catch (e) { /* 拦截器已提示 */ } finally { this.loading = false }
       })
     }
   }

@@ -1,69 +1,69 @@
 <template>
   <div class="client-layout">
     <div class="topbar flex-between">
-      <div class="logo">鎭掕€€浜掑ū</div>
+      <div class="logo">恒耀互娱</div>
       <div class="nav">
-        <router-link to="/client/home" class="nav-item active">棣栭〉</router-link>
-        <router-link to="/client/finance" class="nav-item">璐㈠姟</router-link>
+        <router-link to="/client/home" class="nav-item active">首页</router-link>
+        <router-link to="/client/finance" class="nav-item">财务</router-link>
       </div>
       <div class="user">
         <span>{{ info.customer_name || info.phone }}</span>
-        <el-button type="text" @click="logout">閫€鍑?/el-button>
+        <el-button type="text" @click="logout">退出</el-button>
       </div>
     </div>
 
     <div class="tabs">
-      <div :class="['tab', tab==='novel'?'on':'']" @click="tab='novel'">缃戞枃鎺ㄥ箍</div>
-      <div :class="['tab', tab==='live'?'on':'']" @click="tab='live'">鐩存挱</div>
+      <div :class="['tab', tab==='novel'?'on':'']" @click="tab='novel'">网文推广</div>
+      <div :class="['tab', tab==='live'?'on':'']" @click="tab='live'">直播</div>
     </div>
 
     <div class="main">
       <div class="left">
         <div class="card">
-          <div class="card-title">鎴戣鎶曟斁鐨勬姈闊冲彿鍜屽晢鍝?/div>
-          <el-select v-model="currentId" placeholder="璇烽€夋嫨鎶栭煶鍙? style="width:100%" @change="onAccChange">
+          <div class="card-title">我要投放的抖音号和商品</div>
+          <el-select v-model="currentId" placeholder="请选择抖音号" style="width:100%" @change="onAccChange">
             <el-option v-for="a in accounts" :key="a.douyin_id"
                        :label="a.douyin_name + ' (' + a.douyin_id + ')'" :value="a.douyin_id" />
           </el-select>
         </div>
 
         <div class="card">
-          <div class="card-title">鐢宠娴佺▼</div>
+          <div class="card-title">申请流程</div>
           <video controls style="width:100%;border-radius:6px;background:#000" poster="">
             <source src="" type="video/mp4" />
-            鎮ㄧ殑娴忚鍣ㄤ笉鏀寔瑙嗛鎾斁
+            您的浏览器不支持视频播放
           </video>
         </div>
 
         <div class="card">
-          <div class="card-title">鏃ラ绠楁柟妗?/div>
+          <div class="card-title">日预算方案</div>
           <el-radio-group v-model="plan" size="medium">
-            <el-radio-button label="A">A锛?00锛堜竴澶╋級</el-radio-button>
-            <el-radio-button label="B">B锛?00锛堜竴澶╋級</el-radio-button>
-            <el-radio-button label="C">C锛?000锛堜竴澶╋級</el-radio-button>
+            <el-radio-button label="A">A档300（一天）</el-radio-button>
+            <el-radio-button label="B">B档600（一天）</el-radio-button>
+            <el-radio-button label="C">C档1000（一天）</el-radio-button>
           </el-radio-group>
           <div style="margin-top:16px">
-            <el-button type="primary" size="medium" icon="el-icon-s-promotion" @click="onLaunch">涓€閿姇鏀?/el-button>
+            <el-button type="primary" size="medium" icon="el-icon-s-promotion" @click="onLaunch">一键投放</el-button>
           </div>
         </div>
       </div>
 
       <div class="right">
         <div class="card">
-          <div class="card-title">鎴戠殑璧勯噾</div>
-          <div class="money-row"><span class="lbl">璐︽埛浣欓</span><span class="val">锟{ summary.total_balance || 0 }}</span></div>
-          <div class="money-row"><span class="lbl">绱鍏呭€?/span><span class="val">锟{ summary.total_recharge || 0 }}</span></div>
-          <div class="money-row"><span class="lbl">绱娑堣€?/span><span class="val">锟{ summary.total_consume || 0 }}</span></div>
-          <div class="money-row"><span class="lbl">鎶栭煶鍙锋暟</span><span class="val">{{ summary.account_count || 0 }}</span></div>
+          <div class="card-title">我的资金</div>
+          <div class="money-row"><span class="lbl">账户余额</span><span class="val">￥{{ summary.total_balance || 0 }}</span></div>
+          <div class="money-row"><span class="lbl">累计充值</span><span class="val">￥{{ summary.total_recharge || 0 }}</span></div>
+          <div class="money-row"><span class="lbl">累计消费</span><span class="val">￥{{ summary.total_consume || 0 }}</span></div>
+          <div class="money-row"><span class="lbl">抖音号数</span><span class="val">{{ summary.account_count || 0 }}</span></div>
         </div>
 
         <div class="card">
-          <div class="card-title">鏂版墜甯歌闂</div>
+          <div class="card-title">新手常见问题</div>
           <ul class="faq">
-            <li>1. 濡備綍鍏呭€硷紵璇疯仈绯诲鏈嶈繘琛岀嚎涓嬪厖鍊肩櫥璁般€?/li>
-            <li>2. 鎶曟斁妗ｄ綅鎬庝箞閫夛紵鏍规嵁鍏呭€奸噾棰濈郴缁熻嚜鍔ㄥ尮閰嶃€?/li>
-            <li>3. 鎺堟潈鍒版湡鍚庢€庝箞鍔烇紵璇疯仈绯诲鏈嶇画鏈熴€?/li>
-            <li>4. 鏁版嵁澶氫箙鏇存柊涓€娆★紵瀹炴椂鍚屾锛屽彲鎵嬪姩鍒锋柊銆?/li>
+            <li>1. 如何充值？请联系客服进行线下充值登记。</li>
+            <li>2. 投放档位怎么选？根据充值金额系统自动匹配。</li>
+            <li>3. 授权到期后怎么办？请联系客服续期。</li>
+            <li>4. 数据多久更新一次？实时同步，可手动刷新。</li>
           </ul>
         </div>
       </div>
@@ -91,7 +91,7 @@ export default {
       if (acc) this.plan = acc.tier
     },
     onLaunch() {
-      this.$confirm('灏嗕娇鐢ㄣ€? + this.plan + '銆戞。浣嶆柟妗堣繘琛屾姇鏀撅紝鏄惁缁х画锛?, '涓€閿姇鏀?, { type: 'info' })
+      this.$confirm('将使用【' + this.plan + '】档位方案进行投放，是否继续?', '一键投放', { type: 'info' })
         .then(() => { this.$router.push('/client/launch') }).catch(() => {})
     },
     logout() {

@@ -1,27 +1,27 @@
 <template>
   <div class="client-sub">
     <div class="topbar flex-between">
-      <div class="logo" @click="$router.push('/client/home')" style="cursor:pointer">鎭掕€€浜掑ū</div>
-      <div><el-button type="text" @click="$router.push('/client/home')">杩斿洖棣栭〉</el-button></div>
+      <div class="logo" @click="$router.push('/client/home')" style="cursor:pointer">恒耀互娱</div>
+      <div><el-button type="text" @click="$router.push('/client/home')">返回首页</el-button></div>
     </div>
     <div class="page-container">
       <div class="summary card">
         <div class="flex-between">
-          <div><div class="lbl">璐﹀彿鎬讳綑棰?/div><div class="big">锟{ summary.total_balance || 0 }}</div></div>
-          <div><div class="lbl">绱鍏呭€?/div><div class="big">锟{ summary.total_recharge || 0 }}</div></div>
-          <div><div class="lbl">绱娑堣€?/div><div class="big">锟{ summary.total_consume || 0 }}</div></div>
-          <div><div class="lbl">鎶栭煶鍙锋暟</div><div class="big">{{ summary.account_count || 0 }}</div></div>
+          <div><div class="lbl">账号总余额</div><div class="big">￥{{ summary.total_balance || 0 }}</div></div>
+          <div><div class="lbl">累计充值</div><div class="big">￥{{ summary.total_recharge || 0 }}</div></div>
+          <div><div class="lbl">累计消费</div><div class="big">￥{{ summary.total_consume || 0 }}</div></div>
+          <div><div class="lbl">抖音号数</div><div class="big">{{ summary.account_count || 0 }}</div></div>
         </div>
       </div>
 
       <div class="filter card">
-        <span style="margin-right:8px">鏃ユ湡绛涢€?</span>
+        <span style="margin-right:8px">日期筛选</span>
         <el-date-picker v-model="range" type="daterange" value-format="yyyy-MM-dd"
-                        start-placeholder="寮€濮? end-placeholder="缁撴潫" :clearable="false" @change="loadTrend" />
-        <el-select v-model="accountId" placeholder="鍏ㄩ儴鎶栭煶鍙? clearable style="margin-left:12px;width:220px" @change="loadTrend">
+                        start-placeholder="开始" end-placeholder="结束" :clearable="false" @change="loadTrend" />
+        <el-select v-model="accountId" placeholder="全部抖音号" clearable style="margin-left:12px;width:220px" @change="loadTrend">
           <el-option v-for="a in accounts" :key="a.id" :label="a.douyin_name" :value="a.id" />
         </el-select>
-        <el-button icon="el-icon-refresh" style="margin-left:8px" @click="loadTrend">鍒锋柊</el-button>
+        <el-button icon="el-icon-refresh" style="margin-left:8px" @click="loadTrend">刷新</el-button>
       </div>
 
       <div class="content">
@@ -37,12 +37,12 @@
           </div>
         </div>
         <div class="right card">
-          <div class="card-title">鏃ュ父鏂规</div>
-          <p>1. 寤鸿姣忔棩鍥哄畾鏃堕棿鏌ョ湅鎶曟斁鏁版嵁锛屼繚鎸佹姇鏀捐妭濂忕ǔ瀹氥€?/p>
-          <p>2. 棣栨鎶曟斁鎺ㄨ崘浣跨敤 A 妗ｄ綅锛?00/澶╋級锛岃瀵?3 澶╂晥鏋滃悗鍐嶈皟鏁淬€?/p>
-          <p>3. 鑻ュ崟鏃ユ秷鑰楀紓甯告尝鍔ㄨ秴杩?30%锛岃鍙婃椂鑱旂郴瀹㈡湇鏍告煡銆?/p>
-          <p>4. 鎺堟潈鍒版湡鍓?3 澶╃郴缁熶細鎻愰啋锛岃鎻愬墠鑱旂郴缁湡閬垮厤涓柇銆?/p>
-          <p>5. 鏁版嵁浠ユ湰骞冲彴缁熻涓哄噯锛屽疄闄呮姇鏀炬晥鏋滃彈澶氬洜绱犲奖鍝嶃€?/p>
+          <div class="card-title">日常方案</div>
+          <p>1. 建议每日固定时间查看投放数据，保持投放节奏稳定。</p>
+          <p>2. 首次投放推荐使用 A 档位（300/天），观察 3 天效果后再调整。</p>
+          <p>3. 若单日消耗异常波动超过 30%，请及时联系客服核查。</p>
+          <p>4. 授权到期前 3 天系统会提醒，请提前联系续期避免中断。</p>
+          <p>5. 数据以本平台统计为准，实际投放效果受多因素影响。</p>
         </div>
       </div>
     </div>
@@ -71,10 +71,10 @@ export default {
       const totalConsume = sum('consume')
       const avg = this.raw.length ? (Number(totalConsume) / this.raw.length).toFixed(2) : '0.00'
       return [
-        { key: 'consume', title: '鎬绘秷鑰?, value: '锟? + totalConsume },
-        { key: 'recharge', title: '鎬诲厖鍊?, value: '锟? + sum('recharge') },
-        { key: 'balance', title: '褰撳墠浣欓', value: '锟? + Number(this.summary.total_balance || 0).toFixed(2) },
-        { key: 'avg', title: '鏃ュ潎娑堣€?, value: '锟? + avg }
+        { key: 'consume', title: '总消费', value: '￥' + totalConsume },
+        { key: 'recharge', title: '总充值', value: '￥' + sum('recharge') },
+        { key: 'balance', title: '当前余额', value: '￥' + Number(this.summary.total_balance || 0).toFixed(2) },
+        { key: 'avg', title: '日均消费', value: '￥' + avg }
       ]
     }
   },
@@ -99,7 +99,7 @@ export default {
     selectMod(k) { this.activeMod = k; this.applySeries() },
     applySeries() {
       const key = this.activeMod
-      const nameMap = { consume: '娑堣€?, recharge: '鍏呭€?, balance: '浣欓', avg: '鏃ュ潎娑堣€? }
+      const nameMap = { consume: '消费', recharge: '充值', balance: '余额', avg: '日均消费' }
       const colorMap = { consume: '#F56C6C', recharge: '#67C23A', balance: '#409EFF', avg: '#E6A23C' }
       if (key === 'avg') {
         const total = (this.raw || []).reduce((s, x) => s + Number(x.consume || 0), 0)

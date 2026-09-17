@@ -17,7 +17,7 @@ export default {
   actions: {
     async login({ commit }, payload) {
       const { data } = await apiLogin(payload)
-      if (data.code !== 0) throw new Error(data.msg || '鐧诲綍澶辫触')
+      if (data.code !== 0) throw new Error(data.msg || '登录失败')
       setClientToken(data.data.access_token)
       commit('SET_TOKEN', data.data.access_token)
       commit('SET_INFO', data.data)

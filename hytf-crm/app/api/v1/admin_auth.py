@@ -16,5 +16,5 @@ def login(request: Request, body: AdminLoginReq, db: Session = Depends(get_db)):
     data = admin_login(db, body.username, body.password)
     if not data:
         logger.warning(f"[B-login fail] username={body.username}")
-        return fail("璐﹀彿鎴栧瘑鐮侀敊璇?, code=40001)
+        return fail("账号或密码错误", code=40001)
     return ok(data)

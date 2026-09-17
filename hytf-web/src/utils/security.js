@@ -1,6 +1,6 @@
 /**
- * 鍓嶇瀹夊叏闃叉姢锛氶槻F12 / 闃茶皟璇?/ 闃插彸閿?/ 闃插鍒?/ 闃瞚frame宓屽叆
- * 璇存槑锛氭墍鏈夊墠绔槻鎶ら兘鍙缁曡繃锛屼粎鎻愰珮闂ㄦ锛涙牳蹇冨畨鍏ㄤ緷璧栧悗绔?JWT + 闄愭祦銆?
+ * 前端安全防护：防F12 / 防调试 / 防右键 / 防复制 / 防iframe嵌入
+ * 说明：所有前端防护都可被绕过，仅提高门槛；核心安全依赖后端 JWT + 限流。
  */
 export function installSecurity() {
   document.addEventListener('contextmenu', e => e.preventDefault())
@@ -19,7 +19,7 @@ export function installSecurity() {
     const hDiff = window.outerHeight - window.innerHeight > threshold
     if (wDiff || hDiff) {
       try {
-        document.body.innerHTML = '<div style="padding:40px;text-align:center;font-size:18px;color:#c00">妫€娴嬪埌璋冭瘯宸ュ叿宸叉墦寮€锛屼负淇濋殰璐︽埛瀹夊叏锛岄〉闈㈠凡鍋滄娓叉煋銆傝鍏抽棴鍚庡埛鏂般€?/div>'
+        document.body.innerHTML = '<div style="padding:40px;text-align:center;font-size:18px;color:#c00">检测到调试工具已打开，为保障账户安全，页面已停止渲染。请关闭后刷新。</div>'
       } catch (_) {}
     }
   }
@@ -30,6 +30,6 @@ export function installSecurity() {
   }
 
   const style = 'color:#fff;background:#e74c3c;font-size:20px;padding:8px 16px;border-radius:4px'
-  console.log('%c璀﹀憡', style)
-  console.log('%c姝ゆ祻瑙堝櫒鍔熻兘闈㈠悜寮€鍙戣€呫€傚鏋滄湁浜哄憡璇夋偍鍦ㄦ澶勭矘璐翠唬鐮佷互鍚敤鏌愬姛鑳斤紝閭ｆ槸楠楀瓙琛屼负锛屽彲鑳戒細瀵艰嚧璐︽埛琚洍銆?, 'font-size:14px;color:#c00')
+  console.log('%c警告', style)
+  console.log('%c此浏览器功能面向开发者。如果有人告诉您在此处粘贴代码以启用某功能，那是骗子行为，可能会导致账户被盗。', 'font-size:14px;color:#c00')
 }

@@ -1,17 +1,17 @@
 <template>
   <div class="login-wrap">
     <div class="login-box">
-      <div class="brand">鎭掕€€寮曟搸 | 鎭掕€€鎶曟斁</div>
+      <div class="brand">恒耀引擎 | 恒耀投放</div>
       <el-form ref="form" :model="form" :rules="rules" label-width="0" @submit.native.prevent="onSubmit">
         <el-form-item prop="phone">
-          <el-input v-model="form.phone" placeholder="璇疯緭鍏ユ墜鏈哄彿" prefix-icon="el-icon-mobile-phone" maxlength="11" />
+          <el-input v-model="form.phone" placeholder="请输入手机号" prefix-icon="el-icon-mobile-phone" maxlength="11" />
         </el-form-item>
         <el-form-item prop="password">
-          <el-input v-model="form.password" type="password" placeholder="璇疯緭鍏ュ瘑鐮? prefix-icon="el-icon-lock" show-password @keyup.enter.native="onSubmit" />
+          <el-input v-model="form.password" type="password" placeholder="请输入密码" prefix-icon="el-icon-lock" show-password @keyup.enter.native="onSubmit" />
         </el-form-item>
-        <el-button type="primary" style="width:100%" :loading="loading" @click="onSubmit">鐧?褰?/el-button>
+        <el-button type="primary" style="width:100%" :loading="loading" @click="onSubmit">登 录</el-button>
       </el-form>
-      <div class="tips text-muted">榛樿瀵嗙爜瑙勫垯锛氭墜鏈哄彿 + 123</div>
+      <div class="tips text-muted">默认密码规则：手机号 + 123</div>
     </div>
   </div>
 </template>
@@ -26,12 +26,12 @@ export default {
       form: { phone: '', password: '' },
       rules: {
         phone: [
-          { required: true, message: '璇疯緭鍏ユ墜鏈哄彿', trigger: 'blur' },
-          { validator: (r, v, cb) => (isPhone(v) ? cb() : cb(new Error('鎵嬫満鍙锋牸寮忎笉姝ｇ‘'))), trigger: 'blur' }
+          { required: true, message: '请输入手机号', trigger: 'blur' },
+          { validator: (r, v, cb) => (isPhone(v) ? cb() : cb(new Error('手机号格式不正确'))), trigger: 'blur' }
         ],
         password: [
-          { required: true, message: '璇疯緭鍏ュ瘑鐮?, trigger: 'blur' },
-          { min: 6, max: 32, message: '闀垮害6-32浣?, trigger: 'blur' }
+          { required: true, message: '请输入密码', trigger: 'blur' },
+          { min: 6, max: 32, message: '长度6-32位', trigger: 'blur' }
         ]
       }
     }
@@ -43,9 +43,9 @@ export default {
         this.loading = true
         try {
           await this.$store.dispatch('clientUser/login', this.form)
-          this.$message.success('鐧诲綍鎴愬姛')
+          this.$message.success('登录成功')
           this.$router.push('/client/home')
-        } catch (e) { /* 鎷︽埅鍣ㄥ凡鎻愮ず */ } finally { this.loading = false }
+        } catch (e) { /* 拦截器已提示 */ } finally { this.loading = false }
       })
     }
   }

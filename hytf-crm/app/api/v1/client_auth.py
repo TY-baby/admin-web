@@ -16,5 +16,5 @@ def login(request: Request, body: ClientLoginReq, db: Session = Depends(get_db))
     data = client_login(db, body.phone, body.password)
     if not data:
         logger.warning(f"[A-login fail] phone={body.phone}")
-        return fail("鎵嬫満鍙锋垨瀵嗙爜閿欒", code=40001)
+        return fail("手机号或密码错误", code=40001)
     return ok(data)
