@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  # ---- MySQL 数据库 ----
+  mysql:
+    image: mysql:8.0
+    container_name: hytf-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: hytf_root_2026
+      MYSQL_DATABASE: hytf_crm
+      MYSQL_USER: hytf_user
+      MYSQL_PASSWORD: hytf_pass_2026
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./hytf-crm/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3306:3306"
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---- Redis 缓存 ----
+  redis:
+    image: redis:7-alpine
+    container_name: hytf-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ---- FastAPI 后端 ----
+  backend:
+    build:
+      context: ./hytf-crm
+      dockerfile: Dockerfile
+    container_name: hytf-backend
+    restart: always
+    env_file:
+      - ./hytf-crm/.env.production
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./hytf-crm/logs:/app/logs
+
+  # ---- Vue2 前端 + Nginx ----
+  frontend:
+    build:
+      context: ./hytf-web
+      dockerfile: Dockerfile
+    container_name: hytf-frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
+volumes:
+  mysql_data:
+  redis_data:

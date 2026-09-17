@@ -1,0 +1,28 @@
+{
+  "name": "hytf-web",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "serve": "vue-cli-service serve",
+    "build": "vue-cli-service build"
+  },
+  "dependencies": {
+    "axios": "^0.27.2",
+    "core-js": "^3.32.0",
+    "echarts": "^5.4.3",
+    "element-ui": "^2.15.14",
+    "js-cookie": "^3.0.5",
+    "nprogress": "^0.2.0",
+    "vue": "^2.7.16",
+    "vue-router": "^3.6.5",
+    "vuex": "^3.6.2"
+  },
+  "devDependencies": {
+    "@vue/cli-plugin-babel": "~5.0.8",
+    "@vue/cli-service": "~5.0.8",
+    "sass": "^1.69.5",
+    "sass-loader": "^13.3.2",
+    "vue-template-compiler": "^2.7.16"
+  },
+  "browserslist": ["> 1%", "last 2 versions", "not dead"]
+}

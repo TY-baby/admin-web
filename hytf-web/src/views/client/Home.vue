@@ -1,0 +1,135 @@
+<template>
+  <div class="client-layout">
+    <div class="topbar flex-between">
+      <div class="logo">鎭掕€€浜掑ū</div>
+      <div class="nav">
+        <router-link to="/client/home" class="nav-item active">棣栭〉</router-link>
+        <router-link to="/client/finance" class="nav-item">璐㈠姟</router-link>
+      </div>
+      <div class="user">
+        <span>{{ info.customer_name || info.phone }}</span>
+        <el-button type="text" @click="logout">閫€鍑?/el-button>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <div :class="['tab', tab==='novel'?'on':'']" @click="tab='novel'">缃戞枃鎺ㄥ箍</div>
+      <div :class="['tab', tab==='live'?'on':'']" @click="tab='live'">鐩存挱</div>
+    </div>
+
+    <div class="main">
+      <div class="left">
+        <div class="card">
+          <div class="card-title">鎴戣鎶曟斁鐨勬姈闊冲彿鍜屽晢鍝?/div>
+          <el-select v-model="currentId" placeholder="璇烽€夋嫨鎶栭煶鍙? style="width:100%" @change="onAccChange">
+            <el-option v-for="a in accounts" :key="a.douyin_id"
+                       :label="a.douyin_name + ' (' + a.douyin_id + ')'" :value="a.douyin_id" />
+          </el-select>
+        </div>
+
+        <div class="card">
+          <div class="card-title">鐢宠娴佺▼</div>
+          <video controls style="width:100%;border-radius:6px;background:#000" poster="">
+            <source src="" type="video/mp4" />
+            鎮ㄧ殑娴忚鍣ㄤ笉鏀寔瑙嗛鎾斁
+          </video>
+        </div>
+
+        <div class="card">
+          <div class="card-title">鏃ラ绠楁柟妗?/div>
+          <el-radio-group v-model="plan" size="medium">
+            <el-radio-button label="A">A锛?00锛堜竴澶╋級</el-radio-button>
+            <el-radio-button label="B">B锛?00锛堜竴澶╋級</el-radio-button>
+            <el-radio-button label="C">C锛?000锛堜竴澶╋級</el-radio-button>
+          </el-radio-group>
+          <div style="margin-top:16px">
+            <el-button type="primary" size="medium" icon="el-icon-s-promotion" @click="onLaunch">涓€閿姇鏀?/el-button>
+          </div>
+        </div>
+      </div>
+
+      <div class="right">
+        <div class="card">
+          <div class="card-title">鎴戠殑璧勯噾</div>
+          <div class="money-row"><span class="lbl">璐︽埛浣欓</span><span class="val">锟{ summary.total_balance || 0 }}</span></div>
+          <div class="money-row"><span class="lbl">绱鍏呭€?/span><span class="val">锟{ summary.total_recharge || 0 }}</span></div>
+          <div class="money-row"><span class="lbl">绱娑堣€?/span><span class="val">锟{ summary.total_consume || 0 }}</span></div>
+          <div class="money-row"><span class="lbl">鎶栭煶鍙锋暟</span><span class="val">{{ summary.account_count || 0 }}</span></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">鏂版墜甯歌闂</div>
+          <ul class="faq">
+            <li>1. 濡備綍鍏呭€硷紵璇疯仈绯诲鏈嶈繘琛岀嚎涓嬪厖鍊肩櫥璁般€?/li>
+            <li>2. 鎶曟斁妗ｄ綅鎬庝箞閫夛紵鏍规嵁鍏呭€奸噾棰濈郴缁熻嚜鍔ㄥ尮閰嶃€?/li>
+            <li>3. 鎺堟潈鍒版湡鍚庢€庝箞鍔烇紵璇疯仈绯诲鏈嶇画鏈熴€?/li>
+            <li>4. 鏁版嵁澶氫箙鏇存柊涓€娆★紵瀹炴椂鍚屾锛屽彲鎵嬪姩鍒锋柊銆?/li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import { mapState } from 'vuex'
+import { getSummary } from '@/api/clientHome'
+export default {
+  name: 'ClientHome',
+  data() { return { tab: 'novel', plan: 'A', currentId: '', summary: {} } },
+  computed: { ...mapState('clientUser', ['info', 'accounts', 'currentAccount']) },
+  async created() {
+    await this.$store.dispatch('clientUser/loadAccounts')
+    if (this.accounts.length) this.currentId = this.accounts[0].douyin_id
+    const { data } = await getSummary()
+    if (data.code === 0) this.summary = data.data || {}
+  },
+  methods: {
+    onAccChange(id) {
+      const acc = this.accounts.find(a => a.douyin_id === id)
+      this.$store.commit('clientUser/SET_CURRENT', acc)
+      if (acc) this.plan = acc.tier
+    },
+    onLaunch() {
+      this.$confirm('灏嗕娇鐢ㄣ€? + this.plan + '銆戞。浣嶆柟妗堣繘琛屾姇鏀撅紝鏄惁缁х画锛?, '涓€閿姇鏀?, { type: 'info' })
+        .then(() => { this.$router.push('/client/launch') }).catch(() => {})
+    },
+    logout() {
+      this.$store.dispatch('clientUser/logout')
+      this.$router.push('/client/login')
+    }
+  }
+}
+</script>
+
+<style scoped lang="scss">
+.client-layout { min-height: 100vh; background: #f5f7fa; }
+.topbar {
+  height: 56px; background: #fff; padding: 0 24px; border-bottom: 1px solid #eee;
+  .logo { font-weight: bold; font-size: 18px; color: #1e3c72; }
+  .nav-item { margin: 0 12px; color: #606266; font-size: 14px;
+    &.active { color: #409EFF; font-weight: bold; } }
+  .user span { margin-right: 8px; color: #606266; font-size: 13px; }
+}
+.tabs {
+  background: #fff; padding: 0 24px; border-bottom: 1px solid #eee; display: flex;
+  .tab { padding: 12px 20px; cursor: pointer; color: #606266; font-size: 14px;
+    border-bottom: 2px solid transparent;
+    &.on { color: #409EFF; border-bottom-color: #409EFF; font-weight: bold; } }
+}
+.main {
+  display: flex; padding: 16px; gap: 16px;
+  .left { flex: 2; display: flex; flex-direction: column; gap: 16px; }
+  .right { flex: 1; display: flex; flex-direction: column; gap: 16px; }
+}
+.card {
+  background: #fff; border-radius: 6px; padding: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.05);
+  .card-title { font-size: 15px; font-weight: bold; color: #303133; margin-bottom: 12px; }
+}
+.money-row {
+  display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px;
+  .lbl { color: #909399; } .val { color: #303133; font-weight: bold; }
+}
+.faq { padding-left: 18px; margin: 0; color: #606266; font-size: 13px; line-height: 1.9; }
+</style>

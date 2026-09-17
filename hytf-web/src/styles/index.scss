@@ -1,0 +1,17 @@
+$primary: #409EFF;
+$bg: #f5f7fa;
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0; height: 100%;
+  font-family: 'Microsoft YaHei', 'PingFang SC', Arial, sans-serif;
+  background: $bg;
+}
+a { text-decoration: none; color: $primary; }
+.page-container { padding: 16px; }
+.flex-row { display: flex; }
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+.text-muted { color: #909399; }
+.mb-12 { margin-bottom: 12px; }
+.mb-16 { margin-bottom: 16px; }
+.mt-16 { margin-top: 16px; }
