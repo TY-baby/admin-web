@@ -1,0 +1,12 @@
+# 保证在 Linux 服务器 / Docker 中执行的文件使用 LF 换行，避免 CRLF 导致
+# bash 报 `\r command not found` 或配置解析失败
+*.sh         text eol=lf
+*.py         text eol=lf
+*.sql        text eol=lf
+*.conf       text eol=lf
+*.yml        text eol=lf
+*.yaml       text eol=lf
+Dockerfile   text eol=lf
+.env         text eol=lf
+.env.*       text eol=lf
+requirements.txt text eol=lf
