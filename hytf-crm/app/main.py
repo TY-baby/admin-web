@@ -56,10 +56,11 @@ async def lifespan(app: FastAPI):
     if settings.APP_ENV == "dev":
         try:
             init_db()
-            _bootstrap_admin()
             logger.info("[bootstrap] schema synced")
         except Exception as e:
             logger.error(f"[bootstrap] schema sync failed: {e}")
+    # 默认管理员在 dev/prod 均需初始化（幂等：已存在则跳过）
+    _bootstrap_admin()
     try:
         redis_client.ping()
         logger.info("[bootstrap] redis ok")
