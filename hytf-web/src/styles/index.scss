@@ -1,6 +1,14 @@
 $primary: #409EFF;
 $bg: #f5f7fa;
 
+// ===== 恒耀主题色（A 端巨量千川风 / B 端科技风）=====
+$hy-pink: #ff2e63;        // 主玫红
+$hy-pink-light: #ff6b9d;  // 亮粉
+$hy-pink-soft: #ffe3ec;   // 浅粉底色
+$hy-cta: linear-gradient(135deg, #ff5f8f 0%, #ff2e63 100%); // 粉色渐变 CTA
+$hy-blue: #2b6cff;        // 主按钮蓝
+$hy-bg-pink: linear-gradient(160deg, #fff0f5 0%, #ffe8ef 45%, #ffeef4 100%); // A端页面底色
+
 * { box-sizing: border-box; }
 html, body {
   margin: 0; padding: 0; height: 100%;
@@ -15,3 +23,19 @@ a { text-decoration: none; color: $primary; }
 .mb-12 { margin-bottom: 12px; }
 .mb-16 { margin-bottom: 16px; }
 .mt-16 { margin-top: 16px; }
+
+// ===== 粉色渐变 CTA 按钮（A 端一键投放等强引导按钮）=====
+.hy-cta {
+  background: $hy-cta !important;
+  border: none !important;
+  color: #fff !important;
+  font-weight: bold;
+  letter-spacing: 1px;
+  box-shadow: 0 6px 18px rgba(255, 46, 99, .35);
+  transition: transform .15s ease, box-shadow .15s ease;
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(255, 46, 99, .45);
+  }
+  &:active { transform: translateY(0); }
+}

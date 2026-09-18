@@ -114,18 +114,23 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.client-sub { min-height: 100vh; background: #f5f7fa; }
+.client-sub { min-height: 100vh; background: linear-gradient(160deg, #fff0f5 0%, #ffe8ef 45%, #ffeef4 100%); }
 .topbar {
-  height: 56px; background: #fff; padding: 0 24px; border-bottom: 1px solid #eee;
-  .logo { font-weight: bold; font-size: 18px; color: #1e3c72; }
+  height: 56px; padding: 0 24px;
+  background: linear-gradient(135deg, #ff5f8f 0%, #ff2e63 100%);
+  box-shadow: 0 2px 12px rgba(255, 46, 99, .25);
+  .logo { font-weight: bold; font-size: 18px; color: #fff; }
+  ::v-deep .el-button--text { color: #fff; }
 }
 .card {
-  background: #fff; border-radius: 6px; padding: 16px; margin-bottom: 16px;
-  .card-title { font-size: 15px; font-weight: bold; margin-bottom: 12px; }
+  background: #fff; border-radius: 12px; padding: 18px; margin-bottom: 16px;
+  box-shadow: 0 4px 16px rgba(255, 46, 99, .08);
+  .card-title { font-size: 15px; font-weight: bold; margin-bottom: 12px;
+    border-left: 3px solid #ff2e63; padding-left: 8px; }
 }
 .summary {
   .lbl { color: #909399; font-size: 13px; }
-  .big { font-size: 22px; font-weight: bold; color: #303133; margin-top: 4px; }
+  .big { font-size: 22px; font-weight: bold; color: #ff2e63; margin-top: 4px; }
 }
 .content {
   display: flex; gap: 16px;
@@ -135,9 +140,9 @@ export default {
 .modules {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px;
   .mod {
-    background: #fff; padding: 16px; border-radius: 6px; cursor: pointer;
-    border: 2px solid transparent;
-    &.on { border-color: #409EFF; }
+    background: #fff; padding: 16px; border-radius: 10px; cursor: pointer;
+    border: 2px solid transparent; box-shadow: 0 2px 10px rgba(255, 46, 99, .06);
+    &.on { border-color: #ff2e63; }
     .mod-title { color: #909399; font-size: 13px; }
     .mod-val { font-size: 20px; font-weight: bold; color: #303133; margin-top: 6px; }
   }

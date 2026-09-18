@@ -43,7 +43,7 @@
             <el-radio-button label="C">C档1000（一天）</el-radio-button>
           </el-radio-group>
           <div style="margin-top:16px">
-            <el-button type="primary" size="medium" icon="el-icon-s-promotion" @click="onLaunch">一键投放</el-button>
+            <el-button type="primary" size="medium" class="hy-cta" icon="el-icon-s-promotion" @click="onLaunch">一键投放</el-button>
           </div>
         </div>
       </div>
@@ -103,19 +103,22 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.client-layout { min-height: 100vh; background: #f5f7fa; }
+.client-layout { min-height: 100vh; background: linear-gradient(160deg, #fff0f5 0%, #ffe8ef 45%, #ffeef4 100%); }
 .topbar {
-  height: 56px; background: #fff; padding: 0 24px; border-bottom: 1px solid #eee;
-  .logo { font-weight: bold; font-size: 18px; color: #1e3c72; }
-  .nav-item { margin: 0 12px; color: #606266; font-size: 14px;
-    &.active { color: #409EFF; font-weight: bold; } }
-  .user span { margin-right: 8px; color: #606266; font-size: 13px; }
+  height: 56px; padding: 0 24px;
+  background: linear-gradient(135deg, #ff5f8f 0%, #ff2e63 100%);
+  box-shadow: 0 2px 12px rgba(255, 46, 99, .25);
+  .logo { font-weight: bold; font-size: 18px; color: #fff; }
+  .nav-item { margin: 0 12px; color: rgba(255,255,255,.85); font-size: 14px;
+    &.active { color: #fff; font-weight: bold; border-bottom: 2px solid #fff; } }
+  .user span { margin-right: 8px; color: rgba(255,255,255,.9); font-size: 13px; }
+  ::v-deep .el-button--text { color: #fff; }
 }
 .tabs {
-  background: #fff; padding: 0 24px; border-bottom: 1px solid #eee; display: flex;
+  background: #fff; padding: 0 24px; border-bottom: 1px solid #ffe0ea; display: flex;
   .tab { padding: 12px 20px; cursor: pointer; color: #606266; font-size: 14px;
     border-bottom: 2px solid transparent;
-    &.on { color: #409EFF; border-bottom-color: #409EFF; font-weight: bold; } }
+    &.on { color: #ff2e63; border-bottom-color: #ff2e63; font-weight: bold; } }
 }
 .main {
   display: flex; padding: 16px; gap: 16px;
@@ -123,13 +126,14 @@ export default {
   .right { flex: 1; display: flex; flex-direction: column; gap: 16px; }
 }
 .card {
-  background: #fff; border-radius: 6px; padding: 16px;
-  box-shadow: 0 1px 3px rgba(0,0,0,.05);
-  .card-title { font-size: 15px; font-weight: bold; color: #303133; margin-bottom: 12px; }
+  background: #fff; border-radius: 12px; padding: 18px;
+  box-shadow: 0 4px 16px rgba(255, 46, 99, .08);
+  .card-title { font-size: 15px; font-weight: bold; color: #303133; margin-bottom: 12px;
+    border-left: 3px solid #ff2e63; padding-left: 8px; }
 }
 .money-row {
   display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px;
-  .lbl { color: #909399; } .val { color: #303133; font-weight: bold; }
+  .lbl { color: #909399; } .val { color: #ff2e63; font-weight: bold; }
 }
 .faq { padding-left: 18px; margin: 0; color: #606266; font-size: 13px; line-height: 1.9; }
 </style>

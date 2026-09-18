@@ -1,7 +1,11 @@
 <template>
   <div class="login-wrap">
+    <div class="deco deco-1"></div>
+    <div class="deco deco-2"></div>
+    <div class="deco deco-3"></div>
     <div class="login-box">
       <div class="brand">恒耀引擎 | 恒耀投放</div>
+      <div class="slogan">短视频投放 · 一站式增长平台</div>
       <el-form ref="form" :model="form" :rules="rules" label-width="0" @submit.native.prevent="onSubmit">
         <el-form-item prop="phone">
           <el-input v-model="form.phone" placeholder="请输入手机号" prefix-icon="el-icon-mobile-phone" maxlength="11" />
@@ -54,13 +58,31 @@ export default {
 
 <style scoped lang="scss">
 .login-wrap {
+  position: relative; overflow: hidden;
   height: 100vh; display: flex; align-items: center; justify-content: center;
-  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  background: linear-gradient(135deg, #ff5f8f 0%, #ff2e63 45%, #ff7eb3 100%);
 }
+.deco {
+  position: absolute; border-radius: 50%; filter: blur(6px);
+  background: rgba(255,255,255,.18);
+}
+.deco-1 { width: 320px; height: 320px; top: -90px; left: -70px; }
+.deco-2 { width: 220px; height: 220px; bottom: -60px; right: -40px; background: rgba(255,255,255,.14); }
+.deco-3 { width: 120px; height: 120px; top: 40%; right: 14%; background: rgba(255,255,255,.12); }
 .login-box {
-  width: 400px; padding: 40px 32px; background: #fff;
-  border-radius: 8px; box-shadow: 0 8px 30px rgba(0,0,0,.2);
+  position: relative; z-index: 2;
+  width: 400px; padding: 44px 36px; background: #fff;
+  border-radius: 18px; box-shadow: 0 18px 50px rgba(199, 21, 71, .28);
 }
-.brand { text-align: center; font-size: 22px; font-weight: bold; color: #303133; margin-bottom: 24px; }
+.brand {
+  text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 6px;
+  background: linear-gradient(135deg, #ff2e63, #ff6b9d);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+.slogan { text-align: center; font-size: 13px; color: #909399; margin-bottom: 26px; }
 .tips { text-align: center; margin-top: 12px; font-size: 12px; }
+::v-deep .el-button--primary {
+  background: linear-gradient(135deg, #2b6cff, #4a90ff); border: none; font-weight: bold;
+  box-shadow: 0 6px 16px rgba(43,108,255,.3);
+}
 </style>
