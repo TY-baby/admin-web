@@ -17,6 +17,15 @@
       <div :class="['tab', tab==='live'?'on':'']" @click="tab='live'">直播</div>
     </div>
 
+    <div class="banner">
+      <div class="banner-inner">
+        <span class="bn-txt">新客限时</span>
+        <span class="bn-arrow">↗</span>
+        <span class="bn-txt">专享投放</span>
+      </div>
+    </div>
+
+    <div class="main-wrap">
     <div class="main">
       <div class="left">
         <div class="card">
@@ -67,6 +76,7 @@
           </ul>
         </div>
       </div>
+    </div>
     </div>
   </div>
 </template>
@@ -120,8 +130,26 @@ export default {
     border-bottom: 2px solid transparent;
     &.on { color: #ff2e63; border-bottom-color: #ff2e63; font-weight: bold; } }
 }
+// 顶部促销 banner（居中展示，引流感）
+.banner {
+  background: linear-gradient(120deg, #ff5f8f 0%, #ff2e63 50%, #ff7eb3 100%);
+  padding: 34px 0; overflow: hidden;
+}
+.banner-inner {
+  max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: center; gap: 28px;
+}
+.bn-txt {
+  color: #fff; font-size: 34px; font-weight: 800; letter-spacing: 6px;
+  text-shadow: 0 4px 16px rgba(0,0,0,.18);
+}
+.bn-arrow {
+  color: #ffd7e4; font-size: 44px; font-weight: 800; line-height: 1;
+  transform: rotate(0deg); text-shadow: 0 4px 16px rgba(0,0,0,.2);
+}
+// 内容居中容器
+.main-wrap { max-width: 1200px; margin: 0 auto; }
 .main {
-  display: flex; padding: 16px; gap: 16px;
+  display: flex; padding: 20px 16px; gap: 16px;
   .left { flex: 2; display: flex; flex-direction: column; gap: 16px; }
   .right { flex: 1; display: flex; flex-direction: column; gap: 16px; }
 }

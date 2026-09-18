@@ -13,6 +13,13 @@ def list_invoices(db: Session, page=1, size=20, status=None):
     return items, total
 
 
+def list_invoices_by_customer(db: Session, customer_id: int, page=1, size=20):
+    q = db.query(Invoice).filter(Invoice.customer_id == customer_id)
+    total = q.count()
+    items = q.order_by(Invoice.invoice_at.desc()).offset((page - 1) * size).limit(size).all()
+    return items, total
+
+
 def create_invoice(db: Session, req: InvoiceCreateReq) -> Invoice:
     inv = Invoice(customer_id=req.customer_id, customer_name=req.customer_name,
                   amount=req.amount, remark=req.remark, status="PENDING",
