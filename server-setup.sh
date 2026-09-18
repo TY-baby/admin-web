@@ -41,12 +41,14 @@ sudo systemctl daemon-reload
 sudo systemctl restart docker
 
 echo "========================================"
-echo "  [4/4] 安装 docker-compose"
+echo "  [4/4] 安装 Docker Compose V2 插件"
 echo "========================================"
-if command -v docker-compose >/dev/null 2>&1; then
-    echo "docker-compose 已安装，跳过：$(docker-compose --version)"
+# 用 V2 插件版 (docker compose)，避免 apt 的 docker-compose v1 与新版 Docker
+# 不兼容导致的 KeyError: 'ContainerConfig' 报错
+if sudo docker compose version >/dev/null 2>&1; then
+    echo "docker compose 已安装，跳过：$(sudo docker compose version)"
 else
-    sudo apt install -y docker-compose
+    sudo apt install -y docker-compose-plugin || sudo apt-get install -y docker-compose-plugin
 fi
 
 echo ""
@@ -54,7 +56,7 @@ echo "========================================"
 echo "  环境初始化完成！版本信息："
 echo "========================================"
 sudo docker --version
-sudo docker-compose --version
+sudo docker compose version
 echo ""
 echo "镜像加速验证："
 sudo docker info | grep -A 3 "Registry Mirrors" || true
