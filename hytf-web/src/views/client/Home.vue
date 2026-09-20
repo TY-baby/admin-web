@@ -12,20 +12,26 @@
       </div>
     </div>
 
-    <div class="tabs">
-      <div :class="['tab', tab==='novel'?'on':'']" @click="tab='novel'">网文推广</div>
-      <div :class="['tab', tab==='live'?'on':'']" @click="tab='live'">直播</div>
-    </div>
-
     <div class="banner">
       <div class="banner-inner">
         <span class="bn-txt">新客限时</span>
         <span class="bn-arrow">↗</span>
         <span class="bn-txt">专享投放</span>
       </div>
+      <div class="tabs">
+        <div :class="['tab', tab==='novel'?'on':'']" @click="tab='novel'">
+          <i class="el-icon-reading tab-ico"></i>网文推广
+        </div>
+        <div :class="['tab', tab==='live'?'on':'']" @click="tab='live'">
+          <i class="el-icon-video-camera tab-ico"></i>直播
+        </div>
+        <div class="tabs-tip">想要进行更多自定义投放？请联系客服咨询</div>
+      </div>
     </div>
 
     <div class="main-wrap">
+    <div class="panel">
+      <div class="panel-head">为您优选专属投放方案</div>
     <div class="main">
       <div class="left">
         <div class="card">
@@ -78,6 +84,7 @@
       </div>
     </div>
     </div>
+    </div>
   </div>
 </template>
 
@@ -124,16 +131,31 @@ export default {
   .user span { margin-right: 8px; color: rgba(255,255,255,.9); font-size: 13px; }
   ::v-deep .el-button--text { color: #fff; }
 }
+// 文件夹式 tab（位于 banner 底部，与下方面板衔接）
 .tabs {
-  background: #fff; padding: 0 24px; border-bottom: 1px solid #ffe0ea; display: flex;
-  .tab { padding: 12px 20px; cursor: pointer; color: #606266; font-size: 14px;
-    border-bottom: 2px solid transparent;
-    &.on { color: #ff2e63; border-bottom-color: #ff2e63; font-weight: bold; } }
+  max-width: 1200px; margin: 26px auto 0; display: flex; align-items: stretch;
+  background: rgba(255, 255, 255, .35); border-radius: 10px 10px 0 0;
+  .tab {
+    position: relative; display: flex; align-items: center; gap: 8px;
+    padding: 14px 30px; font-size: 15px; font-weight: bold; color: #8f8f96; cursor: pointer;
+    .tab-ico { font-size: 18px; color: #a5a5ad; }
+    &:hover { color: #ff2e63; .tab-ico { color: #ff2e63; } }
+    &.on {
+      z-index: 1; background: #fdeff4; color: #303133; border-top-left-radius: 10px;
+      .tab-ico { color: #ff2e63; }
+      // 右侧斜切边：上窄下宽，模拟参考站文件夹 tab
+      &::after {
+        content: ''; position: absolute; top: 0; left: 100%; width: 22px; height: 100%;
+        background: #fdeff4; clip-path: polygon(0 0, 0 100%, 100% 100%);
+      }
+    }
+  }
+  .tabs-tip { margin-left: auto; align-self: center; padding-right: 20px; font-size: 13px; color: #8f8f96; }
 }
 // 顶部促销 banner（居中展示，引流感）
 .banner {
   background: linear-gradient(120deg, #ff5f8f 0%, #ff2e63 50%, #ff7eb3 100%);
-  padding: 34px 0; overflow: hidden;
+  padding: 30px 0 0; overflow: hidden;
 }
 .banner-inner {
   max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: center; gap: 28px;
@@ -148,8 +170,13 @@ export default {
 }
 // 内容居中容器
 .main-wrap { max-width: 1200px; margin: 0 auto; }
+// tab 下方浅粉面板，与选中 tab 背景色衔接
+.panel {
+  background: #fdeff4; border-radius: 0 0 12px 12px;
+  .panel-head { padding: 22px 20px 0; font-size: 17px; font-weight: bold; color: #303133; }
+}
 .main {
-  display: flex; padding: 20px 16px; gap: 16px;
+  display: flex; padding: 16px; gap: 16px;
   .left { flex: 2; display: flex; flex-direction: column; gap: 16px; }
   .right { flex: 1; display: flex; flex-direction: column; gap: 16px; }
 }
