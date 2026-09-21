@@ -19,11 +19,11 @@
         <span class="bn-txt">专享投放</span>
       </div>
       <div class="tabs">
-        <div :class="['tab', tab==='novel'?'on':'']" @click="tab='novel'">
-          <i class="el-icon-reading tab-ico"></i>网文推广
-        </div>
         <div :class="['tab', tab==='live'?'on':'']" @click="tab='live'">
           <i class="el-icon-video-camera tab-ico"></i>直播
+        </div>
+        <div :class="['tab', tab==='novel'?'on':'']" @click="tab='novel'">
+          <i class="el-icon-reading tab-ico"></i>网文推广
         </div>
         <div class="tabs-tip">想要进行更多自定义投放？请联系客服咨询</div>
       </div>
@@ -51,11 +51,18 @@
         </div>
 
         <div class="card">
-          <div class="card-title">日预算方案</div>
+          <div class="card-title">{{ tab === 'live' ? '日结算方案' : '日预算方案' }}</div>
           <el-radio-group v-model="plan" size="medium">
-            <el-radio-button label="A">A档300（一天）</el-radio-button>
-            <el-radio-button label="B">B档600（一天）</el-radio-button>
-            <el-radio-button label="C">C档1000（一天）</el-radio-button>
+            <template v-if="tab === 'live'">
+              <el-radio-button label="A">A档300/条</el-radio-button>
+              <el-radio-button label="B">B档600/条</el-radio-button>
+              <el-radio-button label="C">C档1000/条</el-radio-button>
+            </template>
+            <template v-else>
+              <el-radio-button label="A">A档300（一天）</el-radio-button>
+              <el-radio-button label="B">B档600（一天）</el-radio-button>
+              <el-radio-button label="C">C档1000（一天）</el-radio-button>
+            </template>
           </el-radio-group>
           <div style="margin-top:16px">
             <el-button type="primary" size="medium" class="hy-cta" icon="el-icon-s-promotion" @click="onLaunch">一键投放</el-button>
@@ -93,7 +100,7 @@ import { mapState } from 'vuex'
 import { getSummary } from '@/api/clientHome'
 export default {
   name: 'ClientHome',
-  data() { return { tab: 'novel', plan: 'A', currentId: '', summary: {} } },
+  data() { return { tab: 'live', plan: 'A', currentId: '', summary: {} } },
   computed: { ...mapState('clientUser', ['info', 'accounts', 'currentAccount']) },
   async created() {
     await this.$store.dispatch('clientUser/loadAccounts')

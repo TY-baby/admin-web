@@ -68,6 +68,7 @@ CREATE TABLE IF NOT EXISTS t_invoice (
   id INT AUTO_INCREMENT PRIMARY KEY,
   customer_id INT NULL,
   customer_name VARCHAR(50) DEFAULT '',
+  douyin_id VARCHAR(50) DEFAULT '',
   amount DECIMAL(12,2) NOT NULL,
   status ENUM('PENDING','PROCESSED') DEFAULT 'PENDING',
   invoice_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -78,3 +79,8 @@ CREATE TABLE IF NOT EXISTS t_invoice (
   INDEX idx_customer (customer_id),
   INDEX idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 增量更新（已有环境手动执行一次，服务器已执行过可跳过）：
+-- ALTER TABLE t_invoice ADD COLUMN douyin_id VARCHAR(50) DEFAULT '' AFTER customer_name;
+-- ============================================================

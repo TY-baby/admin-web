@@ -14,7 +14,10 @@
         <el-form-item label="备注">
           <el-input v-model="form.remark" type="textarea" :rows="2" maxlength="255" />
         </el-form-item>
-        <el-divider content-position="left">抖音号信息（可添加多个）</el-divider>
+        <div class="dy-head">
+          <el-divider content-position="left">抖音号信息（可添加多个）</el-divider>
+          <el-button class="add-dy-btn" size="small" icon="el-icon-plus" @click="addDouyin">添加抖音号</el-button>
+        </div>
         <div v-for="(d, idx) in form.douyin_list" :key="idx" class="dy-row">
           <el-row :gutter="8">
             <el-col :span="12">
@@ -48,11 +51,6 @@
                 <el-input-number v-model="d.auth_days_custom" :min="1" :max="3650" />
               </el-form-item>
             </el-col>
-            <el-col :span="12">
-              <el-form-item label="档位预览">
-                <el-tag>{{ tierOf(d.recharge_amount) }}</el-tag>
-              </el-form-item>
-            </el-col>
             <el-col :span="24">
               <el-form-item label="备注">
                 <el-input v-model="d.remark" maxlength="255" />
@@ -64,7 +62,6 @@
                      style="margin-bottom:12px">移除该抖音号</el-button>
           <el-divider v-if="idx < form.douyin_list.length - 1" />
         </div>
-        <el-button size="mini" type="primary" plain icon="el-icon-plus" @click="addDouyin">添加抖音号</el-button>
       </template>
 
       <template v-else-if="mode === 'editCustomer'">
@@ -165,12 +162,6 @@ export default {
       }
     },
     addDouyin() { this.form.douyin_list.push(emptyDouyin()) },
-    tierOf(v) {
-      const n = Number(v)
-      if (!n || n < 200) return 'A(300/天)'
-      if (n < 500) return 'B(600/天)'
-      return 'C(1000/天)'
-    },
     open(row, acc, appendMode) {
       this.form = this.buildEmpty()
       this.customerId = row ? row.id : null
@@ -245,4 +236,12 @@ export default {
 
 <style scoped>
 .dy-row { padding: 8px 0; }
+.dy-head { display: flex; align-items: center; margin: 4px 0 18px; }
+.dy-head .el-divider { flex: 1; margin: 0; }
+.add-dy-btn {
+  background: linear-gradient(90deg, #2B5CF6 0%, #4D7DFF 100%);
+  border: none; color: #fff; font-weight: bold;
+  box-shadow: 0 2px 10px rgba(43, 92, 246, .45);
+}
+.add-dy-btn:hover { opacity: .9; color: #fff; }
 </style>

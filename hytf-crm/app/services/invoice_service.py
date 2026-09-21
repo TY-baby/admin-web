@@ -22,6 +22,7 @@ def list_invoices_by_customer(db: Session, customer_id: int, page=1, size=20):
 
 def create_invoice(db: Session, req: InvoiceCreateReq) -> Invoice:
     inv = Invoice(customer_id=req.customer_id, customer_name=req.customer_name,
+                  douyin_id=req.douyin_id,
                   amount=req.amount, remark=req.remark, status="PENDING",
                   invoice_at=datetime.utcnow())
     db.add(inv)

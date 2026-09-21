@@ -16,7 +16,9 @@ def list_api(status: Optional[str] = None,
     items, total = list_invoices(db, page, page_size, status)
     return ok({"total": total, "page": page, "page_size": page_size,
                "items": [{"id": i.id, "customer_id": i.customer_id,
-                          "customer_name": i.customer_name, "amount": float(i.amount),
+                          "customer_name": i.customer_name,
+                          "douyin_id": i.douyin_id,
+                          "amount": float(i.amount),
                           "status": i.status, "invoice_at": i.invoice_at,
                           "processed_at": i.processed_at, "remark": i.remark} for i in items]})
 

@@ -25,6 +25,9 @@
         </div>
         <el-table :data="invoices" border stripe v-loading="invLoading" class="mt-16">
           <el-table-column prop="id" label="申请ID" width="90" />
+          <el-table-column label="抖音ID" width="140">
+            <template slot-scope="{ row }">{{ row.douyin_id || '-' }}</template>
+          </el-table-column>
           <el-table-column prop="amount" label="开票金额(元)" width="140" />
           <el-table-column label="状态" width="110">
             <template slot-scope="{ row }">
@@ -49,6 +52,13 @@
 
     <el-dialog title="申请开票" :visible.sync="applyVisible" width="440px" :close-on-click-modal="false">
       <el-form ref="aform" :model="aform" :rules="arules" label-width="90px" size="small">
+        <el-form-item label="抖音ID" prop="douyin_id">
+          <el-select v-model="aform.douyin_id" filterable placeholder="请选择要开票的抖音ID" style="width:100%">
+            <el-option v-for="a in accounts" :key="a.douyin_id"
+                       :label="a.douyin_id + (a.douyin_name ? '（' + a.douyin_name + '）' : '')"
+                       :value="a.douyin_id" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="开票金额" prop="amount">
           <el-input v-model="aform.amount" placeholder="正数,单位元" />
         </el-form-item>
@@ -74,8 +84,9 @@ export default {
     return {
       invLoading: false, saving: false, applyVisible: false,
       invoices: [], invTotal: 0, invQuery: { page: 1, page_size: 10 },
-      aform: { amount: '', remark: '' },
+      aform: { douyin_id: '', amount: '', remark: '' },
       arules: {
+        douyin_id: [{ required: true, message: '请选择抖音ID', trigger: 'change' }],
         amount: [
           { required: true, message: '请输入开票金额', trigger: 'blur' },
           { validator: (r, v, cb) => isPositiveNumber(v) ? cb() : cb(new Error('请输入大于0的金额')), trigger: 'blur' }
@@ -99,7 +110,7 @@ export default {
       } finally { this.invLoading = false }
     },
     openApply() {
-      this.aform = { amount: '', remark: '' }
+      this.aform = { douyin_id: '', amount: '', remark: '' }
       this.applyVisible = true
       this.$nextTick(() => this.$refs.aform && this.$refs.aform.clearValidate())
     },

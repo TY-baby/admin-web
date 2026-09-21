@@ -33,7 +33,9 @@
               <el-table-column prop="recharge_amount" label="充值" width="90" />
               <el-table-column prop="balance" label="剩余" width="90" />
               <el-table-column prop="tier" label="档位" width="60" />
-              <el-table-column prop="auth_duration" label="授权" width="90" />
+              <el-table-column label="授权" width="90">
+                <template slot-scope="{ row: a }">{{ authLabel(a.auth_duration) }}</template>
+              </el-table-column>
               <el-table-column label="到期时间" width="120">
                 <template slot-scope="{ row: a }">{{ a.auth_end_at ? String(a.auth_end_at).slice(0,10) : '不限' }}</template>
               </el-table-column>
@@ -108,6 +110,10 @@ export default {
       if (label === '即将到期') return 'warning'
       return 'success'
     },
+    authLabel(v) {
+      const m = { UNLIMITED: '不限', D3: '3天', D7: '7天', D30: '30天', CUSTOM: '自定义' }
+      return m[v] || v || '-'
+    },
     async load(page) {
       this.query.page = page || this.query.page
       const params = { ...this.query }
@@ -147,11 +153,24 @@ export default {
         .then(r => r.blob()).then(b => {
           const a = document.createElement('a')
           a.href = URL.createObjectURL(b)
-          a.download = 'customers_' + Date.now() + '.xlsx'
+          a.download = this.exportFileName()
           a.click()
           URL.revokeObjectURL(a.href)
           this.$message.success('导出成功')
         }).catch(() => this.$message.error('导出失败'))
+    },
+    exportFileName() {
+      const d = new Date()
+      const pad = n => String(n).padStart(2, '0')
+      const parts = []
+      if (this.query.keyword_name) parts.push(this.query.keyword_name)
+      if (this.query.keyword_douyin) parts.push(this.query.keyword_douyin)
+      if (this.dateRange && this.dateRange.length === 2) {
+        parts.push(this.dateRange[0] + '_' + this.dateRange[1])
+      } else {
+        parts.push(d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()))
+      }
+      return parts.join('_') + '.xlsx'
     }
   }
 }
