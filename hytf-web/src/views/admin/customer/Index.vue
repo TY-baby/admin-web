@@ -47,9 +47,10 @@
                   <el-tag size="mini" :type="statusTagType(a.status_label)">{{ a.status_label }}</el-tag>
                 </template>
               </el-table-column>
-              <el-table-column label="操作" width="80">
+              <el-table-column label="操作" width="120">
                 <template slot-scope="{ row: a }">
                   <el-button size="mini" type="text" @click="openEdit(row, a)">编辑</el-button>
+                  <el-button size="mini" type="text" style="color:#F56C6C" @click="onDeleteDouyin(row, a)">删除</el-button>
                 </template>
               </el-table-column>
             </el-table>
@@ -92,7 +93,7 @@
 </template>
 
 <script>
-import { listCustomers, deleteCustomer, exportUrl } from '@/api/adminCustomer'
+import { listCustomers, deleteCustomer, deleteDouyin, exportUrl } from '@/api/adminCustomer'
 import { getAdminToken } from '@/utils/auth'
 import EditDialog from './EditDialog.vue'
 
@@ -141,6 +142,13 @@ export default {
         .then(async () => {
           const { data } = await deleteCustomer(row.id)
           if (data.code === 0) { this.$message.success('已删除'); this.load() }
+        }).catch(() => {})
+    },
+    onDeleteDouyin(row, a) {
+      this.$confirm('确定删除抖音号【' + a.douyin_id + '】及其充值/消耗流水吗?操作不可恢复,是否继续?', '警告', { type: 'warning' })
+        .then(async () => {
+          const { data } = await deleteDouyin(a.id)
+          if (data.code === 0) { this.$message.success('已删除'); this.load(this.query.page) }
         }).catch(() => {})
     },
     onExport() {

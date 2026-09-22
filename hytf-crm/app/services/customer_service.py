@@ -186,6 +186,15 @@ def delete_customer(db: Session, cid: int) -> None:
     db.commit()
 
 
+def delete_douyin(db: Session, aid: int) -> None:
+    a = db.query(DouyinAccount).filter(DouyinAccount.id == aid).first()
+    if not a:
+        return
+    db.query(FinanceLog).filter(FinanceLog.douyin_account_id == aid).delete()
+    db.delete(a)
+    db.commit()
+
+
 def to_customer_item(c: Customer) -> dict:
     return {
         "id": c.id, "customer_uid": c.customer_uid, "customer_name": c.customer_name,

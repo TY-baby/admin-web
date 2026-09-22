@@ -9,7 +9,8 @@ from sqlalchemy.orm import Session
 from app.core.deps import get_current_admin, get_db
 from app.schemas.common import fail, ok
 from app.schemas.customer import CustomerCreateReq, CustomerUpdateReq, DouyinUpdateReq
-from app.services.customer_service import (create_customer, delete_customer, list_customers,
+from app.services.customer_service import (create_customer, delete_customer, delete_douyin,
+                                            list_customers,
                                             to_customer_item, update_customer, update_douyin)
 from app.utils.excel_export import export_rows_to_xlsx, export_rows_to_xlsx_merged
 from app.utils.id_generator import TIER_DAILY_BUDGET, TIER_ITEM_RANGE, gen_nickname
@@ -59,6 +60,12 @@ def update_dy(aid: int, body: DouyinUpdateReq,
 @router.delete("/{cid}")
 def delete_api(cid: int, db: Session = Depends(get_db), _a=Depends(get_current_admin)):
     delete_customer(db, cid)
+    return ok()
+
+
+@router.delete("/douyin/{aid}")
+def delete_dy_api(aid: int, db: Session = Depends(get_db), _a=Depends(get_current_admin)):
+    delete_douyin(db, aid)
     return ok()
 
 
