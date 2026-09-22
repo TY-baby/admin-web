@@ -119,11 +119,15 @@ export default {
     },
     onLaunch() {
       if (!this.currentId) { this.$message.warning('请先选择抖音号'); return }
+      const acc = this.accounts.find(a => a.douyin_id === this.currentId)
+      const daily = { A: 300, B: 600, C: 1000 }[this.plan]
+      if (acc && acc.balance < daily) { this.$message.error('账号余额不足,请联系管理员充值'); return }
       this.$confirm('将使用【' + this.plan + '】档位方案进行投放,并记录档位与投放时间,是否继续?', '一键投放', { type: 'info' })
         .then(async () => {
           const { data } = await launchDelivery({ douyin_id: this.currentId, tier: this.plan })
           if (data.code === 0) {
-            this.$message.success('投放成功,已记录档位与投放时间')
+            const d = data.data || {}
+            this.$message.success('投放成功,本次消耗' + d.consumed + '元,剩余流水' + d.remaining + '元')
             await this.$store.dispatch('clientUser/loadAccounts')
             this.$router.push('/client/launch')
           } else {

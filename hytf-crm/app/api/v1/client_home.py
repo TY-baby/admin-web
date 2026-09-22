@@ -26,8 +26,9 @@ def launch_api(body: LaunchReq,
                db: Session = Depends(get_db), user=Depends(get_current_client)):
     cid = int(user["sub"])
     try:
-        acc = launch_delivery(db, cid, body.douyin_id, body.tier)
-        return ok({"id": acc.id, "tier": acc.tier, "launch_at": acc.launch_at})
+        acc, consumed = launch_delivery(db, cid, body.douyin_id, body.tier)
+        return ok({"id": acc.id, "tier": acc.tier, "launch_at": acc.launch_at,
+                   "consumed": consumed, "remaining": float(acc.balance)})
     except ValueError as e:
         return fail(str(e), code=40402)
 

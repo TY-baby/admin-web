@@ -11,7 +11,7 @@ from app.schemas.common import fail, ok
 from app.schemas.customer import CustomerCreateReq, CustomerUpdateReq, DouyinUpdateReq
 from app.services.customer_service import (create_customer, delete_customer, list_customers,
                                             to_customer_item, update_customer, update_douyin)
-from app.utils.excel_export import export_rows_to_xlsx
+from app.utils.excel_export import export_rows_to_xlsx, export_rows_to_xlsx_merged
 from app.utils.id_generator import TIER_DAILY_BUDGET, TIER_ITEM_RANGE, gen_nickname
 
 router = APIRouter()
@@ -72,41 +72,40 @@ def export_api(keyword_name: Optional[str] = None, keyword_douyin: Optional[str]
     dt = datetime.combine(date_to, time.max) if date_to else None
     items, _ = list_customers(db, keyword_name, keyword_douyin, df, dt, 1, 10000)
     headers = ["客户UID", "客户名称", "联系人", "手机号", "抖音号ID", "抖音号名称",
-               "6位业务码", "昵称", "充值金额", "剩余流水", "日预算", "授权开始"]
+               "6位业务码", "昵称", "剩余流水", "日预算", "授权开始"]
     rows = []
+    merge_groups = []
     for c in items:
+        group_start = len(rows)
         dl = getattr(c, "douyin_list", []) or []
         if not dl:
             rows.append([c.customer_uid, c.customer_name, c.contact_name, c.phone,
-                         "", "", "", "", 0, 0, 0, ""])
-            continue
+                         "", "", "", "", "", "", ""])
         for a in dl:
             recharge = float(a.recharge_amount)
             auth_start = a.auth_start_at.strftime("%Y-%m-%d") if a.auth_start_at else ""
             base = [c.customer_uid, c.customer_name, c.contact_name, c.phone,
                     a.douyin_id, a.douyin_name]
-            if not a.tier:
-                rows.append(base + [a.auto_code, a.nickname, recharge,
-                                    float(a.balance), 0, auth_start])
+            if not (a.tier and a.launch_at):
+                rows.append(base + ["-", "-", float(a.balance), "-", auth_start])
                 continue
             daily = TIER_DAILY_BUDGET[a.tier]
-            lo, hi = TIER_ITEM_RANGE[a.tier]
-            n = max(1, int(recharge // daily))
-            cum = 0.0
+            remaining = recharge
             generated = 0
-            for _ in range(n):
-                left = recharge - cum
-                if left <= lo:
+            while True:
+                nxt = remaining - daily
+                if nxt < 0:
                     break
-                amt = float(random.randint(lo, min(hi, int(left) - 1)))
-                cum += amt
+                remaining = nxt
                 generated += 1
                 rows.append(base + [f"{random.randint(0, 999999):06d}", gen_nickname(),
-                                    amt, round(recharge - cum, 2), daily, auth_start])
+                                    remaining, daily, auth_start])
             if generated == 0:
                 rows.append(base + [f"{random.randint(0, 999999):06d}", gen_nickname(),
-                                    recharge, 0, daily, auth_start])
-    content = export_rows_to_xlsx(headers, rows)
+                                    remaining, daily, auth_start])
+        if len(rows) - 1 >= group_start:
+            merge_groups.append((group_start, len(rows) - 1))
+    content = export_rows_to_xlsx_merged(headers, rows, merge_groups, (0, 1, 2, 3))
     fname = f"customers_{datetime.now().strftime('%Y%m%d%H%M%S')}.xlsx"
     return StreamingResponse(BytesIO(content),
                              media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

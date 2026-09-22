@@ -35,6 +35,15 @@ def _status_label(a: DouyinAccount) -> str:
     return "正常"
 
 
+def _remain_after_consume(a: DouyinAccount) -> float:
+    # 已一键投放：剩余 = 充值金额按档位日消耗逐条扣减后的最后剩余（即 充值 % 日消耗）
+    if a.tier and a.launch_at:
+        daily = TIER_DAILY_BUDGET.get(a.tier)
+        if daily:
+            return float(a.recharge_amount) % daily
+    return float(a.balance)
+
+
 def list_customers(db: Session, name=None, dyid=None, dfrom=None, dto=None,
                    page: int = 1, size: int = 20) -> Tuple[List[Customer], int]:
     q = db.query(Customer)
@@ -143,17 +152,28 @@ def update_douyin(db: Session, aid: int, req: DouyinUpdateReq) -> DouyinAccount:
     return a
 
 
-def launch_delivery(db: Session, cid: int, douyin_id: str, tier: str) -> DouyinAccount:
+def launch_delivery(db: Session, cid: int, douyin_id: str, tier: str):
     a = db.query(DouyinAccount).filter(DouyinAccount.customer_id == cid,
                                        DouyinAccount.douyin_id == douyin_id).first()
     if not a:
         raise ValueError("douyin account not found")
+    daily = TIER_DAILY_BUDGET[tier]
+    balance = float(a.balance)
+    if balance < daily:
+        raise ValueError("账号余额不足,请联系管理员充值")
+    consumed = daily * int(balance // daily)
+    remaining = round(balance - consumed, 2)
     a.tier = tier
-    a.tier_daily_budget = TIER_DAILY_BUDGET[tier]
+    a.tier_daily_budget = daily
     a.launch_at = datetime.utcnow()
+    a.balance = remaining
+    db.add(FinanceLog(customer_id=a.customer_id, douyin_account_id=a.id,
+                      change_type="CONSUME", amount=-consumed,
+                      balance_after=remaining, stat_date=datetime.utcnow(),
+                      remark="一键投放按档位结算消耗"))
     db.commit()
     db.refresh(a)
-    return a
+    return a, consumed
 
 
 def delete_customer(db: Session, cid: int) -> None:
@@ -174,7 +194,8 @@ def to_customer_item(c: Customer) -> dict:
         "douyin_list": [{
             "id": a.id, "douyin_id": a.douyin_id, "douyin_name": a.douyin_name,
             "auto_code": a.auto_code, "nickname": a.nickname,
-            "recharge_amount": float(a.recharge_amount), "balance": float(a.balance),
+            "recharge_amount": float(a.recharge_amount),
+            "balance": _remain_after_consume(a),
             "tier": a.tier, "tier_daily_budget": a.tier_daily_budget,
             "launch_at": a.launch_at,
             "auth_duration": a.auth_duration, "auth_start_at": a.auth_start_at,
