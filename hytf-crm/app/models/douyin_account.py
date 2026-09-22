@@ -17,6 +17,7 @@ class DouyinAccount(Base):
     tier: Mapped[str] = mapped_column(SAEnum("A", "B", "C", name="tier_enum"), nullable=True, default=None)
     tier_daily_budget: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     launch_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    auth_duration: Mapped[str] = mapped_column(SAEnum("UNLIMITED", "D3", "D7", "D30", "CUSTOM", name="auth_duration_enum"), default="UNLIMITED")
     auth_start_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     auth_end_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     status: Mapped[str] = mapped_column(SAEnum("NORMAL", "DISABLED", name="account_status"), default="NORMAL")
