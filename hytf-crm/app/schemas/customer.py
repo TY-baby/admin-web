@@ -40,3 +40,16 @@ class DouyinUpdateReq(BaseModel):
     auth_days_custom: Optional[int] = Field(None, ge=1, le=3650)
     status: Optional[str] = None
     remark: Optional[str] = Field(None, max_length=255)
+
+
+class LaunchReq(BaseModel):
+    # A端一键投放：记录档位与投放时间
+    douyin_id: str = Field(..., max_length=50)
+    tier: str = Field(..., max_length=1)
+
+    @field_validator("tier")
+    @classmethod
+    def _check_tier(cls, v: str) -> str:
+        if v not in {"A", "B", "C"}:
+            raise ValueError("tier illegal")
+        return v

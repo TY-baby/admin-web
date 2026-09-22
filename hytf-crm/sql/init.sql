@@ -37,9 +37,9 @@ CREATE TABLE IF NOT EXISTS t_douyin_account (
   nickname VARCHAR(20) DEFAULT '',
   recharge_amount DECIMAL(12,2) NOT NULL,
   balance DECIMAL(12,2) NOT NULL DEFAULT 0,
-  tier ENUM('A','B','C') NOT NULL,
-  tier_daily_budget INT NOT NULL,
-  auth_duration ENUM('UNLIMITED','D3','D7','D30','CUSTOM') DEFAULT 'UNLIMITED',
+  tier ENUM('A','B','C') NULL DEFAULT NULL,
+  tier_daily_budget INT NOT NULL DEFAULT 0,
+  launch_at DATETIME NULL,
   auth_start_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   auth_end_at DATETIME NULL,
   status ENUM('NORMAL','DISABLED') DEFAULT 'NORMAL',
@@ -79,6 +79,13 @@ CREATE TABLE IF NOT EXISTS t_invoice (
   INDEX idx_customer (customer_id),
   INDEX idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 增量更新（已有环境手动执行一次）：
+-- ALTER TABLE t_douyin_account MODIFY COLUMN tier ENUM('A','B','C') NULL DEFAULT NULL;
+-- ALTER TABLE t_douyin_account MODIFY COLUMN tier_daily_budget INT NOT NULL DEFAULT 0;
+-- ALTER TABLE t_douyin_account ADD COLUMN launch_at DATETIME NULL AFTER tier_daily_budget;
+-- ============================================================
 
 -- ============================================================
 -- 增量更新（已有环境手动执行一次，服务器已执行过可跳过）：

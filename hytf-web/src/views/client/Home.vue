@@ -97,14 +97,17 @@
 
 <script>
 import { mapState } from 'vuex'
-import { getSummary } from '@/api/clientHome'
+import { getSummary, launchDelivery } from '@/api/clientHome'
 export default {
   name: 'ClientHome',
   data() { return { tab: 'live', plan: 'A', currentId: '', summary: {} } },
   computed: { ...mapState('clientUser', ['info', 'accounts', 'currentAccount']) },
   async created() {
     await this.$store.dispatch('clientUser/loadAccounts')
-    if (this.accounts.length) this.currentId = this.accounts[0].douyin_id
+    if (this.accounts.length) {
+      this.currentId = this.accounts[0].douyin_id
+      if (this.accounts[0].tier) this.plan = this.accounts[0].tier
+    }
     const { data } = await getSummary()
     if (data.code === 0) this.summary = data.data || {}
   },
@@ -112,11 +115,21 @@ export default {
     onAccChange(id) {
       const acc = this.accounts.find(a => a.douyin_id === id)
       this.$store.commit('clientUser/SET_CURRENT', acc)
-      if (acc) this.plan = acc.tier
+      if (acc && acc.tier) this.plan = acc.tier
     },
     onLaunch() {
-      this.$confirm('将使用【' + this.plan + '】档位方案进行投放，是否继续?', '一键投放', { type: 'info' })
-        .then(() => { this.$router.push('/client/launch') }).catch(() => {})
+      if (!this.currentId) { this.$message.warning('请先选择抖音号'); return }
+      this.$confirm('将使用【' + this.plan + '】档位方案进行投放,并记录档位与投放时间,是否继续?', '一键投放', { type: 'info' })
+        .then(async () => {
+          const { data } = await launchDelivery({ douyin_id: this.currentId, tier: this.plan })
+          if (data.code === 0) {
+            this.$message.success('投放成功,已记录档位与投放时间')
+            await this.$store.dispatch('clientUser/loadAccounts')
+            this.$router.push('/client/launch')
+          } else {
+            this.$message.error(data.msg || '投放失败')
+          }
+        }).catch(() => {})
     },
     logout() {
       this.$store.dispatch('clientUser/logout')

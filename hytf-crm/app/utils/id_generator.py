@@ -30,6 +30,11 @@ def gen_nickname(max_len: int = 20) -> str:
     return f"{random.choice(_NICK_P)}{random.choice(_NICK_S)}_{tail}"[:max_len]
 
 
+# 档位日消耗（用于计算消耗条数）与单条消耗随机区间（不含上界）
+TIER_DAILY_BUDGET = {"A": 300, "B": 600, "C": 1000}
+TIER_ITEM_RANGE = {"A": (30, 199), "B": (200, 499), "C": (500, 1000)}
+
+
 def decide_tier(amount: float):
     if amount >= 500:
         return "C", 1000

@@ -12,8 +12,12 @@
           <el-table-column prop="douyin_id" label="抖音ID" />
           <el-table-column prop="recharge_amount" label="充值金额(元)" width="130" />
           <el-table-column prop="balance" label="剩余流水(元)" width="130" />
-          <el-table-column prop="tier" label="档位" width="80" />
-          <el-table-column prop="tier_daily_budget" label="日预算" width="100" />
+          <el-table-column label="档位" width="80">
+            <template slot-scope="{ row }">{{ row.tier || '未投放' }}</template>
+          </el-table-column>
+          <el-table-column label="日预算" width="100">
+            <template slot-scope="{ row }">{{ row.tier_daily_budget || '-' }}</template>
+          </el-table-column>
         </el-table>
         <div class="text-muted mt-16">交易均为线下处理，此处仅作登记展示，如需充值请联系客服。</div>
       </div>

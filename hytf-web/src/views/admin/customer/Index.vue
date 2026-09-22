@@ -28,11 +28,14 @@
             <el-table :data="row.douyin_list" size="mini" border>
               <el-table-column prop="douyin_id" label="抖音号ID" />
               <el-table-column prop="douyin_name" label="名称" />
-              <el-table-column prop="auto_code" label="6位码" width="80" />
-              <el-table-column prop="nickname" label="昵称" />
               <el-table-column prop="recharge_amount" label="充值" width="90" />
               <el-table-column prop="balance" label="剩余" width="90" />
-              <el-table-column prop="tier" label="档位" width="60" />
+              <el-table-column label="档位" width="80">
+                <template slot-scope="{ row: a }">{{ a.tier || '未投放' }}</template>
+              </el-table-column>
+              <el-table-column label="投放时间" width="160">
+                <template slot-scope="{ row: a }">{{ a.launch_at ? String(a.launch_at).replace('T',' ').slice(0,19) : '-' }}</template>
+              </el-table-column>
               <el-table-column label="授权" width="90">
                 <template slot-scope="{ row: a }">{{ authLabel(a.auth_duration) }}</template>
               </el-table-column>
@@ -141,6 +144,9 @@ export default {
         }).catch(() => {})
     },
     onExport() {
+      const hasCond = this.query.keyword_name || this.query.keyword_douyin ||
+                      (this.dateRange && this.dateRange.length === 2)
+      if (!hasCond) { this.$message.warning('必须先输入查询条件进行导出'); return }
       const q = new URLSearchParams()
       if (this.query.keyword_name) q.append('keyword_name', this.query.keyword_name)
       if (this.query.keyword_douyin) q.append('keyword_douyin', this.query.keyword_douyin)

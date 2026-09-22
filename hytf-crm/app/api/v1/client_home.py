@@ -3,8 +3,9 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from app.core.deps import get_current_client, get_db
-from app.schemas.common import ok
-from app.services.customer_service import get_client_accounts
+from app.schemas.common import ok, fail
+from app.schemas.customer import LaunchReq
+from app.services.customer_service import get_client_accounts, launch_delivery
 from app.services.douyin_service import get_home_summary, get_trend
 
 router = APIRouter()
@@ -18,6 +19,17 @@ def accounts(db: Session = Depends(get_db), user=Depends(get_current_client)):
                 "auto_code": a.auto_code, "nickname": a.nickname, "tier": a.tier,
                 "tier_daily_budget": a.tier_daily_budget, "balance": float(a.balance)}
                for a in accs])
+
+
+@router.post("/launch")
+def launch_api(body: LaunchReq,
+               db: Session = Depends(get_db), user=Depends(get_current_client)):
+    cid = int(user["sub"])
+    try:
+        acc = launch_delivery(db, cid, body.douyin_id, body.tier)
+        return ok({"id": acc.id, "tier": acc.tier, "launch_at": acc.launch_at})
+    except ValueError as e:
+        return fail(str(e), code=40402)
 
 
 @router.get("/summary")

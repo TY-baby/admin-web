@@ -1,5 +1,6 @@
 from datetime import datetime, date, time
 from io import BytesIO
+import random
 from typing import Optional
 from urllib.parse import quote
 from fastapi import APIRouter, Depends, Query
@@ -11,6 +12,7 @@ from app.schemas.customer import CustomerCreateReq, CustomerUpdateReq, DouyinUpd
 from app.services.customer_service import (create_customer, delete_customer, list_customers,
                                             to_customer_item, update_customer, update_douyin)
 from app.utils.excel_export import export_rows_to_xlsx
+from app.utils.id_generator import TIER_DAILY_BUDGET, TIER_ITEM_RANGE, gen_nickname
 
 router = APIRouter()
 
@@ -64,28 +66,46 @@ def delete_api(cid: int, db: Session = Depends(get_db), _a=Depends(get_current_a
 def export_api(keyword_name: Optional[str] = None, keyword_douyin: Optional[str] = None,
                date_from: Optional[date] = None, date_to: Optional[date] = None,
                db: Session = Depends(get_db), _a=Depends(get_current_admin)):
+    if not keyword_name and not keyword_douyin and not date_from and not date_to:
+        return fail("必须先输入查询条件进行导出", code=40003)
     df = datetime.combine(date_from, time.min) if date_from else None
     dt = datetime.combine(date_to, time.max) if date_to else None
     items, _ = list_customers(db, keyword_name, keyword_douyin, df, dt, 1, 10000)
     headers = ["客户UID", "客户名称", "联系人", "手机号", "抖音号ID", "抖音号名称",
-               "6位业务码", "昵称", "充值金额", "剩余流水", "档位", "日预算",
-               "授权类型", "授权开始", "授权到期", "状态", "备注", "添加时间"]
+               "6位业务码", "昵称", "充值金额", "剩余流水", "日预算", "授权开始"]
     rows = []
     for c in items:
         dl = getattr(c, "douyin_list", []) or []
         if not dl:
             rows.append([c.customer_uid, c.customer_name, c.contact_name, c.phone,
-                         "", "", "", "", 0, 0, "", 0, "", "", "", "", c.remark,
-                         c.created_at.strftime("%Y-%m-%d %H:%M:%S")])
+                         "", "", "", "", 0, 0, 0, ""])
             continue
         for a in dl:
-            rows.append([c.customer_uid, c.customer_name, c.contact_name, c.phone,
-                         a.douyin_id, a.douyin_name, a.auto_code, a.nickname,
-                         float(a.recharge_amount), float(a.balance), a.tier, a.tier_daily_budget,
-                         a.auth_duration,
-                         a.auth_start_at.strftime("%Y-%m-%d") if a.auth_start_at else "",
-                         a.auth_end_at.strftime("%Y-%m-%d") if a.auth_end_at else "不限",
-                         a.status, a.remark, a.created_at.strftime("%Y-%m-%d %H:%M:%S")])
+            recharge = float(a.recharge_amount)
+            auth_start = a.auth_start_at.strftime("%Y-%m-%d") if a.auth_start_at else ""
+            base = [c.customer_uid, c.customer_name, c.contact_name, c.phone,
+                    a.douyin_id, a.douyin_name]
+            if not a.tier:
+                rows.append(base + [a.auto_code, a.nickname, recharge,
+                                    float(a.balance), 0, auth_start])
+                continue
+            daily = TIER_DAILY_BUDGET[a.tier]
+            lo, hi = TIER_ITEM_RANGE[a.tier]
+            n = max(1, int(recharge // daily))
+            cum = 0.0
+            generated = 0
+            for _ in range(n):
+                left = recharge - cum
+                if left <= lo:
+                    break
+                amt = float(random.randint(lo, min(hi, int(left) - 1)))
+                cum += amt
+                generated += 1
+                rows.append(base + [f"{random.randint(0, 999999):06d}", gen_nickname(),
+                                    amt, round(recharge - cum, 2), daily, auth_start])
+            if generated == 0:
+                rows.append(base + [f"{random.randint(0, 999999):06d}", gen_nickname(),
+                                    recharge, 0, daily, auth_start])
     content = export_rows_to_xlsx(headers, rows)
     fname = f"customers_{datetime.now().strftime('%Y%m%d%H%M%S')}.xlsx"
     return StreamingResponse(BytesIO(content),

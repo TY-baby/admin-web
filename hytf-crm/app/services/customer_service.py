@@ -7,7 +7,7 @@ from app.models.customer import Customer
 from app.models.douyin_account import DouyinAccount
 from app.models.finance_log import FinanceLog
 from app.schemas.customer import CustomerCreateReq, CustomerUpdateReq, DouyinUpdateReq
-from app.utils.id_generator import decide_tier, gen_auto_code, gen_customer_uid, gen_nickname
+from app.utils.id_generator import TIER_DAILY_BUDGET, gen_auto_code, gen_customer_uid, gen_nickname
 
 AUTH_DAYS = {"D3": 3, "D7": 7, "D30": 30}
 
@@ -85,13 +85,12 @@ def create_customer(db: Session, req: CustomerCreateReq) -> Customer:
     for d in req.douyin_list:
         if d.douyin_id in dyids:
             raise ValueError(f"douyin_id already exists: {d.douyin_id}")
-        tier, daily = decide_tier(d.recharge_amount)
         start = datetime.utcnow()
         acc = DouyinAccount(customer_id=cust.id, douyin_id=d.douyin_id,
                             douyin_name=d.douyin_name,
                             auto_code=gen_auto_code(codes), nickname=gen_nickname(),
                             recharge_amount=d.recharge_amount, balance=d.recharge_amount,
-                            tier=tier, tier_daily_budget=daily,
+                            tier=None, tier_daily_budget=0,
                             auth_duration=d.auth_duration, auth_start_at=start,
                             auth_end_at=_calc_end(d.auth_duration, d.auth_days_custom, start),
                             status="NORMAL", remark=d.remark)
@@ -130,8 +129,6 @@ def update_douyin(db: Session, aid: int, req: DouyinUpdateReq) -> DouyinAccount:
         diff = req.recharge_amount - float(a.recharge_amount)
         a.recharge_amount = req.recharge_amount
         a.balance = float(a.balance) + diff
-        t, d = decide_tier(req.recharge_amount)
-        a.tier, a.tier_daily_budget = t, d
         db.add(FinanceLog(customer_id=a.customer_id, douyin_account_id=a.id,
                           change_type="ADJUST" if diff > 0 else "CONSUME",
                           amount=diff, balance_after=a.balance,
@@ -141,6 +138,19 @@ def update_douyin(db: Session, aid: int, req: DouyinUpdateReq) -> DouyinAccount:
         a.auth_end_at = _calc_end(req.auth_duration, req.auth_days_custom, a.auth_start_at)
     if req.status is not None: a.status = req.status
     if req.remark is not None: a.remark = req.remark
+    db.commit()
+    db.refresh(a)
+    return a
+
+
+def launch_delivery(db: Session, cid: int, douyin_id: str, tier: str) -> DouyinAccount:
+    a = db.query(DouyinAccount).filter(DouyinAccount.customer_id == cid,
+                                       DouyinAccount.douyin_id == douyin_id).first()
+    if not a:
+        raise ValueError("douyin account not found")
+    a.tier = tier
+    a.tier_daily_budget = TIER_DAILY_BUDGET[tier]
+    a.launch_at = datetime.utcnow()
     db.commit()
     db.refresh(a)
     return a
@@ -166,6 +176,7 @@ def to_customer_item(c: Customer) -> dict:
             "auto_code": a.auto_code, "nickname": a.nickname,
             "recharge_amount": float(a.recharge_amount), "balance": float(a.balance),
             "tier": a.tier, "tier_daily_budget": a.tier_daily_budget,
+            "launch_at": a.launch_at,
             "auth_duration": a.auth_duration, "auth_start_at": a.auth_start_at,
             "auth_end_at": a.auth_end_at, "status": a.status,
             "status_label": _status_label(a), "remark": a.remark,
