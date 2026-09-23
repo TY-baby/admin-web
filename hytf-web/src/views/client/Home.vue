@@ -35,7 +35,7 @@
     <div class="main">
       <div class="left">
         <div class="card">
-          <div class="card-title">我要投放的抖音号和商品</div>
+          <div class="card-title">{{ tab === 'live' ? '我要投放的抖音号和商品' : '我要投放的ID' }}</div>
           <el-select v-model="currentId" placeholder="请选择抖音号" style="width:100%" @change="onAccChange">
             <el-option v-for="a in accounts" :key="a.douyin_id"
                        :label="a.douyin_name + ' (' + a.douyin_id + ')'" :value="a.douyin_id" />
@@ -59,9 +59,9 @@
               <el-radio-button label="C">C档1000/条</el-radio-button>
             </template>
             <template v-else>
-              <el-radio-button label="A">A档300（一天）</el-radio-button>
-              <el-radio-button label="B">B档600（一天）</el-radio-button>
-              <el-radio-button label="C">C档1000（一天）</el-radio-button>
+              <el-radio-button label="A">A档998/条（1h内）</el-radio-button>
+              <el-radio-button label="B">B档1998/条（1h内）</el-radio-button>
+              <el-radio-button label="C">C档3998/条（1h内）</el-radio-button>
             </template>
           </el-radio-group>
           <div style="margin-top:16px">
@@ -97,7 +97,7 @@
 
 <script>
 import { mapState } from 'vuex'
-import { getSummary, launchDelivery } from '@/api/clientHome'
+import { getSummary, launchDelivery, launchNovel } from '@/api/clientHome'
 export default {
   name: 'ClientHome',
   data() { return { tab: 'live', plan: 'A', currentId: '', summary: {} } },
@@ -120,16 +120,24 @@ export default {
     onLaunch() {
       if (!this.currentId) { this.$message.warning('请先选择抖音号'); return }
       const acc = this.accounts.find(a => a.douyin_id === this.currentId)
-      const daily = { A: 300, B: 600, C: 1000 }[this.plan]
-      if (acc && acc.balance < daily) { this.$message.error('账号余额不足,请联系管理员充值'); return }
+      const isNovel = this.tab === 'novel'
+      const price = isNovel ? { A: 998, B: 1998, C: 3998 }[this.plan]
+                            : { A: 300, B: 600, C: 1000 }[this.plan]
+      if (acc && acc.balance < price) { this.$message.error('账号余额不足,请联系管理员充值'); return }
       this.$confirm('将使用【' + this.plan + '】档位方案进行投放,并记录档位与投放时间,是否继续?', '一键投放', { type: 'info' })
         .then(async () => {
-          const { data } = await launchDelivery({ douyin_id: this.currentId, tier: this.plan })
+          const api = isNovel ? launchNovel : launchDelivery
+          const { data } = await api({ douyin_id: this.currentId, tier: this.plan })
           if (data.code === 0) {
             const d = data.data || {}
-            this.$message.success('投放成功,本次消耗' + d.consumed + '元,剩余流水' + d.remaining + '元')
+            if (isNovel) {
+              this.$alert('本次消耗' + d.consumed + '元,剩余流水' + d.remaining + '元<br/>推广链接：<a href="' + d.link + '" target="_blank">' + d.link + '</a>',
+                          '投放成功', { dangerouslyUseHTMLString: true, type: 'success' })
+            } else {
+              this.$message.success('投放成功,本次消耗' + d.consumed + '元,剩余流水' + d.remaining + '元')
+              this.$router.push('/client/launch')
+            }
             await this.$store.dispatch('clientUser/loadAccounts')
-            this.$router.push('/client/launch')
           } else {
             this.$message.error(data.msg || '投放失败')
           }

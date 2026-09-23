@@ -7,6 +7,7 @@ from app.schemas.common import ok, fail
 from app.schemas.customer import LaunchReq
 from app.services.customer_service import get_client_accounts, launch_delivery
 from app.services.douyin_service import get_home_summary, get_trend
+from app.services.novel_service import launch_novel, page_link
 
 router = APIRouter()
 
@@ -29,6 +30,18 @@ def launch_api(body: LaunchReq,
         acc, consumed = launch_delivery(db, cid, body.douyin_id, body.tier)
         return ok({"id": acc.id, "tier": acc.tier, "launch_at": acc.launch_at,
                    "consumed": consumed, "remaining": float(acc.balance)})
+    except ValueError as e:
+        return fail(str(e), code=40402)
+
+
+@router.post("/novel/launch")
+def novel_launch_api(body: LaunchReq,
+                     db: Session = Depends(get_db), user=Depends(get_current_client)):
+    cid = int(user["sub"])
+    try:
+        page, consumed, remaining = launch_novel(db, cid, body.douyin_id, body.tier)
+        return ok({"id": page.id, "page_code": page.page_code, "link": page_link(page),
+                   "consumed": consumed, "remaining": remaining})
     except ValueError as e:
         return fail(str(e), code=40402)
 

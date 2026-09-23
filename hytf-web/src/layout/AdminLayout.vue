@@ -6,6 +6,7 @@
                background-color="#0b2a5e" text-color="#a8c4f0" active-text-color="#00e5ff">
         <el-menu-item index="/admin/dashboard"><i class="el-icon-s-home"></i><span>首页</span></el-menu-item>
         <el-menu-item index="/admin/customer"><i class="el-icon-user"></i><span>用户管理</span></el-menu-item>
+        <el-menu-item index="/admin/novel"><i class="el-icon-reading"></i><span>网文客户</span></el-menu-item>
         <el-menu-item index="/admin/invoice"><i class="el-icon-document"></i><span>开票管理</span></el-menu-item>
       </el-menu>
     </el-aside>

@@ -56,6 +56,7 @@ services:
       - "8080:8080"
     volumes:
       - ./hytf-crm/logs:/app/logs
+      - ./novel-web/book:/app/novel_book
 
   # ---- Vue2 前端 + Nginx ----
   frontend:
@@ -68,6 +69,8 @@ services:
       - backend
     ports:
       - "80:80"
+    volumes:
+      - ./novel-web/book:/usr/share/nginx/novel/book:ro
 
 volumes:
   mysql_data:

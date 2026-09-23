@@ -80,6 +80,27 @@ CREATE TABLE IF NOT EXISTS t_invoice (
   INDEX idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS t_novel_page (
+  id INT NOT NULL AUTO_INCREMENT,
+  customer_id INT NOT NULL,
+  account_id INT NOT NULL,
+  douyin_id VARCHAR(50) NOT NULL DEFAULT '',
+  page_code VARCHAR(10) NOT NULL,
+  tier VARCHAR(1) NOT NULL,
+  unit_price INT NOT NULL,
+  consumed DECIMAL(12,2) NOT NULL DEFAULT 0,
+  reads_start INT NOT NULL DEFAULT 0,
+  reads_cap INT NOT NULL DEFAULT 0,
+  seed INT NOT NULL DEFAULT 1,
+  refresh_count INT NOT NULL DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_page_code (page_code),
+  KEY idx_novel_account (account_id),
+  KEY idx_novel_customer (customer_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- 服务器已有环境迁移：手动执行上面的 CREATE TABLE IF NOT EXISTS t_novel_page ...
+
 -- ============================================================
 -- 增量更新（已有环境手动执行一次）：
 -- ALTER TABLE t_douyin_account MODIFY COLUMN tier ENUM('A','B','C') NULL DEFAULT NULL;
