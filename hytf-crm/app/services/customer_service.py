@@ -45,8 +45,10 @@ def _remain_after_consume(a: DouyinAccount) -> float:
 
 
 def list_customers(db: Session, name=None, dyid=None, dfrom=None, dto=None,
-                   page: int = 1, size: int = 20) -> Tuple[List[Customer], int]:
+                   page: int = 1, size: int = 20, only_ids=None) -> Tuple[List[Customer], int]:
     q = db.query(Customer)
+    if only_ids is not None:
+        q = q.filter(Customer.id.in_(only_ids))
     if name:
         q = q.filter(Customer.customer_name.like(f"%{name}%"))
     if dfrom:
