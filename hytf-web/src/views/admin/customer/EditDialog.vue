@@ -28,30 +28,30 @@
               <el-button class="add-dy-btn" size="small" icon="el-icon-plus"
                          @click="addAccount(pcode)">添加{{ pname(pcode) }}ID</el-button>
             </div>
-            <div v-for="(d, idx) in accountsByPlatform(pcode)" :key="pcode + '_' + idx" class="dy-row">
+            <div v-for="(idx, n) in accountIdxByPlatform(pcode)" :key="pcode + '_' + idx" class="dy-row">
               <el-row :gutter="8">
                 <el-col :span="12">
                   <el-form-item :label="pname(pcode) + ' ID'"
-                                :prop="'douyin_list.' + d._idx + '.douyin_id'"
+                                :prop="'douyin_list.' + idx + '.douyin_id'"
                                 :rules="rules.douyin_id">
-                    <el-input v-model="d.douyin_id" maxlength="50" placeholder="唯一标识" />
+                    <el-input v-model="form.douyin_list[idx].douyin_id" maxlength="50" placeholder="唯一标识" />
                   </el-form-item>
                 </el-col>
                 <el-col :span="12">
                   <el-form-item :label="pname(pcode) + ' 名称'">
-                    <el-input v-model="d.douyin_name" maxlength="50" />
+                    <el-input v-model="form.douyin_list[idx].douyin_name" maxlength="50" />
                   </el-form-item>
                 </el-col>
                 <el-col :span="12">
                   <el-form-item label="充值金额"
-                                :prop="'douyin_list.' + d._idx + '.recharge_amount'"
+                                :prop="'douyin_list.' + idx + '.recharge_amount'"
                                 :rules="rules.recharge_amount">
-                    <el-input v-model="d.recharge_amount" placeholder="正整数,单位元" />
+                    <el-input v-model="form.douyin_list[idx].recharge_amount" placeholder="正整数,单位元" />
                   </el-form-item>
                 </el-col>
                 <el-col :span="12">
                   <el-form-item label="授权时间">
-                    <el-select v-model="d.auth_duration" style="width:100%">
+                    <el-select v-model="form.douyin_list[idx].auth_duration" style="width:100%">
                       <el-option label="不限" value="UNLIMITED" />
                       <el-option label="3天" value="D3" />
                       <el-option label="7天" value="D7" />
@@ -60,21 +60,21 @@
                     </el-select>
                   </el-form-item>
                 </el-col>
-                <el-col :span="12" v-if="d.auth_duration === 'CUSTOM'">
+                <el-col :span="12" v-if="form.douyin_list[idx].auth_duration === 'CUSTOM'">
                   <el-form-item label="自定义天数">
-                    <el-input-number v-model="d.auth_days_custom" :min="1" :max="3650" />
+                    <el-input-number v-model="form.douyin_list[idx].auth_days_custom" :min="1" :max="3650" />
                   </el-form-item>
                 </el-col>
                 <el-col :span="24">
                   <el-form-item label="备注">
-                    <el-input v-model="d.remark" maxlength="255" />
+                    <el-input v-model="form.douyin_list[idx].remark" maxlength="255" />
                   </el-form-item>
                 </el-col>
               </el-row>
-              <el-button v-if="accountsByPlatform(pcode).length > 1" size="mini" type="danger" plain
-                         icon="el-icon-delete" @click="removeAccount(pcode, idx)"
+              <el-button v-if="accountIdxByPlatform(pcode).length > 1" size="mini" type="danger" plain
+                         icon="el-icon-delete" @click="removeAccount(idx)"
                          style="margin-bottom:12px">移除该ID</el-button>
-              <el-divider v-if="idx < accountsByPlatform(pcode).length - 1" />
+              <el-divider v-if="n < accountIdxByPlatform(pcode).length - 1" />
             </div>
           </div>
         </template>
@@ -199,19 +199,18 @@ export default {
       })
       this.form.douyin_list = existing
     },
-    accountsByPlatform(pcode) {
-      return this.form.douyin_list
-        .map((d, i) => ({ ...d, _idx: i }))
-        .filter(d => d.platform_code === pcode)
+    accountIdxByPlatform(pcode) {
+      const out = []
+      this.form.douyin_list.forEach((d, i) => {
+        if (d.platform_code === pcode) out.push(i)
+      })
+      return out
     },
     addAccount(pcode) {
       this.form.douyin_list.push(emptyAccount(pcode))
     },
-    removeAccount(pcode, idx) {
-      const list = this.form.douyin_list.filter(d => d.platform_code === pcode)
-      const target = list[idx]
-      const realIdx = this.form.douyin_list.indexOf(target)
-      if (realIdx > -1) this.form.douyin_list.splice(realIdx, 1)
+    removeAccount(idx) {
+      this.form.douyin_list.splice(idx, 1)
     },
     open(row, acc, appendMode) {
       this.form = this.buildEmpty()
