@@ -7,13 +7,15 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from app.core.deps import get_current_admin, get_db
+from app.models.platform import Platform
 from app.schemas.common import fail, ok
 from app.schemas.customer import CustomerCreateReq, CustomerUpdateReq, DouyinUpdateReq
 from app.services.customer_service import (create_customer, delete_customer, delete_douyin,
                                             list_customers,
                                             to_customer_item, update_customer, update_douyin)
 from app.utils.excel_export import export_rows_to_xlsx, export_rows_to_xlsx_merged
-from app.utils.id_generator import TIER_DAILY_BUDGET, TIER_ITEM_RANGE, gen_nickname
+from app.utils.id_generator import (EXPOSURE_TIER_PRICE, EXPOSURE_TIER_RANGE, LAUNCH_TYPE_LABEL,
+                                    TIER_DAILY_BUDGET, TIER_ITEM_RANGE, gen_nickname)
 
 router = APIRouter()
 
@@ -78,38 +80,43 @@ def export_api(keyword_name: Optional[str] = None, keyword_douyin: Optional[str]
     df = datetime.combine(date_from, time.min) if date_from else None
     dt = datetime.combine(date_to, time.max) if date_to else None
     items, _ = list_customers(db, keyword_name, keyword_douyin, df, dt, 1, 10000)
-    headers = ["客户UID", "客户名称", "联系人", "手机号", "抖音号ID", "抖音号名称",
-               "6位业务码", "昵称", "剩余流水", "日预算", "授权开始"]
+    pname = {p.code: p.name for p in db.query(Platform).all()}
+    headers = ["客户UID", "客户名称", "联系人", "手机号", "ID", "名称",
+               "投放平台名称", "充值金额", "档位", "业务码", "昵称",
+               "日预算", "1h曝光度", "类型", "授权开始"]
+    empty_row = ["", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
     rows = []
     merge_groups = []
     for c in items:
         group_start = len(rows)
         dl = getattr(c, "douyin_list", []) or []
         if not dl:
-            rows.append([c.customer_uid, c.customer_name, c.contact_name, c.phone,
-                         "", "", "", "", "", "", ""])
+            rows.append([c.customer_uid, c.customer_name, c.contact_name, c.phone] + empty_row[4:])
         for a in dl:
-            recharge = float(a.recharge_amount)
             auth_start = a.auth_start_at.strftime("%Y-%m-%d") if a.auth_start_at else ""
             base = [c.customer_uid, c.customer_name, c.contact_name, c.phone,
-                    a.douyin_id, a.douyin_name]
+                    a.douyin_id, a.douyin_name,
+                    pname.get(a.platform_code, a.platform_code),
+                    float(a.recharge_amount)]
             if not (a.tier and a.launch_at):
-                rows.append(base + ["-", "-", float(a.balance), "-", auth_start])
+                rows.append(base + ["-", "-", "-", "-", "-", "-", "", auth_start])
                 continue
-            daily = TIER_DAILY_BUDGET[a.tier]
-            remaining = recharge
-            generated = 0
-            while True:
-                nxt = remaining - daily
-                if nxt < 0:
-                    break
-                remaining = nxt
-                generated += 1
-                rows.append(base + [f"{random.randint(0, 999999):06d}", gen_nickname(),
-                                    remaining, daily, auth_start])
-            if generated == 0:
-                rows.append(base + [f"{random.randint(0, 999999):06d}", gen_nickname(),
-                                    remaining, daily, auth_start])
+            is_exposure = a.launch_type == "EXPOSURE"
+            price = (EXPOSURE_TIER_PRICE if is_exposure else TIER_DAILY_BUDGET)[a.tier]
+            item_range = EXPOSURE_TIER_RANGE[a.tier] if is_exposure else TIER_ITEM_RANGE[a.tier]
+            budget = float(a.daily_budget or 0)
+            # 生成条数 = 日预算 / 档位金额（取整数部分）
+            generated = max(1, int(budget // price)) if budget else 1
+            type_label = LAUNCH_TYPE_LABEL.get(a.launch_type, "首充")
+            for _ in range(generated):
+                lo, hi = item_range
+                val = random.randint(lo, hi - 1) if hi > lo else lo
+                if is_exposure:
+                    daily_cell, expo_cell = "-", val
+                else:
+                    daily_cell, expo_cell = val, "-"
+                rows.append(base + [a.tier, f"{random.randint(0, 999999):06d}", gen_nickname(),
+                                    daily_cell, expo_cell, type_label, auth_start])
         if len(rows) - 1 >= group_start:
             merge_groups.append((group_start, len(rows) - 1))
     content = export_rows_to_xlsx_merged(headers, rows, merge_groups, (0, 1, 2, 3))

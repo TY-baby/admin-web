@@ -2,10 +2,18 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.core.deps import get_db
 from app.models.novel_page import NovelPage
+from app.models.platform import Platform
 from app.schemas.common import fail, ok
 from app.services.novel_service import current_reads
 
 router = APIRouter()
+
+
+@router.get("/platforms")
+def platforms_api(db: Session = Depends(get_db)):
+    """投放平台列表（A端选择平台用）"""
+    ps = db.query(Platform).order_by(Platform.sort.asc(), Platform.id.asc()).all()
+    return ok([{"code": p.code, "name": p.name} for p in ps])
 
 
 @router.get("/novel/{code}/reads")

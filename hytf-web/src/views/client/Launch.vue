@@ -17,7 +17,8 @@
       <div class="filter card">
         <span style="margin-right:8px">日期筛选</span>
         <el-date-picker v-model="range" type="daterange" value-format="yyyy-MM-dd"
-                        start-placeholder="开始" end-placeholder="结束" :clearable="false" @change="loadTrend" />
+                        start-placeholder="开始" end-placeholder="结束" :clearable="false"
+                        :picker-options="pickerOptions" @change="loadTrend" />
         <el-select v-model="accountId" placeholder="全部抖音号" clearable style="margin-left:12px;width:220px" @change="loadTrend">
           <el-option v-for="a in accounts" :key="a.id" :label="a.douyin_name" :value="a.id" />
         </el-select>
@@ -58,10 +59,13 @@ export default {
   name: 'ClientLaunch',
   components: { LineChart },
   data() {
-    const today = new Date().toISOString().slice(0, 10)
+    const y = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
     return {
-      summary: {}, range: [today, today], accountId: '',
-      activeMod: 'consume', dates: [], series: [], raw: []
+      summary: {}, range: [y, y], accountId: '',
+      activeMod: 'consume', dates: [], series: [], raw: [],
+      pickerOptions: {
+        disabledDate(t) { return t.getTime() > Date.now() - 86400000 }
+      }
     }
   },
   computed: {
@@ -83,6 +87,10 @@ export default {
     const { data } = await getSummary()
     if (data.code === 0) this.summary = data.data
     this.loadTrend()
+  },
+  mounted() {
+    this.$message({ type: 'info', duration: 5000,
+      message: '投放成功，数据需等待一个工作日后方可查询' })
   },
   methods: {
     async loadTrend() {

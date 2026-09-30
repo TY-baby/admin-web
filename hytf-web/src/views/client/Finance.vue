@@ -8,18 +8,29 @@
       <div class="card">
         <div class="card-title">我的资金</div>
         <el-table :data="rows" border stripe>
-          <el-table-column prop="douyin_name" label="抖音号" />
-          <el-table-column prop="douyin_id" label="抖音ID" />
-          <el-table-column prop="recharge_amount" label="充值金额(元)" width="130" />
-          <el-table-column prop="balance" label="剩余流水(元)" width="130" />
+          <el-table-column label="平台" width="110">
+            <template slot-scope="{ row }">{{ platformName(row.platform_code) }}</template>
+          </el-table-column>
+          <el-table-column prop="douyin_id" label="ID" width="140" />
+          <el-table-column prop="douyin_name" label="名称" />
+          <el-table-column prop="recharge_amount" label="充值金额(元)" width="120" />
+          <el-table-column label="投放成功金额(元)" width="140">
+            <template slot-scope="{ row }">{{ row.launch_at ? Number(row.launch_consumed || 0).toFixed(2) : '-' }}</template>
+          </el-table-column>
+          <el-table-column label="剩余金额(元)" width="120">
+            <template slot-scope="{ row }">{{ Number(row.balance || 0).toFixed(2) }}</template>
+          </el-table-column>
+          <el-table-column label="类型" width="110">
+            <template slot-scope="{ row }">{{ row.launch_type_label || '未投放' }}</template>
+          </el-table-column>
           <el-table-column label="档位" width="80">
-            <template slot-scope="{ row }">{{ row.tier || '未投放' }}</template>
+            <template slot-scope="{ row }">{{ row.tier || '-' }}</template>
           </el-table-column>
           <el-table-column label="日预算" width="100">
-            <template slot-scope="{ row }">{{ row.tier_daily_budget || '-' }}</template>
+            <template slot-scope="{ row }">{{ row.launch_at ? Number(row.daily_budget || 0) : '-' }}</template>
           </el-table-column>
         </el-table>
-        <div class="text-muted mt-16">交易均为线下处理，此处仅作登记展示，如需充值请联系客服。</div>
+        <div class="text-muted mt-16">交易均为线下处理，此处仅作登记展示；投放当天数据需次日（一个工作日）后方可查询，如需充值请联系客服。</div>
       </div>
 
       <div class="card mt-16">
@@ -81,12 +92,13 @@
 <script>
 import { mapState } from 'vuex'
 import { applyInvoice, listMyInvoices } from '@/api/clientInvoice'
+import { getPlatforms } from '@/api/clientHome'
 import { isPositiveNumber } from '@/utils/validate'
 export default {
   name: 'ClientFinance',
   data() {
     return {
-      invLoading: false, saving: false, applyVisible: false,
+      invLoading: false, saving: false, applyVisible: false, platforms: [],
       invoices: [], invTotal: 0, invQuery: { page: 1, page_size: 10 },
       aform: { douyin_id: '', amount: '', remark: '' },
       arules: {
@@ -101,10 +113,15 @@ export default {
   computed: { ...mapState('clientUser', ['accounts']), rows() { return this.accounts || [] } },
   async created() {
     if (!this.accounts.length) await this.$store.dispatch('clientUser/loadAccounts')
+    getPlatforms().then(({ data }) => { if (data.code === 0) this.platforms = data.data || [] })
     this.loadInvoices(1)
   },
   methods: {
     fmt(t) { return t ? String(t).replace('T', ' ').slice(0, 19) : '-' },
+    platformName(code) {
+      const p = this.platforms.find(x => x.code === code)
+      return p ? p.name : (code || '-')
+    },
     async loadInvoices(page) {
       this.invQuery.page = page || this.invQuery.page
       this.invLoading = true

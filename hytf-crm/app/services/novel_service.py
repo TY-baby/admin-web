@@ -6,7 +6,8 @@ from app.core.logging_conf import logger
 from app.models.douyin_account import DouyinAccount
 from app.models.finance_log import FinanceLog
 from app.models.novel_page import NovelPage
-from app.utils.id_generator import NOVEL_READ_RANGE, NOVEL_TIER_PRICE, gen_page_code
+from app.utils.id_generator import (EXPOSURE_TIER_PRICE, EXPOSURE_TIER_RANGE,
+                                    gen_page_code)
 
 NOVEL_DIR = os.environ.get("NOVEL_DIR", "/app/novel_book")
 GROW_SECONDS = 3600
@@ -71,31 +72,46 @@ def _write_file(p: NovelPage):
     logger.info(f"[novel page generated] {path}")
 
 
-def launch_novel(db: Session, cid: int, douyin_id: str, tier: str):
+def launch_novel(db: Session, cid: int, platform_code: str, douyin_id: str,
+                 tier: str, daily_budget: float):
+    """直播曝光度一键投放（1h内曝光）：生成条数 = floor(日预算/档位金额)"""
     a = db.query(DouyinAccount).filter(DouyinAccount.customer_id == cid,
+                                       DouyinAccount.platform_code == platform_code,
                                        DouyinAccount.douyin_id == douyin_id).first()
     if not a:
-        raise ValueError("douyin account not found")
-    price = NOVEL_TIER_PRICE[tier]
+        raise ValueError("投放ID不存在或不属于当前客户")
+    price = EXPOSURE_TIER_PRICE[tier]
+    if daily_budget < price:
+        raise ValueError("日预算不能小于所选档位金额")
     balance = float(a.balance)
-    if balance < price:
-        raise ValueError("账号余额不足,请联系管理员充值")
-    consumed = price * int(balance // price)
+    if balance < daily_budget:
+        raise ValueError("日预算不能超过当前账号余额")
+    generated = int(daily_budget // price)
+    consumed = round(generated * price, 2)
     remaining = round(balance - consumed, 2)
+    lo, hi = EXPOSURE_TIER_RANGE[tier]
+    exposure = random.randint(lo, hi - 1)
     codes = {c for (c,) in db.query(NovelPage.page_code).all()}
     page = NovelPage(customer_id=cid, account_id=a.id, douyin_id=douyin_id,
                      page_code=gen_page_code(codes), tier=tier, unit_price=price,
                      consumed=consumed,
-                     reads_start=NOVEL_READ_RANGE[tier][0],
-                     reads_cap=NOVEL_READ_RANGE[tier][1],
+                     reads_start=lo, reads_cap=hi,
                      seed=random.randint(1, 1000000), refresh_count=0,
                      created_at=datetime.utcnow())
     db.add(page)
+    a.tier = tier
+    a.tier_daily_budget = price
+    a.launch_type = "EXPOSURE"
+    a.daily_budget = daily_budget
+    a.launch_consumed = consumed
+    a.exposure_1h = exposure
+    a.launch_at = datetime.utcnow()
     a.balance = remaining
     db.add(FinanceLog(customer_id=cid, douyin_account_id=a.id, change_type="CONSUME",
                       amount=-consumed, balance_after=remaining,
-                      stat_date=datetime.utcnow(), remark="网文一键投放结算"))
+                      stat_date=datetime.utcnow(),
+                      remark=f"直播曝光度一键投放结算(生成{generated}条,1h曝光{exposure})"))
     db.commit()
     db.refresh(page)
     _write_file(page)
-    return page, consumed, remaining
+    return page, a, consumed, generated, exposure, remaining

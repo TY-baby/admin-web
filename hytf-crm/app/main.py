@@ -21,6 +21,24 @@ from app.db.session import SessionLocal, engine, init_db
 from app.middlewares.rate_limit import limiter
 from app.middlewares.security_headers import SecurityHeadersMiddleware
 from app.models.admin_user import AdminUser
+from app.models.platform import Platform
+
+DEFAULT_PLATFORMS = [("yingke", "映客", 1), ("qiyin", "栖音", 2),
+                     ("bilibili", "哔哩哔哩", 3), ("liujianfang", "六间房", 4)]
+
+
+def _bootstrap_platforms():
+    db = SessionLocal()
+    try:
+        for code, name, sort in DEFAULT_PLATFORMS:
+            if db.query(Platform).filter(Platform.code == code).first() is None:
+                db.add(Platform(code=code, name=name, sort=sort))
+        db.commit()
+        logger.info("[bootstrap] platforms ready")
+    except Exception as e:
+        logger.warning(f"[bootstrap] platforms skipped: {e}")
+    finally:
+        db.close()
 
 
 def _bootstrap_admin():
@@ -61,6 +79,7 @@ async def lifespan(app: FastAPI):
             logger.error(f"[bootstrap] schema sync failed: {e}")
     # 默认管理员在 dev/prod 均需初始化（幂等：已存在则跳过）
     _bootstrap_admin()
+    _bootstrap_platforms()
     try:
         redis_client.ping()
         logger.info("[bootstrap] redis ok")

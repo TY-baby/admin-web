@@ -5,7 +5,7 @@
         <el-form-item label="客户名称">
           <el-input v-model="query.keyword_name" placeholder="模糊搜索" clearable />
         </el-form-item>
-        <el-form-item label="抖音ID">
+        <el-form-item label="ID">
           <el-input v-model="query.keyword_douyin" placeholder="模糊搜索" clearable />
         </el-form-item>
         <el-form-item label="添加时间">
@@ -26,15 +26,24 @@
         <el-table-column type="expand">
           <template slot-scope="{ row }">
             <el-table :data="row.douyin_list" size="mini" border>
-              <el-table-column prop="douyin_id" label="抖音号ID" />
+              <el-table-column label="平台" width="100">
+                <template slot-scope="{ row: a }">{{ platformName(a.platform_code) }}</template>
+              </el-table-column>
+              <el-table-column prop="douyin_id" label="ID" width="140" />
               <el-table-column prop="douyin_name" label="名称" />
+              <el-table-column label="类型" width="110">
+                <template slot-scope="{ row: a }">{{ a.launch_type_label || '未投放' }}</template>
+              </el-table-column>
               <el-table-column prop="recharge_amount" label="充值" width="90" />
               <el-table-column prop="balance" label="剩余" width="90" />
               <el-table-column label="档位" width="80">
-                <template slot-scope="{ row: a }">{{ a.tier || '未投放' }}</template>
+                <template slot-scope="{ row: a }">{{ a.tier || '-' }}</template>
               </el-table-column>
               <el-table-column label="投放时间" width="160">
                 <template slot-scope="{ row: a }">{{ a.launch_at ? String(a.launch_at).replace('T',' ').slice(0,19) : '-' }}</template>
+              </el-table-column>
+              <el-table-column label="添加时间" width="160">
+                <template slot-scope="{ row: a }">{{ a.created_at ? String(a.created_at).replace('T',' ').slice(0,19) : '-' }}</template>
               </el-table-column>
               <el-table-column label="授权" width="90">
                 <template slot-scope="{ row: a }">{{ authLabel(a.auth_duration) }}</template>
@@ -60,7 +69,7 @@
         <el-table-column prop="customer_name" label="客户名称" />
         <el-table-column prop="contact_name" label="联系人" width="100" />
         <el-table-column prop="phone" label="手机号" width="120" />
-        <el-table-column label="抖音号数" width="90">
+        <el-table-column label="ID数" width="80">
           <template slot-scope="{ row }">{{ (row.douyin_list || []).length }}</template>
         </el-table-column>
         <el-table-column label="总充值" width="100">
@@ -76,7 +85,7 @@
         <el-table-column label="操作" width="200" fixed="right">
           <template slot-scope="{ row }">
             <el-button size="mini" type="text" @click="openEdit(row)">编辑</el-button>
-            <el-button size="mini" type="text" @click="openEdit(row, null, true)">追加抖音号</el-button>
+            <el-button size="mini" type="text" @click="openEdit(row, null, true)">追加平台</el-button>
             <el-button size="mini" type="text" style="color:#F56C6C" @click="onDelete(row)">删除</el-button>
           </template>
         </el-table-column>
@@ -94,6 +103,7 @@
 
 <script>
 import { listCustomers, deleteCustomer, deleteDouyin, exportUrl } from '@/api/adminCustomer'
+import { getPlatforms } from '@/api/clientHome'
 import { getAdminToken } from '@/utils/auth'
 import EditDialog from './EditDialog.vue'
 
@@ -102,12 +112,20 @@ export default {
   components: { EditDialog },
   data() {
     return {
-      loading: false, rows: [], total: 0, dateRange: [],
+      loading: false, rows: [], total: 0, dateRange: [], platforms: [],
       query: { keyword_name: '', keyword_douyin: '', page: 1, page_size: 20 }
     }
   },
-  created() { this.load(1) },
+  async created() {
+    this.load(1)
+    const { data } = await getPlatforms()
+    if (data.code === 0) this.platforms = data.data || []
+  },
   methods: {
+    platformName(code) {
+      const p = this.platforms.find(x => x.code === code)
+      return p ? p.name : (code || '-')
+    },
     statusTagType(label) {
       if (label === '禁用') return 'info'
       if (label === '已到期') return 'danger'
@@ -138,14 +156,14 @@ export default {
     },
     openEdit(row, acc, appendMode) { this.$refs.edit.open(row, acc, appendMode) },
     onDelete(row) {
-      this.$confirm('确定删除客户【' + row.customer_name + '】及其所有抖音号数据吗?', '警告', { type: 'warning' })
+      this.$confirm('确定删除客户【' + row.customer_name + '】及其所有ID数据吗?', '警告', { type: 'warning' })
         .then(async () => {
           const { data } = await deleteCustomer(row.id)
           if (data.code === 0) { this.$message.success('已删除'); this.load() }
         }).catch(() => {})
     },
     onDeleteDouyin(row, a) {
-      this.$confirm('确定删除抖音号【' + a.douyin_id + '】及其充值/消耗流水吗?操作不可恢复,是否继续?', '警告', { type: 'warning' })
+      this.$confirm('确定删除【' + a.douyin_id + '】及其充值/消耗流水吗?操作不可恢复,是否继续?', '警告', { type: 'warning' })
         .then(async () => {
           const { data } = await deleteDouyin(a.id)
           if (data.code === 0) { this.$message.success('已删除'); this.load(this.query.page) }

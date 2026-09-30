@@ -31,7 +31,8 @@ CREATE TABLE IF NOT EXISTS t_customer (
 CREATE TABLE IF NOT EXISTS t_douyin_account (
   id INT AUTO_INCREMENT PRIMARY KEY,
   customer_id INT NOT NULL,
-  douyin_id VARCHAR(50) NOT NULL UNIQUE,
+  platform_code VARCHAR(30) NOT NULL DEFAULT 'douyin',
+  douyin_id VARCHAR(50) NOT NULL,
   douyin_name VARCHAR(50) DEFAULT '',
   auto_code VARCHAR(6) NOT NULL UNIQUE,
   nickname VARCHAR(20) DEFAULT '',
@@ -39,13 +40,19 @@ CREATE TABLE IF NOT EXISTS t_douyin_account (
   balance DECIMAL(12,2) NOT NULL DEFAULT 0,
   tier ENUM('A','B','C') NULL DEFAULT NULL,
   tier_daily_budget INT NOT NULL DEFAULT 0,
+  launch_type ENUM('FIRST_CHARGE','EXPOSURE') NULL DEFAULT NULL,
+  daily_budget DECIMAL(12,2) NOT NULL DEFAULT 0,
+  launch_consumed DECIMAL(12,2) NOT NULL DEFAULT 0,
+  exposure_1h INT NOT NULL DEFAULT 0,
   launch_at DATETIME NULL,
+  auth_duration ENUM('UNLIMITED','D3','D7','D30','CUSTOM') DEFAULT 'UNLIMITED',
   auth_start_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   auth_end_at DATETIME NULL,
   status ENUM('NORMAL','DISABLED') DEFAULT 'NORMAL',
   remark VARCHAR(255) DEFAULT '',
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_platform_douyin (platform_code, douyin_id),
   INDEX idx_customer (customer_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -111,4 +118,39 @@ CREATE TABLE IF NOT EXISTS t_novel_page (
 -- ============================================================
 -- 增量更新（已有环境手动执行一次，服务器已执行过可跳过）：
 -- ALTER TABLE t_invoice ADD COLUMN douyin_id VARCHAR(50) DEFAULT '' AFTER customer_name;
+-- ============================================================
+
+-- ============================================================
+-- 增量更新 2026-09（平台化 + 直播曝光度 + 出款管理，已有环境手动执行一次）：
+-- ALTER TABLE t_douyin_account DROP INDEX douyin_id;
+-- ALTER TABLE t_douyin_account ADD COLUMN platform_code VARCHAR(30) NOT NULL DEFAULT 'douyin' AFTER customer_id;
+-- ALTER TABLE t_douyin_account ADD COLUMN launch_type ENUM('FIRST_CHARGE','EXPOSURE') NULL DEFAULT NULL AFTER tier_daily_budget;
+-- ALTER TABLE t_douyin_account ADD COLUMN daily_budget DECIMAL(12,2) NOT NULL DEFAULT 0 AFTER launch_type;
+-- ALTER TABLE t_douyin_account ADD COLUMN launch_consumed DECIMAL(12,2) NOT NULL DEFAULT 0 AFTER daily_budget;
+-- ALTER TABLE t_douyin_account ADD COLUMN exposure_1h INT NOT NULL DEFAULT 0 AFTER launch_consumed;
+-- ALTER TABLE t_douyin_account ADD UNIQUE KEY uk_platform_douyin (platform_code, douyin_id);
+-- CREATE TABLE IF NOT EXISTS t_platform (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  code VARCHAR(30) NOT NULL UNIQUE,
+  name VARCHAR(50) NOT NULL,
+  sort INT NOT NULL DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT IGNORE INTO t_platform (code, name, sort) VALUES
+ ('yingke', '映客', 1),
+ ('qiyin', '栖音', 2),
+ ('bilibili', '哔哩哔哩', 3),
+ ('liujianfang', '六间房', 4);
+
+CREATE TABLE IF NOT EXISTS t_withdraw (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(50) NOT NULL,
+  pay_date DATE NOT NULL,
+  id_count INT NOT NULL DEFAULT 0,
+  payable_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+  remark VARCHAR(255) DEFAULT '',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_pay_date (pay_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- ============================================================

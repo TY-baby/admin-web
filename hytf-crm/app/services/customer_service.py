@@ -6,8 +6,10 @@ from app.core.security import build_client_default_password, hash_password
 from app.models.customer import Customer
 from app.models.douyin_account import DouyinAccount
 from app.models.finance_log import FinanceLog
+from app.models.platform import Platform
 from app.schemas.customer import CustomerCreateReq, CustomerUpdateReq, DouyinUpdateReq
-from app.utils.id_generator import TIER_DAILY_BUDGET, gen_auto_code, gen_customer_uid, gen_nickname
+from app.utils.id_generator import (EXPOSURE_TIER_PRICE, LAUNCH_TYPE_LABEL, TIER_DAILY_BUDGET,
+                                    gen_auto_code, gen_customer_uid, gen_nickname)
 
 AUTH_DAYS = {"D3": 3, "D7": 7, "D30": 30}
 
@@ -91,13 +93,18 @@ def create_customer(db: Session, req: CustomerCreateReq) -> Customer:
         cust.contact_name = req.contact_name or cust.contact_name
 
     codes = {c for (c,) in db.query(DouyinAccount.auto_code).all()}
-    dyids = {c for (c,) in db.query(DouyinAccount.douyin_id).all()}
+    exists = {(p, i) for p, i in db.query(DouyinAccount.platform_code, DouyinAccount.douyin_id).all()}
+    platforms = {c for (c,) in db.query(Platform.code).all()}
 
     for d in req.douyin_list:
-        if d.douyin_id in dyids:
-            raise ValueError(f"douyin_id already exists: {d.douyin_id}")
+        pcode = d.platform_code or "douyin"
+        if platforms and pcode not in platforms:
+            raise ValueError(f"投放平台不存在: {pcode}")
+        if (pcode, d.douyin_id) in exists:
+            raise ValueError(f"该平台下ID已存在: {d.douyin_id}")
         start = datetime.utcnow()
-        acc = DouyinAccount(customer_id=cust.id, douyin_id=d.douyin_id,
+        acc = DouyinAccount(customer_id=cust.id, platform_code=pcode,
+                            douyin_id=d.douyin_id,
                             douyin_name=d.douyin_name,
                             auto_code=gen_auto_code(codes), nickname=gen_nickname(),
                             recharge_amount=d.recharge_amount, balance=d.recharge_amount,
@@ -106,7 +113,7 @@ def create_customer(db: Session, req: CustomerCreateReq) -> Customer:
                             auth_end_at=_calc_end(d.auth_duration, d.auth_days_custom, start),
                             status="NORMAL", remark=d.remark)
         codes.add(acc.auto_code)
-        dyids.add(acc.douyin_id)
+        exists.add((pcode, d.douyin_id))
         db.add(acc)
         db.flush()
         db.add(FinanceLog(customer_id=cust.id, douyin_account_id=acc.id,
@@ -136,14 +143,14 @@ def update_douyin(db: Session, aid: int, req: DouyinUpdateReq) -> DouyinAccount:
     if not a:
         raise ValueError("douyin account not found")
     if req.douyin_name is not None: a.douyin_name = req.douyin_name
-    if req.recharge_amount is not None and req.recharge_amount != float(a.recharge_amount):
-        diff = req.recharge_amount - float(a.recharge_amount)
-        a.recharge_amount = req.recharge_amount
-        a.balance = float(a.balance) + diff
+    # 充值金额为追加逻辑：录入多少累加多少
+    if req.recharge_amount is not None and req.recharge_amount > 0:
+        add = float(req.recharge_amount)
+        a.recharge_amount = round(float(a.recharge_amount) + add, 2)
+        a.balance = round(float(a.balance) + add, 2)
         db.add(FinanceLog(customer_id=a.customer_id, douyin_account_id=a.id,
-                          change_type="ADJUST" if diff > 0 else "CONSUME",
-                          amount=diff, balance_after=a.balance,
-                          stat_date=datetime.utcnow(), remark="管理员调整"))
+                          change_type="RECHARGE", amount=add, balance_after=a.balance,
+                          stat_date=datetime.utcnow(), remark="管理员追加充值"))
     if req.auth_duration is not None:
         a.auth_duration = req.auth_duration
         a.auth_end_at = _calc_end(req.auth_duration, req.auth_days_custom, a.auth_start_at)
@@ -154,28 +161,37 @@ def update_douyin(db: Session, aid: int, req: DouyinUpdateReq) -> DouyinAccount:
     return a
 
 
-def launch_delivery(db: Session, cid: int, douyin_id: str, tier: str):
+def launch_delivery(db: Session, cid: int, platform_code: str, douyin_id: str,
+                    tier: str, daily_budget: float):
+    """首充一键投放：生成条数 = floor(日预算/档位金额)，消耗 = 条数 * 档位金额"""
     a = db.query(DouyinAccount).filter(DouyinAccount.customer_id == cid,
+                                       DouyinAccount.platform_code == platform_code,
                                        DouyinAccount.douyin_id == douyin_id).first()
     if not a:
-        raise ValueError("douyin account not found")
-    daily = TIER_DAILY_BUDGET[tier]
+        raise ValueError("投放ID不存在或不属于当前客户")
+    price = TIER_DAILY_BUDGET[tier]
+    if daily_budget < price:
+        raise ValueError("日预算不能小于所选档位金额")
     balance = float(a.balance)
-    if balance < daily:
-        raise ValueError("账号余额不足,请联系管理员充值")
-    consumed = daily * int(balance // daily)
+    if balance < daily_budget:
+        raise ValueError("日预算不能超过当前账号余额")
+    generated = int(daily_budget // price)
+    consumed = round(generated * price, 2)
     remaining = round(balance - consumed, 2)
     a.tier = tier
-    a.tier_daily_budget = daily
+    a.tier_daily_budget = price
+    a.launch_type = "FIRST_CHARGE"
+    a.daily_budget = daily_budget
+    a.launch_consumed = consumed
     a.launch_at = datetime.utcnow()
     a.balance = remaining
     db.add(FinanceLog(customer_id=a.customer_id, douyin_account_id=a.id,
                       change_type="CONSUME", amount=-consumed,
                       balance_after=remaining, stat_date=datetime.utcnow(),
-                      remark="一键投放按档位结算消耗"))
+                      remark=f"首充一键投放结算(生成{generated}条)"))
     db.commit()
     db.refresh(a)
-    return a, consumed
+    return a, consumed, generated
 
 
 def delete_customer(db: Session, cid: int) -> None:
@@ -203,11 +219,16 @@ def to_customer_item(c: Customer) -> dict:
         "contact_name": c.contact_name, "phone": c.phone, "is_active": c.is_active,
         "remark": c.remark, "created_at": c.created_at,
         "douyin_list": [{
-            "id": a.id, "douyin_id": a.douyin_id, "douyin_name": a.douyin_name,
+            "id": a.id, "platform_code": a.platform_code,
+            "douyin_id": a.douyin_id, "douyin_name": a.douyin_name,
             "auto_code": a.auto_code, "nickname": a.nickname,
             "recharge_amount": float(a.recharge_amount),
             "balance": _remain_after_consume(a),
             "tier": a.tier, "tier_daily_budget": a.tier_daily_budget,
+            "launch_type": a.launch_type,
+            "launch_type_label": LAUNCH_TYPE_LABEL.get(a.launch_type, "") if a.launch_type else "",
+            "daily_budget": float(a.daily_budget or 0),
+            "launch_consumed": float(a.launch_consumed or 0),
             "launch_at": a.launch_at,
             "auth_duration": a.auth_duration, "auth_start_at": a.auth_start_at,
             "auth_end_at": a.auth_end_at, "status": a.status,

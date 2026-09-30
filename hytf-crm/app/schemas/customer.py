@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field, field_validator
 
 
 class DouyinCreateReq(BaseModel):
+    platform_code: str = Field("douyin", max_length=30)
     douyin_id: str = Field(..., max_length=50)
     douyin_name: str = Field("", max_length=50)
     recharge_amount: float = Field(..., gt=0)
@@ -35,6 +36,7 @@ class CustomerUpdateReq(BaseModel):
 
 class DouyinUpdateReq(BaseModel):
     douyin_name: Optional[str] = Field(None, max_length=50)
+    # 追加充值金额（累加，不是覆盖）
     recharge_amount: Optional[float] = Field(None, gt=0)
     auth_duration: Optional[str] = None
     auth_days_custom: Optional[int] = Field(None, ge=1, le=3650)
@@ -43,9 +45,11 @@ class DouyinUpdateReq(BaseModel):
 
 
 class LaunchReq(BaseModel):
-    # A端一键投放：记录档位与投放时间
+    # A端一键投放：平台 + ID + 档位 + 日预算
+    platform_code: str = Field(..., max_length=30)
     douyin_id: str = Field(..., max_length=50)
     tier: str = Field(..., max_length=1)
+    daily_budget: float = Field(..., gt=0)
 
     @field_validator("tier")
     @classmethod

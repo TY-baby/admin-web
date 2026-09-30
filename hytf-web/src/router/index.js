@@ -17,7 +17,8 @@ const routes = [
       { path: 'dashboard', name: 'AdminDashboard', component: () => import('@/views/admin/Dashboard.vue'), meta: { title: '首页' } },
       { path: 'customer', name: 'AdminCustomer', component: () => import('@/views/admin/customer/Index.vue'), meta: { title: '用户管理' } },
       { path: 'novel', name: 'AdminNovel', component: () => import('@/views/admin/novel/Index.vue'), meta: { title: '网文客户' } },
-      { path: 'invoice', name: 'AdminInvoice', component: () => import('@/views/admin/invoice/Index.vue'), meta: { title: '开票管理' } }
+      { path: 'invoice', name: 'AdminInvoice', component: () => import('@/views/admin/invoice/Index.vue'), meta: { title: '开票管理' } },
+      { path: 'withdraw', name: 'AdminWithdraw', component: () => import('@/views/admin/withdraw/Index.vue'), meta: { title: '出款管理' } }
     ]
   },
   { path: '*', redirect: '/' }

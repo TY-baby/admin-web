@@ -8,6 +8,7 @@
         <el-menu-item index="/admin/customer"><i class="el-icon-user"></i><span>用户管理</span></el-menu-item>
         <el-menu-item index="/admin/novel"><i class="el-icon-reading"></i><span>网文客户</span></el-menu-item>
         <el-menu-item index="/admin/invoice"><i class="el-icon-document"></i><span>开票管理</span></el-menu-item>
+        <el-menu-item index="/admin/withdraw"><i class="el-icon-money"></i><span>出款管理</span></el-menu-item>
       </el-menu>
     </el-aside>
     <el-container>

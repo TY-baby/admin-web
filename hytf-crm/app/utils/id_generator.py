@@ -34,8 +34,14 @@ def gen_nickname(max_len: int = 20) -> str:
 TIER_DAILY_BUDGET = {"A": 300, "B": 600, "C": 1000}
 TIER_ITEM_RANGE = {"A": (30, 199), "B": (200, 499), "C": (500, 1000)}
 
-NOVEL_TIER_PRICE = {"A": 998, "B": 1998, "C": 3998}
-NOVEL_READ_RANGE = {"A": (0, 500), "B": (500, 2000), "C": (2000, 5000)}
+# 直播曝光度（1h内曝光）：档位价格与曝光量随机区间（不含上界）
+EXPOSURE_TIER_PRICE = {"A": 1998, "B": 2998, "C": 5998}
+EXPOSURE_TIER_RANGE = {"A": (1000, 3000), "B": (3000, 5000), "C": (5000, 10000)}
+
+NOVEL_TIER_PRICE = EXPOSURE_TIER_PRICE
+NOVEL_READ_RANGE = {"A": (1000, 3000), "B": (3000, 5000), "C": (5000, 10000)}
+
+LAUNCH_TYPE_LABEL = {"FIRST_CHARGE": "首充", "EXPOSURE": "直播曝光度"}
 
 
 def gen_page_code(existing: set) -> str:
