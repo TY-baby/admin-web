@@ -7,5 +7,5 @@ class ClientLoginReq(BaseModel):
 
 
 class AdminLoginReq(BaseModel):
-    username: str = Field(..., min_length=3, max_length=50)
+    username: str = Field(..., min_length=2, max_length=50)
     password: str = Field(..., min_length=6, max_length=32)

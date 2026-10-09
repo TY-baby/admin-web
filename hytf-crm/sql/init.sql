@@ -1,4 +1,5 @@
 -- hytf-crm 数据库初始化脚本（生产环境用；开发环境应用启动会自动建表）
+SET NAMES utf8mb4;
 CREATE DATABASE IF NOT EXISTS hytf_crm DEFAULT CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE hytf_crm;
 
@@ -129,7 +130,7 @@ CREATE TABLE IF NOT EXISTS t_novel_page (
 -- ALTER TABLE t_douyin_account ADD COLUMN launch_consumed DECIMAL(12,2) NOT NULL DEFAULT 0 AFTER daily_budget;
 -- ALTER TABLE t_douyin_account ADD COLUMN exposure_1h INT NOT NULL DEFAULT 0 AFTER launch_consumed;
 -- ALTER TABLE t_douyin_account ADD UNIQUE KEY uk_platform_douyin (platform_code, douyin_id);
--- CREATE TABLE IF NOT EXISTS t_platform (
+CREATE TABLE IF NOT EXISTS t_platform (
   id INT AUTO_INCREMENT PRIMARY KEY,
   code VARCHAR(30) NOT NULL UNIQUE,
   name VARCHAR(50) NOT NULL,

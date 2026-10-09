@@ -3,6 +3,7 @@
 -- 生产环境执行一次即可
 -- ================================================================
 USE hytf_crm;
+SET NAMES utf8mb4;
 
 -- 1. t_douyin_account 增加平台/投放类型/日预算/曝光度字段
 ALTER TABLE t_douyin_account ADD COLUMN platform_code VARCHAR(30) NOT NULL DEFAULT 'douyin' AFTER customer_id;
