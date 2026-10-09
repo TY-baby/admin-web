@@ -7,7 +7,7 @@ from app.models.douyin_account import DouyinAccount
 from app.models.finance_log import FinanceLog
 from app.models.novel_page import NovelPage
 from app.utils.id_generator import (EXPOSURE_TIER_PRICE, EXPOSURE_TIER_RANGE,
-                                    gen_page_code)
+                                    dump_items, gen_launch_items, gen_page_code)
 
 NOVEL_DIR = os.environ.get("NOVEL_DIR", "/app/novel_book")
 GROW_SECONDS = 3600
@@ -74,7 +74,8 @@ def _write_file(p: NovelPage):
 
 def launch_novel(db: Session, cid: int, platform_code: str, douyin_id: str,
                  tier: str, daily_budget: float):
-    """直播曝光度一键投放（1h内曝光）：生成条数 = floor(日预算/档位金额)"""
+    """直播曝光度一键投放（1h内曝光）：生成条数 = floor(日预算/档位金额)
+       同时一次性生成 ID/昵称/单条曝光量并落库"""
     a = db.query(DouyinAccount).filter(DouyinAccount.customer_id == cid,
                                        DouyinAccount.platform_code == platform_code,
                                        DouyinAccount.douyin_id == douyin_id).first()
@@ -91,6 +92,8 @@ def launch_novel(db: Session, cid: int, platform_code: str, douyin_id: str,
     remaining = round(balance - consumed, 2)
     lo, hi = EXPOSURE_TIER_RANGE[tier]
     exposure = random.randint(lo, hi - 1)
+    # 关键：一次性生成随机明细并落库
+    items = gen_launch_items(generated, (lo, hi))
     codes = {c for (c,) in db.query(NovelPage.page_code).all()}
     page = NovelPage(customer_id=cid, account_id=a.id, douyin_id=douyin_id,
                      page_code=gen_page_code(codes), tier=tier, unit_price=price,
@@ -105,6 +108,7 @@ def launch_novel(db: Session, cid: int, platform_code: str, douyin_id: str,
     a.daily_budget = daily_budget
     a.launch_consumed = consumed
     a.exposure_1h = exposure
+    a.generated_items = dump_items(items)
     a.launch_at = datetime.utcnow()
     a.balance = remaining
     db.add(FinanceLog(customer_id=cid, douyin_account_id=a.id, change_type="CONSUME",

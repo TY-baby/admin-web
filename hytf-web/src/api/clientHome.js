@@ -5,3 +5,4 @@ export const getTrend = params => request({ url: '/client/home/trend', method: '
 export const launchDelivery = data => request({ url: '/client/home/launch', method: 'post', data })
 export const launchNovel = data => request({ url: '/client/home/novel/launch', method: 'post', data })
 export const getPlatforms = () => request({ url: '/public/platforms', method: 'get' })
+export const clientExportUrl = '/api/v1/client/home/export'

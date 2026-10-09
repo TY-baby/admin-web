@@ -4,11 +4,9 @@
       <div class="aside-logo">恒耀 CRM</div>
       <el-menu :default-active="$route.path" router class="tech-menu"
                background-color="#0b2a5e" text-color="#a8c4f0" active-text-color="#00e5ff">
-        <el-menu-item index="/admin/dashboard"><i class="el-icon-s-home"></i><span>首页</span></el-menu-item>
-        <el-menu-item index="/admin/customer"><i class="el-icon-user"></i><span>用户管理</span></el-menu-item>
-        <el-menu-item index="/admin/novel"><i class="el-icon-reading"></i><span>网文客户</span></el-menu-item>
-        <el-menu-item index="/admin/invoice"><i class="el-icon-document"></i><span>开票管理</span></el-menu-item>
-        <el-menu-item index="/admin/withdraw"><i class="el-icon-money"></i><span>出款管理</span></el-menu-item>
+        <el-menu-item v-for="m in visibleMenus" :key="m.path" :index="m.path">
+          <i :class="m.icon"></i><span>{{ m.title }}</span>
+        </el-menu-item>
       </el-menu>
     </el-aside>
     <el-container>
@@ -28,9 +26,26 @@
 
 <script>
 import { mapState } from 'vuex'
+const MENUS = [
+  { key: 'dashboard', path: '/admin/dashboard', title: '首页', icon: 'el-icon-s-home' },
+  { key: 'customer', path: '/admin/customer', title: '用户管理', icon: 'el-icon-user' },
+  { key: 'novel', path: '/admin/novel', title: '网文客户', icon: 'el-icon-reading' },
+  { key: 'invoice', path: '/admin/invoice', title: '开票管理', icon: 'el-icon-document' },
+  { key: 'withdraw', path: '/admin/withdraw', title: '出款管理', icon: 'el-icon-money' },
+  { key: 'log', path: '/admin/log', title: '日志记录', icon: 'el-icon-tickets' },
+  { key: 'monitor', path: '/admin/monitor', title: '服务器监控', icon: 'el-icon-data-line' },
+  { key: 'account', path: '/admin/account', title: '账号管理', icon: 'el-icon-s-custom' }
+]
 export default {
   name: 'AdminLayout',
-  computed: { ...mapState('adminUser', ['info']) },
+  computed: {
+    ...mapState('adminUser', ['info']),
+    visibleMenus() {
+      const isSuper = this.info.role === 'super' || this.info.role === 'admin'
+      const menus = this.info.menus || []
+      return MENUS.filter(m => isSuper || menus.indexOf(m.key) >= 0)
+    }
+  },
   methods: {
     logout() {
       this.$confirm('确定退出登录吗?', '提示', { type: 'warning' }).then(() => {

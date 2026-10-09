@@ -5,6 +5,14 @@ from app.core.security import build_client_default_password, create_access_token
 from app.models.admin_user import AdminUser
 from app.models.customer import Customer
 
+ALL_MENUS = ["dashboard", "customer", "novel", "invoice", "withdraw", "log", "monitor", "account"]
+
+
+def menus_for(role: str, menus: str):
+    if role in ("super", "admin"):
+        return ALL_MENUS
+    return [m for m in (menus or "").split(",") if m]
+
 
 def client_login(db: Session, phone: str, password: str):
     cust = db.query(Customer).filter(Customer.phone == phone).first()
@@ -31,5 +39,6 @@ def admin_login(db: Session, username: str, password: str):
                                 extra={"username": a.username, "name": a.real_name})
     return {"access_token": token, "token_type": "Bearer",
             "expires_in": settings.JWT_EXPIRE_MINUTES_ADMIN * 60,
-            "role": "admin", "subject": str(a.id),
-            "username": a.username, "real_name": a.real_name}
+            "role": a.role, "subject": str(a.id),
+            "username": a.username, "real_name": a.real_name,
+            "menus": menus_for(a.role, a.menus)}

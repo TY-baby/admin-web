@@ -1,6 +1,7 @@
 """hytf-crm FastAPI 应用入口。"""
 import time
 from contextlib import asynccontextmanager
+from datetime import datetime
 
 import psutil
 from fastapi import FastAPI, Request
@@ -16,11 +17,13 @@ from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.logging_conf import logger
 from app.core.security import hash_password
+from app.core.security import decode_token
 from app.db.redis_client import redis_client
 from app.db.session import SessionLocal, engine, init_db
 from app.middlewares.rate_limit import limiter
 from app.middlewares.security_headers import SecurityHeadersMiddleware
 from app.models.admin_user import AdminUser
+from app.models.operation_log import OperationLog
 from app.models.platform import Platform
 
 DEFAULT_PLATFORMS = [("yingke", "映客", 1), ("qiyin", "栖音", 2),
@@ -48,8 +51,13 @@ def _bootstrap_admin():
             db.add(AdminUser(username="admin",
                              password_hash=hash_password("admin123"),
                              real_name="超级管理员", role="super"))
-            db.commit()
-            logger.info("[bootstrap] default admin created: admin / admin123")
+        # 5.1：yy 账号，密码 123456，权限与 admin 一致（super）
+        if db.query(AdminUser).filter(AdminUser.username == "yy").first() is None:
+            db.add(AdminUser(username="yy",
+                             password_hash=hash_password("123456"),
+                             real_name="运营监控", role="super"))
+        db.commit()
+        logger.info("[bootstrap] default admin ready: admin/admin123, yy/123456")
     except Exception as e:
         logger.warning(f"[bootstrap] admin skipped: {e}")
     finally:
@@ -127,8 +135,41 @@ async def access_log(request: Request, call_next):
     except Exception:
         pass
     _check_server_alerts()
+    _record_operation_log(request)
     logger.info(f"{request.method} {request.url.path} -> {resp.status_code} {ms:.1f}ms")
     return resp
+
+
+_ACTION_MAP = {"GET": "浏览", "POST": "操作", "PUT": "修改", "DELETE": "删除"}
+
+
+def _record_operation_log(request: Request):
+    """5.2：记录除 yy 之外其他 B 端账号的登录/浏览/操作行为"""
+    try:
+        path = request.url.path
+        if not path.startswith("/api/v1/admin"):
+            return
+        auth = request.headers.get("authorization") or ""
+        username, role = "", ""
+        if auth.lower().startswith("bearer "):
+            payload = decode_token(auth.split(" ", 1)[1].strip()) or {}
+            username = payload.get("username", "")
+            role = payload.get("role", "")
+        if not username or username == "yy":
+            return
+        action = "登录" if path.endswith("/auth/login") else _ACTION_MAP.get(request.method, "操作")
+        ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or \
+            (request.client.host if request.client else "")
+        db = SessionLocal()
+        try:
+            db.add(OperationLog(username=username, role=role, action=action,
+                                method=request.method, path=path, ip=ip,
+                                created_at=datetime.utcnow()))
+            db.commit()
+        finally:
+            db.close()
+    except Exception:
+        pass
 
 
 @app.get("/", tags=["health"])

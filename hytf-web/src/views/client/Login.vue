@@ -9,7 +9,7 @@
 
     <div class="hero">
       <div class="hero-logo">恒耀引擎 | 恒耀投放</div>
-      <div class="hero-title">电商营销新体验</div>
+      <div class="hero-title">直播引流新体验</div>
       <div class="hero-sub">恒耀江海阔 · 风好正扬帆</div>
       <div class="cube">
         <div class="bar b1"></div>

@@ -1,14 +1,20 @@
 from datetime import date, datetime, timedelta
+from io import BytesIO
 from typing import Optional
+from urllib.parse import quote
 from fastapi import APIRouter, Depends, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from app.core.deps import get_current_client, get_db
+from app.models.douyin_account import DouyinAccount
+from app.models.platform import Platform
 from app.schemas.common import ok, fail
 from app.schemas.customer import LaunchReq
 from app.services.customer_service import get_client_accounts, launch_delivery
 from app.services.douyin_service import get_home_summary, get_trend
 from app.services.novel_service import launch_novel, page_link
-from app.utils.id_generator import LAUNCH_TYPE_LABEL
+from app.utils.excel_export import export_rows_to_xlsx
+from app.utils.id_generator import LAUNCH_TYPE_LABEL, load_items
 
 router = APIRouter()
 
@@ -79,3 +85,40 @@ def trend(start: Optional[date] = None, end: Optional[date] = None,
         end = start + timedelta(days=92)
     return ok({"start": start.isoformat(), "end": end.isoformat(),
                "items": get_trend(db, cid, account_id, start, end)})
+
+
+@router.get("/export")
+def export_api(start: Optional[date] = None, end: Optional[date] = None,
+               db: Session = Depends(get_db), user=Depends(get_current_client)):
+    """A端投放数据导出：数据源与B端用户管理导出一致，仅导出昨天及以前的投放数据"""
+    cid = int(user["sub"])
+    yesterday = date.today() - timedelta(days=1)
+    end = min(end or yesterday, yesterday)
+    start = min(start or end, end)
+    s_dt = datetime.combine(start, datetime.min.time())
+    e_dt = datetime.combine(end, datetime.max.time())
+    accs = (db.query(DouyinAccount)
+            .filter(DouyinAccount.customer_id == cid,
+                    DouyinAccount.launch_at.isnot(None),
+                    DouyinAccount.launch_at >= s_dt,
+                    DouyinAccount.launch_at <= e_dt)
+            .order_by(DouyinAccount.launch_at.asc()).all())
+    pname = {p.code: p.name for p in db.query(Platform).all()}
+    headers = ["投放平台名称", "投放ID", "名称", "档位", "类型", "ID", "昵称", "数值", "投放日期"]
+    rows = []
+    for a in accs:
+        launch_date = a.launch_at.strftime("%Y-%m-%d") if a.launch_at else ""
+        base = [pname.get(a.platform_code, a.platform_code), a.douyin_id, a.douyin_name,
+                a.tier or "-", LAUNCH_TYPE_LABEL.get(a.launch_type, "")]
+        stored = load_items(a.generated_items)
+        if not stored:
+            rows.append(base + ["-", "-", "", launch_date])
+            continue
+        for it in stored:
+            rows.append(base + [it.get("biz_code", ""), it.get("nickname", ""),
+                                it.get("value", ""), launch_date])
+    content = export_rows_to_xlsx(headers, rows)
+    fname = f"launch_{start.isoformat()}_{end.isoformat()}.xlsx"
+    return StreamingResponse(BytesIO(content),
+                             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                             headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(fname)}"})

@@ -107,6 +107,25 @@
         <el-progress :percentage="progress" :stroke-width="14" color="#ff2e63" />
       </div>
     </div>
+
+    <el-dialog :visible.sync="confirmVisible" width="420px" custom-class="launch-confirm"
+               :close-on-click-modal="false" append-to-body>
+      <div slot="title" class="lc-head">
+        <i class="el-icon-s-promotion"></i><span>确认投放信息</span>
+      </div>
+      <div class="lc-body">
+        <div class="lc-row"><span class="k">投放平台</span><span class="v">{{ confirmInfo.platformName }}</span></div>
+        <div class="lc-row"><span class="k">投放ID</span><span class="v">{{ confirmInfo.id }}</span></div>
+        <div class="lc-row"><span class="k">投放类型</span><span class="v"><em class="tag">{{ confirmInfo.typeLabel }}</em></span></div>
+        <div class="lc-row"><span class="k">所选档位</span><span class="v">{{ confirmInfo.tier }} 档（{{ confirmInfo.price }} 元）</span></div>
+        <div class="lc-row"><span class="k">日预算</span><span class="v hl">￥{{ confirmInfo.budget }}</span></div>
+        <div class="lc-row"><span class="k">预计生成</span><span class="v hl">{{ confirmInfo.generated }} 条</span></div>
+      </div>
+      <div slot="footer">
+        <el-button size="small" @click="confirmVisible=false">再想想</el-button>
+        <el-button size="small" type="danger" @click="doConfirmLaunch">确认投放</el-button>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -131,7 +150,8 @@ export default {
     return {
       tab: 'first', platform: '', currentId: '', plan: '',
       dailyBudget: '', summary: {}, platforms: [],
-      progressVisible: false, progress: 0, launching: false
+      progressVisible: false, progress: 0, launching: false,
+      confirmVisible: false, confirmInfo: {}, pendingLaunch: null
     }
   },
   computed: {
@@ -196,14 +216,19 @@ export default {
       const tier = this.tierOptions.find(t => t.value === this.plan)
       const generated = Math.floor(Number(this.dailyBudget) / tier.price)
       const typeLabel = this.tab === 'first' ? '首充' : '直播曝光度'
-      this.$confirm('平台：' + this.platformName +
-          '，ID：' + this.currentId +
-          '，类型：' + typeLabel +
-          '，档位：' + this.plan + '（' + tier.price + '元）' +
-          '，日预算：' + this.dailyBudget + '元，预计生成 ' + generated + ' 条。确认投放？',
-          '一键投放', { type: 'info', confirmButtonText: '确认投放' })
-          .then(() => this.doLaunch(tier, typeLabel, generated))
-          .catch(() => {})
+      this.confirmInfo = {
+        platformName: this.platformName, id: this.currentId, typeLabel,
+        tier: this.plan, price: tier.price, budget: this.dailyBudget, generated
+      }
+      this.pendingLaunch = { tier, typeLabel, generated }
+      this.confirmVisible = true
+    },
+    doConfirmLaunch() {
+      this.confirmVisible = false
+      if (this.pendingLaunch) {
+        const { tier, typeLabel, generated } = this.pendingLaunch
+        this.doLaunch(tier, typeLabel, generated)
+      }
     },
     async doLaunch(tier, typeLabel, generated) {
       if (this.launching) return
@@ -335,4 +360,21 @@ export default {
   .lbl { color: #909399; } .val { color: #ff2e63; font-weight: bold; }
 }
 .faq { padding-left: 18px; margin: 0; color: #606266; font-size: 13px; line-height: 1.9; }
+::v-deep .launch-confirm {
+  border-radius: 14px; overflow: hidden;
+  .el-dialog__header { background: linear-gradient(135deg, #ff5f8f, #ff2e63); padding: 16px 20px; }
+  .el-dialog__headerbtn .el-dialog__close { color: #fff; }
+  .el-dialog__body { padding: 20px 24px 8px; }
+  .el-dialog__footer { padding: 12px 24px 20px; }
+}
+.lc-head { color: #fff; font-size: 16px; font-weight: bold; display: flex; align-items: center; gap: 8px; }
+.lc-body { .lc-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 11px 4px; border-bottom: 1px dashed #ffe0ea; font-size: 14px;
+    &:last-child { border-bottom: none; }
+    .k { color: #909399; }
+    .v { color: #303133; font-weight: 600; }
+    .v.hl { color: #ff2e63; font-size: 16px; font-weight: bold; }
+    .tag { font-style: normal; background: #fff0f5; color: #ff2e63; padding: 2px 10px; border-radius: 10px; font-size: 12px; }
+  } }
 </style>

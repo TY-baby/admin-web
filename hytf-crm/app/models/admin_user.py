@@ -11,6 +11,7 @@ class AdminUser(Base):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     real_name: Mapped[str] = mapped_column(String(50), default="")
     role: Mapped[str] = mapped_column(String(20), default="admin")
+    menus: Mapped[str] = mapped_column(String(255), default="")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     last_login_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

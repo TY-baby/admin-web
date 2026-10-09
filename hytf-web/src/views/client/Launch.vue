@@ -23,6 +23,7 @@
           <el-option v-for="a in accounts" :key="a.id" :label="a.douyin_name" :value="a.id" />
         </el-select>
         <el-button icon="el-icon-refresh" style="margin-left:8px" @click="loadTrend">刷新</el-button>
+        <el-button type="danger" icon="el-icon-download" style="margin-left:8px" @click="onExport">导出Excel</el-button>
       </div>
 
       <div class="content">
@@ -52,7 +53,8 @@
 
 <script>
 import { mapState } from 'vuex'
-import { getSummary, getTrend } from '@/api/clientHome'
+import { getSummary, getTrend, clientExportUrl } from '@/api/clientHome'
+import { getClientToken } from '@/utils/auth'
 import LineChart from '@/components/LineChart.vue'
 
 export default {
@@ -105,6 +107,21 @@ export default {
       }
     },
     selectMod(k) { this.activeMod = k; this.applySeries() },
+    onExport() {
+      if (!this.range || this.range.length !== 2) { this.$message.warning('请选择日期区间'); return }
+      const q = new URLSearchParams()
+      q.append('start', this.range[0])
+      q.append('end', this.range[1])
+      fetch(clientExportUrl + '?' + q.toString(), { headers: { Authorization: 'Bearer ' + getClientToken() } })
+        .then(r => r.blob()).then(b => {
+          const a = document.createElement('a')
+          a.href = URL.createObjectURL(b)
+          a.download = '投放数据_' + this.range[0] + '_' + this.range[1] + '.xlsx'
+          a.click()
+          URL.revokeObjectURL(a.href)
+          this.$message.success('导出成功（仅含昨天及以前的投放数据）')
+        }).catch(() => this.$message.error('导出失败'))
+    },
     applySeries() {
       const key = this.activeMod
       const nameMap = { consume: '消费', recharge: '充值', balance: '余额', avg: '日均消费' }

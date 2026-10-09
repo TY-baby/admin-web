@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import String, DateTime, Integer, DECIMAL, Enum as SAEnum, UniqueConstraint
+from sqlalchemy import String, DateTime, Integer, DECIMAL, Text, Enum as SAEnum, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import Base
 
@@ -22,7 +22,9 @@ class DouyinAccount(Base):
     daily_budget: Mapped[float] = mapped_column(DECIMAL(12, 2), nullable=False, default=0)
     launch_consumed: Mapped[float] = mapped_column(DECIMAL(12, 2), nullable=False, default=0)
     exposure_1h: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    launch_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    # 投放时一次性生成的 ID + 昵称 + 单条值列表（JSON 字符串），保证多次导出数据一致
+    generated_items: Mapped[str] = mapped_column(Text, nullable=True)
+    launch_at: Mapped[datetime] = mapped_column(DateTime, nullable=True, index=True)
     auth_duration: Mapped[str] = mapped_column(SAEnum("UNLIMITED", "D3", "D7", "D30", "CUSTOM", name="auth_duration_enum"), default="UNLIMITED")
     auth_start_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     auth_end_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)

@@ -8,6 +8,15 @@
         <el-form-item label="ID">
           <el-input v-model="query.keyword_douyin" placeholder="模糊搜索" clearable />
         </el-form-item>
+        <el-form-item label="手机号">
+          <el-input v-model="query.keyword_phone" placeholder="模糊搜索" clearable />
+        </el-form-item>
+        <el-form-item label="类型">
+          <el-select v-model="query.launch_type" placeholder="全部" clearable style="width:130px">
+            <el-option label="首充" value="FIRST_CHARGE" />
+            <el-option label="直播曝光度" value="EXPOSURE" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="添加时间">
           <el-date-picker v-model="dateRange" type="daterange" value-format="yyyy-MM-dd"
                           start-placeholder="开始" end-placeholder="结束" />
@@ -113,7 +122,7 @@ export default {
   data() {
     return {
       loading: false, rows: [], total: 0, dateRange: [], platforms: [],
-      query: { keyword_name: '', keyword_douyin: '', page: 1, page_size: 20 }
+      query: { keyword_name: '', keyword_douyin: '', keyword_phone: '', launch_type: '', page: 1, page_size: 20 }
     }
   },
   async created() {
@@ -150,7 +159,7 @@ export default {
       } finally { this.loading = false }
     },
     reset() {
-      this.query = { keyword_name: '', keyword_douyin: '', page: 1, page_size: 20 }
+      this.query = { keyword_name: '', keyword_douyin: '', keyword_phone: '', launch_type: '', page: 1, page_size: 20 }
       this.dateRange = []
       this.load(1)
     },
@@ -170,12 +179,15 @@ export default {
         }).catch(() => {})
     },
     onExport() {
-      const hasCond = this.query.keyword_name || this.query.keyword_douyin ||
+      if (!this.query.launch_type) { this.$message.warning('导出前必须先选择类型（首充/直播曝光度）'); return }
+      const hasCond = this.query.keyword_name || this.query.keyword_douyin || this.query.keyword_phone ||
                       (this.dateRange && this.dateRange.length === 2)
       if (!hasCond) { this.$message.warning('必须先输入查询条件进行导出'); return }
       const q = new URLSearchParams()
+      q.append('launch_type', this.query.launch_type)
       if (this.query.keyword_name) q.append('keyword_name', this.query.keyword_name)
       if (this.query.keyword_douyin) q.append('keyword_douyin', this.query.keyword_douyin)
+      if (this.query.keyword_phone) q.append('keyword_phone', this.query.keyword_phone)
       if (this.dateRange && this.dateRange.length === 2) {
         q.append('date_from', this.dateRange[0])
         q.append('date_to', this.dateRange[1])
@@ -194,7 +206,8 @@ export default {
     exportFileName() {
       const d = new Date()
       const pad = n => String(n).padStart(2, '0')
-      const parts = []
+      const typeLabel = this.query.launch_type === 'EXPOSURE' ? '直播曝光度' : '首充'
+      const parts = [typeLabel]
       if (this.query.keyword_name) parts.push(this.query.keyword_name)
       if (this.query.keyword_douyin) parts.push(this.query.keyword_douyin)
       if (this.dateRange && this.dateRange.length === 2) {

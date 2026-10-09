@@ -14,11 +14,14 @@ const routes = [
     component: () => import('@/layout/AdminLayout.vue'),
     redirect: '/admin/dashboard',
     children: [
-      { path: 'dashboard', name: 'AdminDashboard', component: () => import('@/views/admin/Dashboard.vue'), meta: { title: '首页' } },
-      { path: 'customer', name: 'AdminCustomer', component: () => import('@/views/admin/customer/Index.vue'), meta: { title: '用户管理' } },
-      { path: 'novel', name: 'AdminNovel', component: () => import('@/views/admin/novel/Index.vue'), meta: { title: '网文客户' } },
-      { path: 'invoice', name: 'AdminInvoice', component: () => import('@/views/admin/invoice/Index.vue'), meta: { title: '开票管理' } },
-      { path: 'withdraw', name: 'AdminWithdraw', component: () => import('@/views/admin/withdraw/Index.vue'), meta: { title: '出款管理' } }
+      { path: 'dashboard', name: 'AdminDashboard', component: () => import('@/views/admin/Dashboard.vue'), meta: { title: '首页', menu: 'dashboard' } },
+      { path: 'customer', name: 'AdminCustomer', component: () => import('@/views/admin/customer/Index.vue'), meta: { title: '用户管理', menu: 'customer' } },
+      { path: 'novel', name: 'AdminNovel', component: () => import('@/views/admin/novel/Index.vue'), meta: { title: '网文客户', menu: 'novel' } },
+      { path: 'invoice', name: 'AdminInvoice', component: () => import('@/views/admin/invoice/Index.vue'), meta: { title: '开票管理', menu: 'invoice' } },
+      { path: 'withdraw', name: 'AdminWithdraw', component: () => import('@/views/admin/withdraw/Index.vue'), meta: { title: '出款管理', menu: 'withdraw' } },
+      { path: 'log', name: 'AdminLog', component: () => import('@/views/admin/log/Index.vue'), meta: { title: '日志记录', menu: 'log' } },
+      { path: 'monitor', name: 'AdminMonitor', component: () => import('@/views/admin/monitor/Index.vue'), meta: { title: '服务器监控', menu: 'monitor' } },
+      { path: 'account', name: 'AdminAccount', component: () => import('@/views/admin/account/Index.vue'), meta: { title: '账号管理', menu: 'account' } }
     ]
   },
   { path: '*', redirect: '/' }
