@@ -61,7 +61,7 @@ export default {
 }
 // 科技网格背景
 .grid {
-  position: absolute; inset: 0;
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
   background-image:
     linear-gradient(rgba(0, 220, 255, .07) 1px, transparent 1px),
     linear-gradient(90deg, rgba(0, 220, 255, .07) 1px, transparent 1px);
@@ -73,7 +73,7 @@ export default {
   to   { background-position: 46px 46px, 46px 46px; }
 }
 // 发光光球
-.glow { position: absolute; border-radius: 50%; filter: blur(70px); opacity: .55; }
+.glow { position: absolute; border-radius: 50%; filter: blur(70px); opacity: .55; z-index: 0; pointer-events: none; }
 .glow-1 { width: 380px; height: 380px; top: -120px; left: -80px; background: #00e5ff; animation: float1 9s ease-in-out infinite; }
 .glow-2 { width: 320px; height: 320px; bottom: -100px; right: -60px; background: #6a5cff; animation: float2 11s ease-in-out infinite; }
 .glow-3 { width: 220px; height: 220px; top: 45%; right: 20%; background: #00ffa3; opacity: .3; animation: float1 13s ease-in-out infinite; }

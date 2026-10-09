@@ -79,18 +79,18 @@ export default {
 }
 // 细网格科技底纹
 .bg-grid {
-  position: absolute; inset: 0;
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
   background-image:
     linear-gradient(rgba(43,108,255,.05) 1px, transparent 1px),
     linear-gradient(90deg, rgba(43,108,255,.05) 1px, transparent 1px);
   background-size: 44px 44px;
 }
 // 同心环（3D 轨道感）
-.ring { position: absolute; border-radius: 50%; border: 2px solid rgba(43,140,255,.18); }
+.ring { position: absolute; border-radius: 50%; border: 2px solid rgba(43,140,255,.18); z-index: 0; pointer-events: none; }
 .ring-1 { width: 620px; height: 620px; left: -160px; top: 50%; transform: translateY(-50%) rotateX(60deg); border-color: rgba(0,180,255,.25); }
 .ring-2 { width: 460px; height: 460px; left: -80px; top: 50%; transform: translateY(-50%) rotateX(60deg); border-color: rgba(43,108,255,.2); }
 // 发光光球
-.orb { position: absolute; border-radius: 50%; filter: blur(50px); opacity: .5; }
+.orb { position: absolute; border-radius: 50%; filter: blur(50px); opacity: .5; z-index: 0; pointer-events: none; }
 .orb-1 { width: 300px; height: 300px; top: -80px; right: 10%; background: #7cc4ff; }
 .orb-2 { width: 240px; height: 240px; bottom: -60px; left: 30%; background: #9fd8ff; }
 .orb-3 { width: 160px; height: 160px; top: 30%; left: 46%; background: #bfe6ff; opacity: .6; }
