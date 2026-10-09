@@ -50,8 +50,8 @@ def _bootstrap_admin():
         if db.query(AdminUser).filter(AdminUser.username == "admin").first() is None:
             db.add(AdminUser(username="admin",
                              password_hash=hash_password("admin123"),
-                             real_name="超级管理员", role="super"))
-        # 5.1：yy 账号，密码 123456，权限与 admin 一致（super）
+                             real_name="超级管理员", role="admin"))
+        # 5.1：yy 账号，密码 123456，唯一拥有全部权限（super）
         if db.query(AdminUser).filter(AdminUser.username == "yy").first() is None:
             db.add(AdminUser(username="yy",
                              password_hash=hash_password("123456"),

@@ -6,11 +6,16 @@ from app.models.admin_user import AdminUser
 from app.models.customer import Customer
 
 ALL_MENUS = ["dashboard", "customer", "novel", "invoice", "withdraw", "log", "monitor", "account"]
+BUSINESS_MENUS = ["dashboard", "customer", "novel", "invoice", "withdraw"]
+SYSTEM_MENUS = ["log", "monitor", "account"]
 
 
 def menus_for(role: str, menus: str):
-    if role in ("super", "admin"):
+    # super（仅 yy）：全部菜单；admin：业务菜单，无系统菜单；user：按勾选
+    if role == "super":
         return ALL_MENUS
+    if role == "admin":
+        return BUSINESS_MENUS
     return [m for m in (menus or "").split(",") if m]
 
 

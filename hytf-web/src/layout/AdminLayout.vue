@@ -41,9 +41,8 @@ export default {
   computed: {
     ...mapState('adminUser', ['info']),
     visibleMenus() {
-      const isSuper = this.info.role === 'super' || this.info.role === 'admin'
       const menus = this.info.menus || []
-      return MENUS.filter(m => isSuper || menus.indexOf(m.key) >= 0)
+      return MENUS.filter(m => menus.indexOf(m.key) >= 0)
     }
   },
   methods: {

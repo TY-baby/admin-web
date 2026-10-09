@@ -8,7 +8,6 @@ NProgress.configure({ showSpinner: false })
 function adminMenuAllowed(menuKey) {
   if (!menuKey) return true
   const info = getAdminInfo()
-  if (info.role === 'super' || info.role === 'admin') return true
   return (info.menus || []).indexOf(menuKey) >= 0
 }
 

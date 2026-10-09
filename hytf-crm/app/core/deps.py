@@ -36,9 +36,9 @@ def get_current_admin(authorization: Optional[str] = Header(default=None)) -> di
 
 def get_current_super(authorization: Optional[str] = Header(default=None),
                       db: Session = Depends(get_db)) -> dict:
-    """仅超级权限（admin/yy）可访问：日志、监控、账号管理"""
+    """仅 yy（role=super）可访问：日志、监控、账号管理"""
     payload = get_current_admin(authorization)
     u = db.query(AdminUser).filter(AdminUser.id == int(payload["sub"])).first()
-    if not u or u.role not in ("super", "admin"):
+    if not u or u.role != "super":
         raise HTTPException(status_code=403, detail="无权限访问")
     return payload

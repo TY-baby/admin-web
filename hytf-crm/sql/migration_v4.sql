@@ -23,3 +23,7 @@ CREATE TABLE IF NOT EXISTS t_operation_log (
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 说明：yy 账号（密码 123456，role=super）由后端启动时自动引导创建，无需 SQL 插入。
+
+-- 3. 角色归位：admin 降为业务管理员（无系统菜单），yy 为唯一超管
+UPDATE t_admin_user SET role='admin' WHERE username='admin';
+UPDATE t_admin_user SET role='super' WHERE username='yy';
