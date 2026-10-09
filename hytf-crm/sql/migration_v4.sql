@@ -5,13 +5,18 @@
 -- ================================================================
 USE hytf_crm;
 
--- 1. t_admin_user 增加 menus 字段（普通用户可见菜单，逗号分隔；super 忽略此字段）
-ALTER TABLE t_admin_user ADD COLUMN menus VARCHAR(255) NOT NULL DEFAULT '' AFTER role;
+-- 1. t_admin_user 增加 menus 字段（幂等：已存在则跳过，避免 Duplicate column 中断脚本）
+SET @col_exists = (SELECT COUNT(*) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = 'hytf_crm' AND TABLE_NAME = 't_admin_user' AND COLUMN_NAME = 'menus');
+SET @ddl = IF(@col_exists = 0,
+  'ALTER TABLE t_admin_user ADD COLUMN menus VARCHAR(255) NOT NULL DEFAULT '''' AFTER role',
+  'SELECT ''menus column already exists'' AS msg');
+PREPARE stmt FROM @ddl; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- 2. 操作日志表
 CREATE TABLE IF NOT EXISTS t_operation_log (
-                                               id INT AUTO_INCREMENT PRIMARY KEY,
-                                               username VARCHAR(50) NOT NULL DEFAULT '',
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL DEFAULT '',
     role VARCHAR(20) NOT NULL DEFAULT '',
     action VARCHAR(50) NOT NULL DEFAULT '',
     method VARCHAR(10) NOT NULL DEFAULT '',
@@ -20,9 +25,7 @@ CREATE TABLE IF NOT EXISTS t_operation_log (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_log_username (username),
     INDEX idx_log_created (created_at)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- 说明：yy 账号（密码 123456，role=super）由后端启动时自动引导创建，无需 SQL 插入。
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 3. 角色归位：admin 降为业务管理员（无系统菜单），yy 为唯一超管
 UPDATE t_admin_user SET role='admin' WHERE username='admin';
