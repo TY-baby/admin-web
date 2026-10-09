@@ -61,8 +61,8 @@
 
             <div class="card">
               <div class="card-title">申请流程</div>
-              <video controls style="width:100%;border-radius:6px;background:#000" poster="">
-                <source src="" type="video/mp4" />
+              <video controls preload="metadata" playsinline src="/media/promo.mp4"
+                     style="width:100%;border-radius:6px;background:#000">
                 您的浏览器不支持视频播放
               </video>
             </div>
