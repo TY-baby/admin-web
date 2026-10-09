@@ -4,3 +4,4 @@ dist/
 *.log
 .idea/
 .vscode/
+public/media/*.mp4

@@ -71,6 +71,7 @@ services:
       - "80:80"
     volumes:
       - ./novel-web/book:/usr/share/nginx/novel/book:ro
+      - ./hytf-web/public/media:/usr/share/nginx/media:ro
 
 volumes:
   mysql_data:
