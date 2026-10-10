@@ -35,7 +35,7 @@
             </div>
           </div>
           <div class="card">
-            <line-chart :dates="dates" :series="series" height="360px" />
+            <line-chart :dates="dates" :series="series" :y-min="yBounds.min" :y-max="yBounds.max" height="360px" />
           </div>
         </div>
         <div class="right card">
@@ -72,6 +72,13 @@ export default {
   },
   computed: {
     ...mapState('clientUser', ['accounts']),
+    yBounds() {
+      // y轴覆盖 300~1000 档位展示区间（含随机带 280~990）；数据超出时自动扩展
+      if (this.activeMod !== 'consume' && this.activeMod !== 'avg') return { min: null, max: null }
+      const data = ((this.series[0] && this.series[0].data) || []).map(Number)
+      if (!data.length) return { min: null, max: null }
+      return { min: Math.min(280, Math.min(...data)), max: Math.max(1000, Math.max(...data)) }
+    },
     modules() {
       const sum = k => (this.raw || []).reduce((s, x) => s + Number(x[k] || 0), 0).toFixed(2)
       const totalConsume = sum('consume')

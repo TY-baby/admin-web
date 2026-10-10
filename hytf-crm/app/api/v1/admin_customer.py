@@ -15,7 +15,7 @@ from app.services.customer_service import (create_customer, delete_customer, del
 from app.utils.excel_export import export_rows_to_xlsx_merged
 from app.utils.id_generator import (EXPOSURE_TIER_PRICE, EXPOSURE_TIER_RANGE, LAUNCH_TYPE_LABEL,
                                     TIER_DAILY_BUDGET, TIER_ITEM_RANGE,
-                                    gen_launch_items, load_items)
+                                    gen_launch_items, load_item_batches)
 
 router = APIRouter()
 
@@ -24,12 +24,16 @@ router = APIRouter()
 def list_api(keyword_name: Optional[str] = None, keyword_douyin: Optional[str] = None,
              keyword_phone: Optional[str] = None, launch_type: Optional[str] = None,
              date_from: Optional[date] = None, date_to: Optional[date] = None,
+             launch_from: Optional[date] = None, launch_to: Optional[date] = None,
              page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=200),
              db: Session = Depends(get_db), _a=Depends(get_current_admin)):
     df = datetime.combine(date_from, time.min) if date_from else None
     dt = datetime.combine(date_to, time.max) if date_to else None
+    lf = datetime.combine(launch_from, time.min) if launch_from else None
+    lt = datetime.combine(launch_to, time.max) if launch_to else None
     items, total = list_customers(db, keyword_name, keyword_douyin, df, dt, page, page_size,
-                                  launch_type=launch_type, phone=keyword_phone)
+                                  launch_type=launch_type, phone=keyword_phone,
+                                  launch_from=lf, launch_to=lt)
     return ok({"total": total, "page": page, "page_size": page_size,
                "items": [to_customer_item(c) for c in items]})
 
@@ -77,6 +81,7 @@ def delete_dy_api(aid: int, db: Session = Depends(get_db), _a=Depends(get_curren
 def export_api(keyword_name: Optional[str] = None, keyword_douyin: Optional[str] = None,
                keyword_phone: Optional[str] = None, launch_type: Optional[str] = None,
                date_from: Optional[date] = None, date_to: Optional[date] = None,
+               launch_from: Optional[date] = None, launch_to: Optional[date] = None,
                db: Session = Depends(get_db), _a=Depends(get_current_admin)):
     # 需求 3.2：导出必须选类型
     if not launch_type:
@@ -84,12 +89,15 @@ def export_api(keyword_name: Optional[str] = None, keyword_douyin: Optional[str]
     if launch_type not in ("FIRST_CHARGE", "EXPOSURE"):
         return fail("类型参数非法", code=40004)
     if not keyword_name and not keyword_douyin and not keyword_phone \
-            and not date_from and not date_to:
+            and not date_from and not date_to and not launch_from and not launch_to:
         return fail("必须先输入查询条件进行导出", code=40003)
     df = datetime.combine(date_from, time.min) if date_from else None
     dt = datetime.combine(date_to, time.max) if date_to else None
+    lf = datetime.combine(launch_from, time.min) if launch_from else None
+    lt = datetime.combine(launch_to, time.max) if launch_to else None
     items, _ = list_customers(db, keyword_name, keyword_douyin, df, dt, 1, 10000,
-                              launch_type=launch_type, phone=keyword_phone)
+                              launch_type=launch_type, phone=keyword_phone,
+                              launch_from=lf, launch_to=lt)
     pname = {p.code: p.name for p in db.query(Platform).all()}
     is_exposure = launch_type == "EXPOSURE"
     # 需求 3.3：日预算→总充值金额、授权开始→投放日期、业务码→ID
@@ -116,17 +124,19 @@ def export_api(keyword_name: Optional[str] = None, keyword_douyin: Optional[str]
             if not (a.tier and a.launch_at):
                 rows.append(base + ["-", "-", "-", "-", "", ""])
                 continue
-            # 关键：优先使用投放时落库的 generated_items，历史数据回退实时生成（不落库）
-            stored = load_items(a.generated_items)
-            if not stored:
+            # 关键：按投放批次展开（多次投放累加不覆盖），历史数据回退实时生成（不落库）
+            batches = load_item_batches(a.generated_items)
+            if not batches:
                 price = (EXPOSURE_TIER_PRICE if is_exposure else TIER_DAILY_BUDGET)[a.tier]
                 rng = EXPOSURE_TIER_RANGE[a.tier] if is_exposure else TIER_ITEM_RANGE[a.tier]
                 budget = float(a.daily_budget or 0)
                 cnt = max(1, int(budget // price)) if budget else 1
-                stored = gen_launch_items(cnt, rng)
-            for it in stored:
-                rows.append(base + [a.tier, it.get("biz_code", ""), it.get("nickname", ""),
-                                    it.get("value", ""), type_label, launch_date])
+                batches = [{"launch_at": None, "items": gen_launch_items(cnt, rng)}]
+            for b in batches:
+                ld = (b.get("launch_at") or "")[:10] or launch_date
+                for it in b["items"]:
+                    rows.append(base + [a.tier, it.get("biz_code", ""), it.get("nickname", ""),
+                                        it.get("value", ""), type_label, ld])
         if len(rows) - 1 >= group_start:
             merge_groups.append((group_start, len(rows) - 1))
     content = export_rows_to_xlsx_merged(headers, rows, merge_groups, (0, 1, 2, 3))

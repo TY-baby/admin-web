@@ -10,7 +10,7 @@ from app.models.platform import Platform
 from app.schemas.customer import CustomerCreateReq, CustomerUpdateReq, DouyinUpdateReq
 from app.utils.id_generator import (EXPOSURE_TIER_PRICE, EXPOSURE_TIER_RANGE, LAUNCH_TYPE_LABEL,
                                     TIER_DAILY_BUDGET, TIER_ITEM_RANGE,
-                                    dump_items, gen_auto_code, gen_customer_uid,
+                                    append_launch_batch, gen_auto_code, gen_customer_uid,
                                     gen_launch_items, gen_nickname, load_items)
 
 AUTH_DAYS = {"D3": 3, "D7": 7, "D30": 30}
@@ -60,7 +60,8 @@ def _generated_count(a: DouyinAccount) -> int:
 def list_customers(db: Session, name=None, dyid=None, dfrom=None, dto=None,
                    page: int = 1, size: int = 20, only_ids=None,
                    launch_type: Optional[str] = None,
-                   phone: Optional[str] = None) -> Tuple[List[Customer], int]:
+                   phone: Optional[str] = None,
+                   launch_from=None, launch_to=None) -> Tuple[List[Customer], int]:
     q = db.query(Customer)
     if only_ids is not None:
         q = q.filter(Customer.id.in_(only_ids))
@@ -80,6 +81,13 @@ def list_customers(db: Session, name=None, dyid=None, dfrom=None, dto=None,
         sub = db.query(DouyinAccount.customer_id).filter(
             DouyinAccount.launch_type == launch_type).subquery()
         q = q.filter(Customer.id.in_(sub))
+    if launch_from or launch_to:
+        sub_q = db.query(DouyinAccount.customer_id).filter(DouyinAccount.launch_at.isnot(None))
+        if launch_from:
+            sub_q = sub_q.filter(DouyinAccount.launch_at >= launch_from)
+        if launch_to:
+            sub_q = sub_q.filter(DouyinAccount.launch_at <= launch_to)
+        q = q.filter(Customer.id.in_(sub_q.subquery()))
     total = q.count()
     items = q.order_by(Customer.created_at.desc()).offset((page - 1) * size).limit(size).all()
     ids = [c.id for c in items]
@@ -88,6 +96,10 @@ def list_customers(db: Session, name=None, dyid=None, dfrom=None, dto=None,
         acc_q = db.query(DouyinAccount).filter(DouyinAccount.customer_id.in_(ids))
         if launch_type:
             acc_q = acc_q.filter(DouyinAccount.launch_type == launch_type)
+        if launch_from:
+            acc_q = acc_q.filter(DouyinAccount.launch_at >= launch_from)
+        if launch_to:
+            acc_q = acc_q.filter(DouyinAccount.launch_at <= launch_to)
         accs = acc_q.order_by(DouyinAccount.created_at.asc()).all()
         for a in accs:
             m.setdefault(a.customer_id, []).append(a)
@@ -200,19 +212,20 @@ def launch_delivery(db: Session, cid: int, platform_code: str, douyin_id: str,
     generated = int(daily_budget // price)
     consumed = round(generated * price, 2)
     remaining = round(balance - consumed, 2)
-    # 关键：一次性生成随机明细并落库（保证多次导出结果一致）
+    # 关键：一次性生成随机明细并按批次追加落库（多次投放累加，不覆盖）
+    now = datetime.utcnow()
     items = gen_launch_items(generated, TIER_ITEM_RANGE[tier])
     a.tier = tier
     a.tier_daily_budget = price
     a.launch_type = "FIRST_CHARGE"
     a.daily_budget = daily_budget
     a.launch_consumed = consumed
-    a.generated_items = dump_items(items)
-    a.launch_at = datetime.utcnow()
+    a.generated_items = append_launch_batch(a.generated_items, items, now)
+    a.launch_at = now
     a.balance = remaining
     db.add(FinanceLog(customer_id=a.customer_id, douyin_account_id=a.id,
                       change_type="CONSUME", amount=-consumed,
-                      balance_after=remaining, stat_date=datetime.utcnow(),
+                      balance_after=remaining, stat_date=now,
                       remark=f"首充一键投放结算(生成{generated}条)"))
     db.commit()
     db.refresh(a)

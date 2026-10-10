@@ -7,7 +7,7 @@ from app.models.douyin_account import DouyinAccount
 from app.models.finance_log import FinanceLog
 from app.models.novel_page import NovelPage
 from app.utils.id_generator import (EXPOSURE_TIER_PRICE, EXPOSURE_TIER_RANGE,
-                                    dump_items, gen_launch_items, gen_page_code)
+                                    append_launch_batch, gen_launch_items, gen_page_code)
 
 NOVEL_DIR = os.environ.get("NOVEL_DIR", "/app/novel_book")
 GROW_SECONDS = 3600
@@ -92,7 +92,8 @@ def launch_novel(db: Session, cid: int, platform_code: str, douyin_id: str,
     remaining = round(balance - consumed, 2)
     lo, hi = EXPOSURE_TIER_RANGE[tier]
     exposure = random.randint(lo, hi - 1)
-    # 关键：一次性生成随机明细并落库
+    # 关键：一次性生成随机明细并按批次追加落库（多次投放累加，不覆盖）
+    now = datetime.utcnow()
     items = gen_launch_items(generated, (lo, hi))
     codes = {c for (c,) in db.query(NovelPage.page_code).all()}
     page = NovelPage(customer_id=cid, account_id=a.id, douyin_id=douyin_id,
@@ -100,7 +101,7 @@ def launch_novel(db: Session, cid: int, platform_code: str, douyin_id: str,
                      consumed=consumed,
                      reads_start=lo, reads_cap=hi,
                      seed=random.randint(1, 1000000), refresh_count=0,
-                     created_at=datetime.utcnow())
+                     created_at=now)
     db.add(page)
     a.tier = tier
     a.tier_daily_budget = price
@@ -108,12 +109,12 @@ def launch_novel(db: Session, cid: int, platform_code: str, douyin_id: str,
     a.daily_budget = daily_budget
     a.launch_consumed = consumed
     a.exposure_1h = exposure
-    a.generated_items = dump_items(items)
-    a.launch_at = datetime.utcnow()
+    a.generated_items = append_launch_batch(a.generated_items, items, now)
+    a.launch_at = now
     a.balance = remaining
     db.add(FinanceLog(customer_id=cid, douyin_account_id=a.id, change_type="CONSUME",
                       amount=-consumed, balance_after=remaining,
-                      stat_date=datetime.utcnow(),
+                      stat_date=now,
                       remark=f"直播曝光度一键投放结算(生成{generated}条,1h曝光{exposure})"))
     db.commit()
     db.refresh(page)

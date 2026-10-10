@@ -14,7 +14,7 @@ from app.services.customer_service import get_client_accounts, launch_delivery
 from app.services.douyin_service import get_home_summary, get_trend
 from app.services.novel_service import launch_novel, page_link
 from app.utils.excel_export import export_rows_to_xlsx
-from app.utils.id_generator import LAUNCH_TYPE_LABEL, load_items
+from app.utils.id_generator import LAUNCH_TYPE_LABEL, load_item_batches
 
 router = APIRouter()
 
@@ -110,13 +110,16 @@ def export_api(start: Optional[date] = None, end: Optional[date] = None,
         launch_date = a.launch_at.strftime("%Y-%m-%d") if a.launch_at else ""
         base = [pname.get(a.platform_code, a.platform_code), a.douyin_id, a.douyin_name,
                 a.tier or "-", LAUNCH_TYPE_LABEL.get(a.launch_type, "")]
-        stored = load_items(a.generated_items)
-        if not stored:
+        # 按投放批次展开：多次投放明细累加，各批使用自己的投放日期
+        batches = load_item_batches(a.generated_items)
+        if not batches:
             rows.append(base + ["-", "-", "", launch_date])
             continue
-        for it in stored:
-            rows.append(base + [it.get("biz_code", ""), it.get("nickname", ""),
-                                it.get("value", ""), launch_date])
+        for b in batches:
+            ld = (b.get("launch_at") or "")[:10] or launch_date
+            for it in b["items"]:
+                rows.append(base + [it.get("biz_code", ""), it.get("nickname", ""),
+                                    it.get("value", ""), ld])
     content = export_rows_to_xlsx(headers, rows)
     fname = f"launch_{start.isoformat()}_{end.isoformat()}.xlsx"
     return StreamingResponse(BytesIO(content),

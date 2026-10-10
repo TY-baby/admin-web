@@ -21,6 +21,10 @@
           <el-date-picker v-model="dateRange" type="daterange" value-format="yyyy-MM-dd"
                           start-placeholder="开始" end-placeholder="结束" />
         </el-form-item>
+        <el-form-item label="投放时间">
+          <el-date-picker v-model="launchRange" type="daterange" value-format="yyyy-MM-dd"
+                          start-placeholder="开始" end-placeholder="结束" />
+        </el-form-item>
         <el-form-item>
           <el-button type="primary" icon="el-icon-search" @click="load(1)">查询</el-button>
           <el-button icon="el-icon-refresh-left" @click="reset">重置</el-button>
@@ -121,7 +125,7 @@ export default {
   components: { EditDialog },
   data() {
     return {
-      loading: false, rows: [], total: 0, dateRange: [], platforms: [],
+      loading: false, rows: [], total: 0, dateRange: [], launchRange: [], platforms: [],
       query: { keyword_name: '', keyword_douyin: '', keyword_phone: '', launch_type: '', page: 1, page_size: 20 }
     }
   },
@@ -152,6 +156,10 @@ export default {
         params.date_from = this.dateRange[0]
         params.date_to = this.dateRange[1]
       }
+      if (this.launchRange && this.launchRange.length === 2) {
+        params.launch_from = this.launchRange[0]
+        params.launch_to = this.launchRange[1]
+      }
       this.loading = true
       try {
         const { data } = await listCustomers(params)
@@ -161,6 +169,7 @@ export default {
     reset() {
       this.query = { keyword_name: '', keyword_douyin: '', keyword_phone: '', launch_type: '', page: 1, page_size: 20 }
       this.dateRange = []
+      this.launchRange = []
       this.load(1)
     },
     openEdit(row, acc, appendMode) { this.$refs.edit.open(row, acc, appendMode) },
@@ -181,7 +190,8 @@ export default {
     onExport() {
       if (!this.query.launch_type) { this.$message.warning('导出前必须先选择类型（首充/直播曝光度）'); return }
       const hasCond = this.query.keyword_name || this.query.keyword_douyin || this.query.keyword_phone ||
-                      (this.dateRange && this.dateRange.length === 2)
+                      (this.dateRange && this.dateRange.length === 2) ||
+                      (this.launchRange && this.launchRange.length === 2)
       if (!hasCond) { this.$message.warning('必须先输入查询条件进行导出'); return }
       const q = new URLSearchParams()
       q.append('launch_type', this.query.launch_type)
@@ -191,6 +201,10 @@ export default {
       if (this.dateRange && this.dateRange.length === 2) {
         q.append('date_from', this.dateRange[0])
         q.append('date_to', this.dateRange[1])
+      }
+      if (this.launchRange && this.launchRange.length === 2) {
+        q.append('launch_from', this.launchRange[0])
+        q.append('launch_to', this.launchRange[1])
       }
       const url = exportUrl + '?' + q.toString()
       fetch(url, { headers: { Authorization: 'Bearer ' + getAdminToken() } })

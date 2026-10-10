@@ -9,12 +9,16 @@ export default {
   props: {
     height: { type: String, default: '320px' },
     dates: { type: Array, default: () => [] },
-    series: { type: Array, default: () => [] }
+    series: { type: Array, default: () => [] },
+    yMin: { type: Number, default: null },
+    yMax: { type: Number, default: null }
   },
   data() { return { chart: null } },
   watch: {
     dates() { this.render() },
-    series: { deep: true, handler() { this.render() } }
+    series: { deep: true, handler() { this.render() } },
+    yMin() { this.render() },
+    yMax() { this.render() }
   },
   mounted() {
     this.chart = echarts.init(this.$refs.chart)
@@ -34,7 +38,7 @@ export default {
         legend: { data: this.series.map(s => s.name) },
         grid: { left: 50, right: 20, top: 40, bottom: 40 },
         xAxis: { type: 'category', boundaryGap: false, data: this.dates },
-        yAxis: { type: 'value' },
+        yAxis: { type: 'value', min: this.yMin, max: this.yMax },
         series: this.series.map(s => ({
           name: s.name, type: 'line', smooth: true, data: s.data,
           itemStyle: s.color ? { color: s.color } : {},

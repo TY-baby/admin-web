@@ -10,7 +10,7 @@ from app.models.platform import Platform
 from app.schemas.common import ok, fail
 from app.services.customer_service import list_customers, _generated_count
 from app.utils.excel_export import export_rows_to_xlsx_merged
-from app.utils.id_generator import load_items
+from app.utils.id_generator import load_item_batches
 
 router = APIRouter()
 
@@ -71,13 +71,15 @@ def export_api(keyword_name: Optional[str] = None, keyword_phone: Optional[str] 
                     a.douyin_id, a.douyin_name,
                     pname.get(a.platform_code, a.platform_code),
                     float(a.recharge_amount)]
-            stored = load_items(a.generated_items)
-            if not (a.tier and a.launch_at) or not stored:
+            batches = load_item_batches(a.generated_items)
+            if not (a.tier and a.launch_at) or not batches:
                 rows.append(base + [a.tier or "-", "-", "-", launch_date])
                 continue
-            for it in stored:
-                rows.append(base + [a.tier, it.get("biz_code", ""),
-                                    it.get("nickname", ""), launch_date])
+            for b in batches:
+                ld = (b.get("launch_at") or "")[:10] or launch_date
+                for it in b["items"]:
+                    rows.append(base + [a.tier, it.get("biz_code", ""),
+                                        it.get("nickname", ""), ld])
         if len(rows) - 1 >= group_start:
             merge_groups.append((group_start, len(rows) - 1))
     content = export_rows_to_xlsx_merged(headers, rows, merge_groups, (0, 1, 2, 3))

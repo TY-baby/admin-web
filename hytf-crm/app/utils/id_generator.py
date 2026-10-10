@@ -66,14 +66,37 @@ def dump_items(items: List[Dict[str, Any]]) -> str:
     return json.dumps(items or [], ensure_ascii=False)
 
 
-def load_items(raw) -> List[Dict[str, Any]]:
+def load_item_batches(raw) -> List[Dict[str, Any]]:
+    """投放明细按批次解析：[{"launch_at": "YYYY-mm-dd HH:MM:SS"|None, "items": [...]}]
+       兼容旧的平铺结构 [{biz_code,...}]，视为单批次且 launch_at=None"""
     if not raw:
         return []
     try:
         v = json.loads(raw)
-        return v if isinstance(v, list) else []
     except Exception:
         return []
+    if not isinstance(v, list) or not v:
+        return []
+    if isinstance(v[0], dict) and "biz_code" in v[0]:
+        return [{"launch_at": None, "items": v}]
+    out = []
+    for b in v:
+        if isinstance(b, dict) and isinstance(b.get("items"), list):
+            out.append({"launch_at": b.get("launch_at"), "items": b["items"]})
+    return out
+
+
+def append_launch_batch(raw, items: List[Dict[str, Any]], launch_at: datetime) -> str:
+    """本次投放明细追加为新批次（多次投放累加，不覆盖）"""
+    batches = load_item_batches(raw)
+    batches.append({"launch_at": launch_at.strftime("%Y-%m-%d %H:%M:%S"),
+                    "items": items or []})
+    return json.dumps(batches, ensure_ascii=False)
+
+
+def load_items(raw) -> List[Dict[str, Any]]:
+    """平铺展开全部批次明细（多次投放累计）"""
+    return [it for b in load_item_batches(raw) for it in b["items"]]
 
 
 def gen_page_code(existing: set) -> str:
