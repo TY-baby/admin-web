@@ -214,7 +214,7 @@ def launch_delivery(db: Session, cid: int, platform_code: str, douyin_id: str,
     remaining = round(balance - consumed, 2)
     # 关键：一次性生成随机明细并按批次追加落库（多次投放累加，不覆盖）
     now = datetime.utcnow()
-    items = gen_launch_items(generated, TIER_ITEM_RANGE[tier])
+    items = gen_launch_items(generated, TIER_ITEM_RANGE[tier], platform_code=platform_code)
     a.tier = tier
     a.tier_daily_budget = price
     a.launch_type = "FIRST_CHARGE"

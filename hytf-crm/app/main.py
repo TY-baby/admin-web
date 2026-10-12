@@ -1,4 +1,5 @@
 """hytf-crm FastAPI 应用入口。"""
+import os
 import time
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -25,21 +26,90 @@ from app.middlewares.security_headers import SecurityHeadersMiddleware
 from app.models.admin_user import AdminUser
 from app.models.operation_log import OperationLog
 from app.models.platform import Platform
+from app.models.payee import Payee
 
 DEFAULT_PLATFORMS = [("yingke", "映客", 1), ("qiyin", "栖音", 2),
-                     ("bilibili", "哔哩哔哩", 3), ("liujianfang", "六间房", 4)]
+                     ("bilibili", "哔哩哔哩", 3), ("liujianfang", "六间房", 4),
+                     ("kuaishou", "快手", 5)]
+
+PAY_LIST_FILE = os.environ.get("PAY_LIST_FILE", "/app/pay_list.txt")
 
 
 def _bootstrap_platforms():
     db = SessionLocal()
     try:
         for code, name, sort in DEFAULT_PLATFORMS:
-            if db.query(Platform).filter(Platform.code == code).first() is None:
+            row = db.query(Platform).filter(Platform.code == code).first()
+            if row is None:
                 db.add(Platform(code=code, name=name, sort=sort))
+            elif row.name != name:
+                row.name = name
+                row.sort = sort
         db.commit()
         logger.info("[bootstrap] platforms ready")
     except Exception as e:
         logger.warning(f"[bootstrap] platforms skipped: {e}")
+    finally:
+        db.close()
+
+
+def _parse_pay_list(path: str):
+    entries = []
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+    except Exception:
+        return entries
+    for block in content.split("\n\n"):
+        block = block.strip()
+        if not block:
+            continue
+        card_no = bank_name = holder_name = ""
+        for line in block.split("\n"):
+            line = line.strip()
+            if not line:
+                continue
+            sep = "：" if "：" in line else (":" if ":" in line else "")
+            if not sep:
+                continue
+            key, val = line.split(sep, 1)
+            key, val = key.strip(), val.strip()
+            if key in ("卡号",):
+                card_no = val
+            elif key in ("开户行",):
+                bank_name = val
+            elif key in ("持卡人", "持有者"):
+                holder_name = val
+        if card_no:
+            entries.append((card_no, bank_name, holder_name))
+    return entries
+
+
+def _bootstrap_payees():
+    db = SessionLocal()
+    try:
+        entries = _parse_pay_list(PAY_LIST_FILE)
+        if not entries:
+            logger.info("[bootstrap] pay_list.txt not found or empty, skip payee seed")
+            return
+        from collections import Counter
+        holder_counts = Counter(h for _, _, h in entries)
+        holder_seq: dict = {}
+        existing_cards = {c for (c,) in db.query(Payee.card_no).all()}
+        for idx, (card_no, bank_name, holder_name) in enumerate(entries):
+            if card_no in existing_cards:
+                continue
+            if holder_counts[holder_name] > 1:
+                holder_seq[holder_name] = holder_seq.get(holder_name, 0) + 1
+                display = f"{holder_name}{holder_seq[holder_name]}"
+            else:
+                display = holder_name
+            db.add(Payee(card_no=card_no, bank_name=bank_name,
+                         holder_name=holder_name, display_name=display, sort=idx))
+        db.commit()
+        logger.info(f"[bootstrap] payees ready: {len(entries)} entries")
+    except Exception as e:
+        logger.warning(f"[bootstrap] payees skipped: {e}")
     finally:
         db.close()
 
@@ -51,7 +121,6 @@ def _bootstrap_admin():
             db.add(AdminUser(username="admin",
                              password_hash=hash_password("admin123"),
                              real_name="超级管理员", role="admin"))
-        # 5.1：yy 账号，密码 123456，唯一拥有全部权限（super）
         if db.query(AdminUser).filter(AdminUser.username == "yy").first() is None:
             db.add(AdminUser(username="yy",
                              password_hash=hash_password("123456"),
@@ -85,9 +154,9 @@ async def lifespan(app: FastAPI):
             logger.info("[bootstrap] schema synced")
         except Exception as e:
             logger.error(f"[bootstrap] schema sync failed: {e}")
-    # 默认管理员在 dev/prod 均需初始化（幂等：已存在则跳过）
     _bootstrap_admin()
     _bootstrap_platforms()
+    _bootstrap_payees()
     try:
         redis_client.ping()
         logger.info("[bootstrap] redis ok")
@@ -144,7 +213,6 @@ _ACTION_MAP = {"GET": "浏览", "POST": "操作", "PUT": "修改", "DELETE": "�
 
 
 def _record_operation_log(request: Request):
-    """5.2：记录除 yy 之外其他 B 端账号的登录/浏览/操作行为"""
     try:
         path = request.url.path
         if not path.startswith("/api/v1/admin"):

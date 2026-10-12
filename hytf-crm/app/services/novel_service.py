@@ -94,7 +94,7 @@ def launch_novel(db: Session, cid: int, platform_code: str, douyin_id: str,
     exposure = random.randint(lo, hi - 1)
     # 关键：一次性生成随机明细并按批次追加落库（多次投放累加，不覆盖）
     now = datetime.utcnow()
-    items = gen_launch_items(generated, (lo, hi))
+    items = gen_launch_items(generated, (lo, hi), platform_code=platform_code)
     codes = {c for (c,) in db.query(NovelPage.page_code).all()}
     page = NovelPage(customer_id=cid, account_id=a.id, douyin_id=douyin_id,
                      page_code=gen_page_code(codes), tier=tier, unit_price=price,

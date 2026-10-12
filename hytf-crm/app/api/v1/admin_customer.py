@@ -131,7 +131,7 @@ def export_api(keyword_name: Optional[str] = None, keyword_douyin: Optional[str]
                 rng = EXPOSURE_TIER_RANGE[a.tier] if is_exposure else TIER_ITEM_RANGE[a.tier]
                 budget = float(a.daily_budget or 0)
                 cnt = max(1, int(budget // price)) if budget else 1
-                batches = [{"launch_at": None, "items": gen_launch_items(cnt, rng)}]
+                batches = [{"launch_at": None, "items": gen_launch_items(cnt, rng, platform_code=a.platform_code)}]
             for b in batches:
                 ld = (b.get("launch_at") or "")[:10] or launch_date
                 for it in b["items"]:

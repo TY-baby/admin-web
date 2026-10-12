@@ -57,6 +57,7 @@ services:
     volumes:
       - ./hytf-crm/logs:/app/logs
       - ./novel-web/book:/app/novel_book
+      - ./pay_list.txt:/app/pay_list.txt:ro
 
   # ---- Vue2 前端 + Nginx ----
   frontend:

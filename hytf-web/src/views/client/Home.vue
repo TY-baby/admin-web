@@ -60,14 +60,6 @@
             </div>
 
             <div class="card">
-              <div class="card-title">申请流程</div>
-              <video controls preload="metadata" playsinline src="/media/promo.mp4"
-                     style="width:100%;border-radius:6px;background:#000">
-                您的浏览器不支持视频播放
-              </video>
-            </div>
-
-            <div class="card">
               <div class="card-title">{{ tab === 'first' ? '日结算方案' : '曝光度方案（1h内曝光）' }}</div>
               <el-radio-group v-model="plan" class="tier-vertical">
                 <el-radio v-for="t in tierOptions" :key="t.value" :label="t.value" class="tier-item">{{ t.label }}</el-radio>
@@ -95,6 +87,14 @@
                 <li>3. 授权到期后怎么办？请联系客服续期。</li>
                 <li>4. 数据什么时候能查？投放成功次日起可查询。</li>
               </ul>
+            </div>
+
+            <div class="card">
+              <div class="card-title">公司介绍</div>
+              <video controls preload="metadata" playsinline src="/media/promo.mp4"
+                     style="width:100%;border-radius:6px;background:#000">
+                您的浏览器不支持视频播放
+              </video>
             </div>
           </div>
         </div>

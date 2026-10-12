@@ -18,8 +18,8 @@
       <el-col :span="8">
         <el-card shadow="never">
           <div slot="header">运营预警</div>
-          <div class="alert-item"><span>即将到期抖音号</span><b style="color:#E6A23C">{{ data.expiring_count || 0 }}</b></div>
-          <div class="alert-item"><span>已到期抖音号</span><b style="color:#F56C6C">{{ data.expired_count || 0 }}</b></div>
+          <div class="alert-item"><span>即将到期ID</span><b style="color:#E6A23C">{{ data.expiring_count || 0 }}</b></div>
+          <div class="alert-item"><span>已到期ID</span><b style="color:#F56C6C">{{ data.expired_count || 0 }}</b></div>
           <div class="alert-item"><span>待开票记录</span><b style="color:#409EFF">{{ data.invoice_pending || 0 }}</b></div>
           <el-divider />
           <div class="text-muted" style="font-size:12px;line-height:1.7">
@@ -45,7 +45,7 @@ export default {
       const d = this.data || {}
       return [
         { key: 'c', title: '客户总数', value: d.total_customer || 0 },
-        { key: 'd', title: '抖音号总数', value: d.total_douyin || 0 },
+        { key: 'd', title: 'ID总数', value: d.total_douyin || 0 },
         { key: 'r', title: '累计充值(元)', value: Number(d.total_recharge || 0).toFixed(2) },
         { key: 'x', title: '累计消费(元)', value: Number(d.total_consume || 0).toFixed(2) }
       ]
