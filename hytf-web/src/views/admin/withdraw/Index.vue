@@ -132,18 +132,25 @@ export default {
       this.dateRange = []
       this.load(1)
     },
+    openDialog() {
+      this.dialogVisible = true
+    },
     async onDialogOpen() {
       this.form = { payee_id: null, cascade: [], remark: '' }
       this.preview = null
-      const [pRes, cRes] = await Promise.all([listPayees(), listWithdrawCustomers()])
-      if (pRes.data.code === 0) this.payees = pRes.data.data || []
-      if (cRes.data.code === 0) {
-        this.customerOptions = (cRes.data.data || []).map(c => ({
-          id: 'c_' + c.id, label: c.customer_name,
-          children: (c.accounts || []).map(a => ({
-            id: a.id, label: a.douyin_id + (a.douyin_name ? '（' + a.douyin_name + '）' : '')
+      try {
+        const [pRes, cRes] = await Promise.all([listPayees(), listWithdrawCustomers()])
+        if (pRes.data.code === 0) this.payees = pRes.data.data || []
+        if (cRes.data.code === 0) {
+          this.customerOptions = (cRes.data.data || []).map(c => ({
+            id: 'c_' + c.id, label: c.customer_name,
+            children: (c.accounts || []).map(a => ({
+              id: a.id, label: a.douyin_id + (a.douyin_name ? '（' + a.douyin_name + '）' : '')
+            }))
           }))
-        }))
+        }
+      } catch (e) {
+        this.$message.error('加载打款对象/客户数据失败，请检查后端服务')
       }
     },
     onPayeeChange() {},
