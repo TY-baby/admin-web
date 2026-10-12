@@ -233,6 +233,9 @@ export default {
     async doLaunch(tier, typeLabel, generated) {
       if (this.launching) return
       this.launching = true
+      sessionStorage.setItem('lastLaunch', JSON.stringify({
+        type: this.tab === 'first' ? 'FIRST_CHARGE' : 'EXPOSURE', tier: this.plan
+      }))
       this.progressVisible = true
       this.progress = 0
       const payload = {

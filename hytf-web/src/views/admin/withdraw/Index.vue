@@ -65,9 +65,6 @@
                        style="width:100%" filterable clearable
                        @change="onCascadeChange" />
         </el-form-item>
-        <el-form-item v-if="preview" label="ID昵称">
-          <span>{{ preview.nickname || preview.douyin_name || '-' }}</span>
-        </el-form-item>
         <el-form-item v-if="preview" label="生成条数">
           <span>{{ preview.generated_count }} 条</span>
         </el-form-item>

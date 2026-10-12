@@ -35,7 +35,9 @@
             </div>
           </div>
           <div class="card">
-            <line-chart :dates="dates" :series="series" :y-min="yBounds.min" :y-max="yBounds.max" height="360px" />
+            <div v-if="tierLabel" class="tier-tip">当前档位：{{ tierLabel }}（y 轴按档位区间自适应）</div>
+            <line-chart :dates="dates" :series="series" :y-min="yBounds.min" :y-max="yBounds.max"
+                        :smooth="false" :area="false" point-label height="360px" />
           </div>
         </div>
         <div class="right card">
@@ -57,6 +59,9 @@ import { getSummary, getTrend, clientExportUrl } from '@/api/clientHome'
 import { getClientToken } from '@/utils/auth'
 import LineChart from '@/components/LineChart.vue'
 
+const FIRST_UPPER = { A: 300, B: 600, C: 1000 }
+const EXPOSURE_UPPER = { A: 3000, B: 5000, C: 10000 }
+
 export default {
   name: 'ClientLaunch',
   components: { LineChart },
@@ -72,12 +77,35 @@ export default {
   },
   computed: {
     ...mapState('clientUser', ['accounts']),
+    tierContext() {
+      if (this.accountId) {
+        const a = (this.accounts || []).find(x => x.id === this.accountId)
+        if (a && a.launch_type && a.tier) return { type: a.launch_type, tier: a.tier }
+      }
+      try {
+        const v = JSON.parse(sessionStorage.getItem('lastLaunch') || 'null')
+        if (v && v.type && v.tier) return v
+      } catch (e) { /* ignore */ }
+      const launched = (this.accounts || []).filter(a => a.launch_type && a.tier)
+      if (launched.length) {
+        const a = launched[launched.length - 1]
+        return { type: a.launch_type, tier: a.tier }
+      }
+      return null
+    },
+    tierLabel() {
+      const c = this.tierContext
+      if (!c) return ''
+      return (c.type === 'EXPOSURE' ? '直播曝光度 ' : '首充 ') + c.tier + ' 档'
+    },
     yBounds() {
-      // y轴覆盖 300~1000 档位展示区间（含随机带 280~990）；数据超出时自动扩展
       if (this.activeMod !== 'consume' && this.activeMod !== 'avg') return { min: null, max: null }
       const data = ((this.series[0] && this.series[0].data) || []).map(Number)
-      if (!data.length) return { min: null, max: null }
-      return { min: Math.min(280, Math.min(...data)), max: Math.max(1000, Math.max(...data)) }
+      const dataMax = data.length ? Math.max(...data) : 0
+      const c = this.tierContext
+      const upper = c ? ((c.type === 'EXPOSURE' ? EXPOSURE_UPPER : FIRST_UPPER)[c.tier] || 0) : 0
+      if (!upper && !dataMax) return { min: null, max: null }
+      return { min: 0, max: Math.max(upper, dataMax) }
     },
     modules() {
       const sum = k => (this.raw || []).reduce((s, x) => s + Number(x[k] || 0), 0).toFixed(2)
@@ -179,4 +207,5 @@ export default {
     .mod-val { font-size: 20px; font-weight: bold; color: #303133; margin-top: 6px; }
   }
 }
+.tier-tip { color: #909399; font-size: 12px; margin-bottom: 8px; }
 </style>

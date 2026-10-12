@@ -11,14 +11,20 @@ export default {
     dates: { type: Array, default: () => [] },
     series: { type: Array, default: () => [] },
     yMin: { type: Number, default: null },
-    yMax: { type: Number, default: null }
+    yMax: { type: Number, default: null },
+    smooth: { type: Boolean, default: true },
+    area: { type: Boolean, default: true },
+    pointLabel: { type: Boolean, default: false }
   },
   data() { return { chart: null } },
   watch: {
     dates() { this.render() },
     series: { deep: true, handler() { this.render() } },
     yMin() { this.render() },
-    yMax() { this.render() }
+    yMax() { this.render() },
+    smooth() { this.render() },
+    area() { this.render() },
+    pointLabel() { this.render() }
   },
   mounted() {
     this.chart = echarts.init(this.$refs.chart)
@@ -39,11 +45,16 @@ export default {
         grid: { left: 50, right: 20, top: 40, bottom: 40 },
         xAxis: { type: 'category', boundaryGap: false, data: this.dates },
         yAxis: { type: 'value', min: this.yMin, max: this.yMax },
-        series: this.series.map(s => ({
-          name: s.name, type: 'line', smooth: true, data: s.data,
-          itemStyle: s.color ? { color: s.color } : {},
-          areaStyle: { opacity: 0.15 }
-        }))
+        series: this.series.map(s => {
+          const cfg = {
+            name: s.name, type: 'line', smooth: this.smooth, data: s.data,
+            symbol: 'circle', symbolSize: 6, showSymbol: true,
+            label: { show: this.pointLabel, position: 'top', fontSize: 11, color: '#606266' },
+            itemStyle: s.color ? { color: s.color } : {}
+          }
+          if (this.area) cfg.areaStyle = { opacity: 0.15 }
+          return cfg
+        })
       }, true)
     }
   }
