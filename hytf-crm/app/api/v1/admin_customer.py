@@ -138,13 +138,12 @@ def export_api(keyword_name: Optional[str] = None, keyword_douyin: Optional[str]
                 b_tier = b.get("tier") or a.tier
                 b_type = b.get("launch_type") or a.launch_type
                 b_type_label = LAUNCH_TYPE_LABEL.get(b_type, "")
-                b_consumed = b.get("consumed")
-                if b_consumed is None:
-                    price_map = EXPOSURE_TIER_PRICE if b_type == "EXPOSURE" else TIER_DAILY_BUDGET
-                    b_consumed = round(len(b["items"]) * price_map.get(b_tier, 0), 2)
+                # 消耗金额 = 档位单价（首充300/600/1000，曝光度1998/2998/5998），不按条数累加
+                price_map = EXPOSURE_TIER_PRICE if b_type == "EXPOSURE" else TIER_DAILY_BUDGET
+                b_consumed = float(price_map.get(b_tier, 0) or 0)
                 ld = (b.get("launch_at") or "")[:10] or launch_date
                 for it in b["items"]:
-                    rows.append(base + [float(b_consumed), b_tier,
+                    rows.append(base + [b_consumed, b_tier,
                                         it.get("biz_code", ""), it.get("nickname", ""),
                                         it.get("value", ""), b_type_label, ld])
         if len(rows) - 1 >= group_start:

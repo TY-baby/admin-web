@@ -27,7 +27,6 @@
     <el-card shadow="never">
       <el-table :data="rows" border stripe v-loading="loading">
         <el-table-column prop="payee_holder_name" label="打款对象" width="110" />
-        <el-table-column prop="payee_bank_name" label="开户行" min-width="180" show-overflow-tooltip />
         <el-table-column prop="payee_card_no" label="卡号" width="200" />
         <el-table-column prop="customer_name" label="客户名称" width="120" />
         <el-table-column prop="douyin_id" label="投放ID" width="130" />

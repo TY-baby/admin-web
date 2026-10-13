@@ -186,20 +186,19 @@ def export_withdraw(keyword: Optional[str] = None,
                 a.douyin_id, a.douyin_name, pname.get(a.platform_code, a.platform_code)]
         batches = load_item_batches(a.generated_items)
         if not batches:
-            rows.append(base + ["", "-", "-", "-", "", ""])
+            rows.append(base + ["", "-", "-", "-", "-", "", ""])
             continue
         for b in batches:
             b_tier = b.get("tier") or a.tier
             b_type = b.get("launch_type") or a.launch_type
             if b_type != launch_type:
                 continue
-            b_consumed = b.get("consumed")
-            if b_consumed is None:
-                price_map = EXPOSURE_TIER_PRICE if b_type == "EXPOSURE" else TIER_DAILY_BUDGET
-                b_consumed = round(len(b["items"]) * price_map.get(b_tier, 0), 2)
+            # 消耗金额 = 档位单价（首充300/600/1000，曝光度1998/2998/5998），不按条数累加
+            price_map = EXPOSURE_TIER_PRICE if b_type == "EXPOSURE" else TIER_DAILY_BUDGET
+            b_consumed = float(price_map.get(b_tier, 0) or 0)
             ld = (b.get("launch_at") or "")[:10]
             for it in b["items"]:
-                rows.append(base + [float(b_consumed), b_tier,
+                rows.append(base + [b_consumed, b_tier,
                                     it.get("biz_code", ""), it.get("nickname", ""),
                                     it.get("value", ""), type_label, ld])
         if len(rows) - 1 >= group_start:
