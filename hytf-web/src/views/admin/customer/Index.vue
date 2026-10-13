@@ -208,7 +208,16 @@ export default {
       }
       const url = exportUrl + '?' + q.toString()
       fetch(url, { headers: { Authorization: 'Bearer ' + getAdminToken() } })
-        .then(r => r.blob()).then(b => {
+        .then(async r => {
+          const ct = r.headers.get('content-type') || ''
+          if (ct.indexOf('json') !== -1) {
+            const j = await r.json()
+            this.$message.error(j.msg || '导出失败')
+            return null
+          }
+          return r.blob()
+        }).then(b => {
+          if (!b) return
           const a = document.createElement('a')
           a.href = URL.createObjectURL(b)
           a.download = this.exportFileName()

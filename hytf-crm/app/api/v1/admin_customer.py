@@ -100,6 +100,7 @@ def export_api(keyword_name: Optional[str] = None, keyword_douyin: Optional[str]
                               launch_from=lf, launch_to=lt)
     pname = {p.code: p.name for p in db.query(Platform).all()}
     is_exposure = launch_type == "EXPOSURE"
+    type_label = LAUNCH_TYPE_LABEL.get(launch_type, "")
     # 需求 1.1：充值金额 → 消耗金额（按批次档位计算）
     # 需求 1.2：档位/类型按批次读取，修复最新投放覆盖历史批次档位的问题
     value_col = "1h曝光度" if is_exposure else "总充值金额"
@@ -120,7 +121,7 @@ def export_api(keyword_name: Optional[str] = None, keyword_douyin: Optional[str]
                     a.douyin_id, a.douyin_name,
                     pname.get(a.platform_code, a.platform_code)]
             if not (a.tier and a.launch_at):
-                rows.append(base + ["", "-", "-", "-", "", ""])
+                rows.append(base + ["", "-", "-", "-", "-", "", ""])
                 continue
             batches = load_item_batches(a.generated_items)
             if not batches:

@@ -29,7 +29,6 @@
         </el-form-item>
         <el-button type="primary" style="width:100%" :loading="loading" @click="onSubmit">登 录</el-button>
       </el-form>
-      <div class="tips text-muted">默认密码规则：手机号 + 123</div>
     </div>
   </div>
 </template>
@@ -117,7 +116,6 @@ export default {
   box-shadow: 0 18px 50px rgba(31, 107, 255, .18);
 }
 .brand { text-align: center; font-size: 20px; font-weight: bold; color: #123c8c; margin-bottom: 24px; }
-.tips { text-align: center; margin-top: 12px; font-size: 12px; }
 ::v-deep .el-button--primary {
   background: linear-gradient(90deg, #1f6bff, #00c2ff); border: none; font-weight: bold;
   box-shadow: 0 6px 16px rgba(31,107,255,.3);
