@@ -5,6 +5,12 @@
         <el-form-item label="关键词">
           <el-input v-model="query.keyword" placeholder="打款对象/客户/投放ID" clearable />
         </el-form-item>
+        <el-form-item label="类型">
+          <el-select v-model="query.launch_type" placeholder="全部" clearable style="width:140px">
+            <el-option label="首充" value="FIRST_CHARGE" />
+            <el-option label="直播曝光度" value="EXPOSURE" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="创建时间">
           <el-date-picker v-model="dateRange" type="daterange" value-format="yyyy-MM-dd"
                           start-placeholder="开始" end-placeholder="结束" />
@@ -13,6 +19,7 @@
           <el-button type="primary" icon="el-icon-search" @click="load(1)">查询</el-button>
           <el-button icon="el-icon-refresh-left" @click="reset">重置</el-button>
           <el-button type="success" icon="el-icon-plus" @click="openDialog">新增出款</el-button>
+          <el-button type="warning" icon="el-icon-download" @click="onExport">导出Excel</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -24,7 +31,13 @@
         <el-table-column prop="payee_card_no" label="卡号" width="200" />
         <el-table-column prop="customer_name" label="客户名称" width="120" />
         <el-table-column prop="douyin_id" label="投放ID" width="130" />
-        <el-table-column prop="douyin_name" label="ID昵称" width="120" />
+        <el-table-column label="类型" width="110">
+          <template slot-scope="{ row }">
+            <el-tag size="mini" :type="row.launch_type === 'EXPOSURE' ? 'warning' : 'success'">
+              {{ row.launch_type_label || '-' }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column prop="generated_count" label="生成条数" width="90" align="center" />
         <el-table-column label="打款金额(元)" width="120" align="right">
           <template slot-scope="{ row }">{{ Number(row.payable_amount || 0).toFixed(2) }}</template>
@@ -86,14 +99,15 @@
 </template>
 
 <script>
-import { listWithdraws, listPayees, listWithdrawCustomers, previewWithdraw, createWithdraw, deleteWithdraw } from '@/api/adminWithdraw'
+import { listWithdraws, listPayees, listWithdrawCustomers, previewWithdraw, createWithdraw, deleteWithdraw, withdrawExportUrl } from '@/api/adminWithdraw'
+import { getAdminToken } from '@/utils/auth'
 
 export default {
   name: 'AdminWithdraw',
   data() {
     return {
       loading: false, rows: [], total: 0, dateRange: [],
-      query: { keyword: '', page: 1, page_size: 20 },
+      query: { keyword: '', launch_type: '', page: 1, page_size: 20 },
       dialogVisible: false, submitting: false,
       payees: [], customerOptions: [],
       form: { payee_id: null, cascade: [], remark: '' },
@@ -125,7 +139,7 @@ export default {
       } finally { this.loading = false }
     },
     reset() {
-      this.query = { keyword: '', page: 1, page_size: 20 }
+      this.query = { keyword: '', launch_type: '', page: 1, page_size: 20 }
       this.dateRange = []
       this.load(1)
     },
@@ -187,6 +201,37 @@ export default {
           if (data.code === 0) { this.$message.success('删除成功'); this.load(1) }
           else this.$message.error(data.msg || '删除失败')
         }).catch(() => {})
+    },
+    onExport() {
+      if (!this.query.launch_type) {
+        this.$message.warning('导出前必须先选择类型（首充/曝光度）'); return
+      }
+      if (!this.query.keyword) {
+        this.$message.warning('导出前必须输入关键词，且只能导出一个客户的数据'); return
+      }
+      const q = new URLSearchParams()
+      q.append('launch_type', this.query.launch_type)
+      q.append('keyword', this.query.keyword)
+      fetch(withdrawExportUrl + '?' + q.toString(),
+            { headers: { Authorization: 'Bearer ' + getAdminToken() } })
+        .then(async r => {
+          const ct = r.headers.get('content-type') || ''
+          if (ct.indexOf('json') !== -1) {
+            const j = await r.json()
+            this.$message.error(j.msg || '导出失败'); return
+          }
+          return r.blob()
+        })
+        .then(b => {
+          if (!b) return
+          const a = document.createElement('a')
+          a.href = URL.createObjectURL(b)
+          const typeLabel = this.query.launch_type === 'EXPOSURE' ? '直播曝光度' : '首充'
+          a.download = `出款_${typeLabel}_${this.query.keyword}.xlsx`
+          a.click()
+          URL.revokeObjectURL(a.href)
+          this.$message.success('导出成功')
+        }).catch(() => this.$message.error('导出失败'))
     }
   }
 }

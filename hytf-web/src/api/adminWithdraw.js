@@ -5,3 +5,4 @@ export const listWithdrawCustomers = params => request({ url: '/admin/withdraw/c
 export const previewWithdraw = accountId => request({ url: '/admin/withdraw/preview/' + accountId, method: 'get' })
 export const createWithdraw = data => request({ url: '/admin/withdraw/create', method: 'post', data })
 export const deleteWithdraw = id => request({ url: '/admin/withdraw/' + id, method: 'delete' })
+export const withdrawExportUrl = '/api/v1/admin/withdraw/export'

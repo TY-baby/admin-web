@@ -89,36 +89,63 @@ def trend(start: Optional[date] = None, end: Optional[date] = None,
 
 @router.get("/export")
 def export_api(start: Optional[date] = None, end: Optional[date] = None,
+               account_id: Optional[int] = None,
                db: Session = Depends(get_db), user=Depends(get_current_client)):
-    """A端投放数据导出：数据源与B端用户管理导出一致，仅导出昨天及以前的投放数据"""
+    """A端投放数据导出：数据源与B端用户管理导出一致，仅导出昨天及以前的投放数据
+       需求 2.1：支持按筛选的 account_id 过滤，与折线图保持一致
+       需求 2.2：按批次读取 tier / launch_type，与B端逻辑一致"""
     cid = int(user["sub"])
     yesterday = date.today() - timedelta(days=1)
     end = min(end or yesterday, yesterday)
     start = min(start or end, end)
     s_dt = datetime.combine(start, datetime.min.time())
     e_dt = datetime.combine(end, datetime.max.time())
-    accs = (db.query(DouyinAccount)
-            .filter(DouyinAccount.customer_id == cid,
-                    DouyinAccount.launch_at.isnot(None),
-                    DouyinAccount.launch_at >= s_dt,
-                    DouyinAccount.launch_at <= e_dt)
-            .order_by(DouyinAccount.launch_at.asc()).all())
+    q = (db.query(DouyinAccount)
+         .filter(DouyinAccount.customer_id == cid,
+                 DouyinAccount.launch_at.isnot(None),
+                 DouyinAccount.launch_at >= s_dt,
+                 DouyinAccount.launch_at <= e_dt))
+    if account_id:
+        q = q.filter(DouyinAccount.id == account_id)
+    accs = q.order_by(DouyinAccount.launch_at.asc()).all()
+
+    # 兼容批次投放日期在筛选区间内的情况：即使 launch_at 是最新一次，也要展开该账号所有批次
+    all_accs = (db.query(DouyinAccount)
+                .filter(DouyinAccount.customer_id == cid,
+                        DouyinAccount.launch_at.isnot(None)))
+    if account_id:
+        all_accs = all_accs.filter(DouyinAccount.id == account_id)
+    all_accs = all_accs.all()
+
     pname = {p.code: p.name for p in db.query(Platform).all()}
     headers = ["投放平台名称", "投放ID", "名称", "档位", "类型", "ID", "昵称", "数值", "投放日期"]
     rows = []
-    for a in accs:
+    seen_ids = set()
+    for a in list(accs) + list(all_accs):
+        if a.id in seen_ids:
+            continue
+        seen_ids.add(a.id)
         launch_date = a.launch_at.strftime("%Y-%m-%d") if a.launch_at else ""
-        base = [pname.get(a.platform_code, a.platform_code), a.douyin_id, a.douyin_name,
-                a.tier or "-", LAUNCH_TYPE_LABEL.get(a.launch_type, "")]
-        # 按投放批次展开：多次投放明细累加，各批使用自己的投放日期
+        base = [pname.get(a.platform_code, a.platform_code), a.douyin_id, a.douyin_name]
         batches = load_item_batches(a.generated_items)
         if not batches:
-            rows.append(base + ["-", "-", "", launch_date])
+            rows.append(base + [a.tier or "-", LAUNCH_TYPE_LABEL.get(a.launch_type, ""),
+                                "-", "-", "", launch_date])
             continue
         for b in batches:
             ld = (b.get("launch_at") or "")[:10] or launch_date
+            # 需求 2.1：仅导出落在筛选日期区间内的批次
+            try:
+                ld_date = datetime.strptime(ld, "%Y-%m-%d").date() if ld else None
+            except Exception:
+                ld_date = None
+            if ld_date and not (start <= ld_date <= end):
+                continue
+            b_tier = b.get("tier") or a.tier or "-"
+            b_type_label = LAUNCH_TYPE_LABEL.get(b.get("launch_type") or a.launch_type, "")
             for it in b["items"]:
-                rows.append(base + [it.get("biz_code", ""), it.get("nickname", ""),
+                rows.append(base + [b_tier, b_type_label,
+                                    it.get("biz_code", ""), it.get("nickname", ""),
                                     it.get("value", ""), ld])
     content = export_rows_to_xlsx(headers, rows)
     fname = f"launch_{start.isoformat()}_{end.isoformat()}.xlsx"

@@ -125,18 +125,32 @@ def load_item_batches(raw) -> List[Dict[str, Any]]:
     if not isinstance(v, list) or not v:
         return []
     if isinstance(v[0], dict) and "biz_code" in v[0]:
-        return [{"launch_at": None, "items": v}]
+        return [{"launch_at": None, "tier": None, "launch_type": None,
+                 "consumed": None, "items": v}]
     out = []
     for b in v:
         if isinstance(b, dict) and isinstance(b.get("items"), list):
-            out.append({"launch_at": b.get("launch_at"), "items": b["items"]})
+            out.append({
+                "launch_at": b.get("launch_at"),
+                "tier": b.get("tier"),
+                "launch_type": b.get("launch_type"),
+                "consumed": b.get("consumed"),
+                "items": b["items"],
+            })
     return out
 
 
-def append_launch_batch(raw, items: List[Dict[str, Any]], launch_at: datetime) -> str:
+def append_launch_batch(raw, items: List[Dict[str, Any]], launch_at: datetime,
+                        tier: str = None, launch_type: str = None,
+                        consumed: float = None) -> str:
     batches = load_item_batches(raw)
-    batches.append({"launch_at": launch_at.strftime("%Y-%m-%d %H:%M:%S"),
-                    "items": items or []})
+    batches.append({
+        "launch_at": launch_at.strftime("%Y-%m-%d %H:%M:%S"),
+        "tier": tier,
+        "launch_type": launch_type,
+        "consumed": consumed,
+        "items": items or [],
+    })
     return json.dumps(batches, ensure_ascii=False)
 
 

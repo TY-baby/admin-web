@@ -220,7 +220,9 @@ def launch_delivery(db: Session, cid: int, platform_code: str, douyin_id: str,
     a.launch_type = "FIRST_CHARGE"
     a.daily_budget = daily_budget
     a.launch_consumed = consumed
-    a.generated_items = append_launch_batch(a.generated_items, items, now)
+    a.generated_items = append_launch_batch(a.generated_items, items, now,
+                                            tier=tier, launch_type="FIRST_CHARGE",
+                                            consumed=consumed)
     a.launch_at = now
     a.balance = remaining
     db.add(FinanceLog(customer_id=a.customer_id, douyin_account_id=a.id,

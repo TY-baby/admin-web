@@ -100,13 +100,12 @@ def export_api(keyword_name: Optional[str] = None, keyword_douyin: Optional[str]
                               launch_from=lf, launch_to=lt)
     pname = {p.code: p.name for p in db.query(Platform).all()}
     is_exposure = launch_type == "EXPOSURE"
-    # 需求 3.3：日预算→总充值金额、授权开始→投放日期、业务码→ID
-    # 需求 3.4：首充展示"总充值金额"，曝光度展示"1h曝光度"
+    # 需求 1.1：充值金额 → 消耗金额（按批次档位计算）
+    # 需求 1.2：档位/类型按批次读取，修复最新投放覆盖历史批次档位的问题
     value_col = "1h曝光度" if is_exposure else "总充值金额"
     headers = ["客户UID", "客户名称", "联系人", "手机号", "投放ID", "名称",
-               "投放平台名称", "充值金额", "档位", "ID", "昵称",
+               "投放平台名称", "消耗金额", "档位", "ID", "昵称",
                value_col, "类型", "投放日期"]
-    type_label = LAUNCH_TYPE_LABEL.get(launch_type, "")
     rows = []
     merge_groups = []
     for c in items:
@@ -119,24 +118,34 @@ def export_api(keyword_name: Optional[str] = None, keyword_douyin: Optional[str]
             launch_date = a.launch_at.strftime("%Y-%m-%d") if a.launch_at else ""
             base = [c.customer_uid, c.customer_name, c.contact_name, c.phone,
                     a.douyin_id, a.douyin_name,
-                    pname.get(a.platform_code, a.platform_code),
-                    float(a.recharge_amount)]
+                    pname.get(a.platform_code, a.platform_code)]
             if not (a.tier and a.launch_at):
-                rows.append(base + ["-", "-", "-", "-", "", ""])
+                rows.append(base + ["", "-", "-", "-", "", ""])
                 continue
-            # 关键：按投放批次展开（多次投放累加不覆盖），历史数据回退实时生成（不落库）
             batches = load_item_batches(a.generated_items)
             if not batches:
                 price = (EXPOSURE_TIER_PRICE if is_exposure else TIER_DAILY_BUDGET)[a.tier]
                 rng = EXPOSURE_TIER_RANGE[a.tier] if is_exposure else TIER_ITEM_RANGE[a.tier]
                 budget = float(a.daily_budget or 0)
                 cnt = max(1, int(budget // price)) if budget else 1
-                batches = [{"launch_at": None, "items": gen_launch_items(cnt, rng, platform_code=a.platform_code)}]
+                fake_items = gen_launch_items(cnt, rng, platform_code=a.platform_code)
+                batches = [{"launch_at": None, "tier": a.tier,
+                            "launch_type": a.launch_type,
+                            "consumed": round(cnt * price, 2),
+                            "items": fake_items}]
             for b in batches:
+                b_tier = b.get("tier") or a.tier
+                b_type = b.get("launch_type") or a.launch_type
+                b_type_label = LAUNCH_TYPE_LABEL.get(b_type, "")
+                b_consumed = b.get("consumed")
+                if b_consumed is None:
+                    price_map = EXPOSURE_TIER_PRICE if b_type == "EXPOSURE" else TIER_DAILY_BUDGET
+                    b_consumed = round(len(b["items"]) * price_map.get(b_tier, 0), 2)
                 ld = (b.get("launch_at") or "")[:10] or launch_date
                 for it in b["items"]:
-                    rows.append(base + [a.tier, it.get("biz_code", ""), it.get("nickname", ""),
-                                        it.get("value", ""), type_label, ld])
+                    rows.append(base + [float(b_consumed), b_tier,
+                                        it.get("biz_code", ""), it.get("nickname", ""),
+                                        it.get("value", ""), b_type_label, ld])
         if len(rows) - 1 >= group_start:
             merge_groups.append((group_start, len(rows) - 1))
     content = export_rows_to_xlsx_merged(headers, rows, merge_groups, (0, 1, 2, 3))

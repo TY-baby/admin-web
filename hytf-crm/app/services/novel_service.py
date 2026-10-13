@@ -109,7 +109,9 @@ def launch_novel(db: Session, cid: int, platform_code: str, douyin_id: str,
     a.daily_budget = daily_budget
     a.launch_consumed = consumed
     a.exposure_1h = exposure
-    a.generated_items = append_launch_batch(a.generated_items, items, now)
+    a.generated_items = append_launch_batch(a.generated_items, items, now,
+                                            tier=tier, launch_type="EXPOSURE",
+                                            consumed=consumed)
     a.launch_at = now
     a.balance = remaining
     db.add(FinanceLog(customer_id=cid, douyin_account_id=a.id, change_type="CONSUME",

@@ -42,7 +42,7 @@
             </div>
 
             <div class="card">
-              <div class="card-title">我要投放的ID</div>
+              <div class="card-title">投放ID</div>
               <el-select v-model="currentId" :placeholder="platform ? '请选择' + platformName + 'ID' : '请先选择投放平台'"
                          :disabled="!platform" style="width:100%" @change="onAccChange">
                 <el-option v-for="a in platformAccounts" :key="a.id"
@@ -52,15 +52,15 @@
             </div>
 
             <div class="card">
-              <div class="card-title">日预算</div>
-              <el-input v-model="dailyBudget" placeholder="请输入日预算,单位元" style="width:100%">
+              <div class="card-title">投放预算</div>
+              <el-input v-model="dailyBudget" placeholder="请输入投放预算,单位元" style="width:100%">
                 <template slot="append">元</template>
               </el-input>
               <div v-if="budgetError" class="budget-err">{{ budgetError }}</div>
             </div>
 
             <div class="card">
-              <div class="card-title">{{ tab === 'first' ? '日结算方案' : '曝光度方案（1h内曝光）' }}</div>
+              <div class="card-title">{{ tab === 'first' ? '投放预算方案' : '投放预算方案（1h内曝光）' }}</div>
               <el-radio-group v-model="plan" class="tier-vertical">
                 <el-radio v-for="t in tierOptions" :key="t.value" :label="t.value" class="tier-item">{{ t.label }}</el-radio>
               </el-radio-group>
@@ -118,7 +118,7 @@
         <div class="lc-row"><span class="k">投放ID</span><span class="v">{{ confirmInfo.id }}</span></div>
         <div class="lc-row"><span class="k">投放类型</span><span class="v"><em class="tag">{{ confirmInfo.typeLabel }}</em></span></div>
         <div class="lc-row"><span class="k">所选档位</span><span class="v">{{ confirmInfo.tier }} 档（{{ confirmInfo.price }} 元）</span></div>
-        <div class="lc-row"><span class="k">日预算</span><span class="v hl">￥{{ confirmInfo.budget }}</span></div>
+        <div class="lc-row"><span class="k">投放预算</span><span class="v hl">￥{{ confirmInfo.budget }}</span></div>
         <div class="lc-row"><span class="k">预计生成</span><span class="v hl">{{ confirmInfo.generated }} 条</span></div>
       </div>
       <div slot="footer">
@@ -172,7 +172,7 @@ export default {
       const v = Number(this.dailyBudget)
       if (isNaN(v) || v <= 0) return '请输入大于0的数字'
       if (this.selectedAccount && v > Number(this.selectedAccount.balance)) {
-        return '日预算不能超过当前账号余额（￥' + Number(this.selectedAccount.balance).toFixed(2) + '）'
+        return '投放预算不能超过当前账号余额（￥' + Number(this.selectedAccount.balance).toFixed(2) + '）'
       }
       return ''
     }
@@ -199,15 +199,15 @@ export default {
       if (!this.plan) { this.$message.warning('请选择档位方案'); return false }
       const budget = Number(this.dailyBudget)
       if (this.dailyBudget === '' || isNaN(budget) || budget <= 0) {
-        this.$message.warning('请输入日预算'); return false
+        this.$message.warning('请输入投放预算'); return false
       }
       const acc = this.selectedAccount
       if (acc && budget > Number(acc.balance)) {
-        this.$message.error('日预算不能超过当前账号余额'); return false
+        this.$message.error('投放预算不能超过当前账号余额'); return false
       }
       const tier = this.tierOptions.find(t => t.value === this.plan)
       if (tier && budget < tier.price) {
-        this.$message.error('日预算不能小于所选档位金额（' + tier.price + '元）'); return false
+        this.$message.error('投放预算不能小于所选档位金额（' + tier.price + '元）'); return false
       }
       return true
     },

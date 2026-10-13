@@ -6,11 +6,18 @@
     </div>
     <div class="page-container">
       <div class="summary card">
+        <div class="customer-hero">
+          <i class="el-icon-user-solid hero-ico"></i>
+          <div class="hero-txt">
+            <div class="hero-name">{{ info.customer_name || '未命名客户' }}</div>
+            <div class="hero-phone"><i class="el-icon-mobile-phone"></i> {{ info.phone || '-' }}</div>
+          </div>
+        </div>
         <div class="flex-between">
           <div><div class="lbl">账号总余额</div><div class="big">￥{{ summary.total_balance || 0 }}</div></div>
           <div><div class="lbl">累计充值</div><div class="big">￥{{ summary.total_recharge || 0 }}</div></div>
           <div><div class="lbl">累计消费</div><div class="big">￥{{ summary.total_consume || 0 }}</div></div>
-          <div><div class="lbl">抖音号数</div><div class="big">{{ summary.account_count || 0 }}</div></div>
+          <div><div class="lbl">ID总数</div><div class="big">{{ summary.account_count || 0 }}</div></div>
         </div>
       </div>
 
@@ -19,10 +26,12 @@
         <el-date-picker v-model="range" type="daterange" value-format="yyyy-MM-dd"
                         start-placeholder="开始" end-placeholder="结束" :clearable="false"
                         :picker-options="pickerOptions" @change="loadTrend" />
-        <el-select v-model="accountId" placeholder="全部抖音号" clearable style="margin-left:12px;width:220px" @change="loadTrend">
-          <el-option v-for="a in accounts" :key="a.id" :label="a.douyin_name" :value="a.id" />
+        <el-select v-model="accountId" placeholder="请选择ID" clearable style="margin-left:12px;width:220px" @change="loadTrend">
+          <el-option v-for="a in accounts" :key="a.id"
+                     :label="a.douyin_id + (a.douyin_name ? '（' + a.douyin_name + '）' : '')"
+                     :value="a.id" />
         </el-select>
-        <el-button icon="el-icon-refresh" style="margin-left:8px" @click="loadTrend">刷新</el-button>
+        <el-button type="primary" icon="el-icon-search" style="margin-left:8px" @click="loadTrend">查询</el-button>
         <el-button type="danger" icon="el-icon-download" style="margin-left:8px" @click="onExport">导出Excel</el-button>
       </div>
 
@@ -76,7 +85,7 @@ export default {
     }
   },
   computed: {
-    ...mapState('clientUser', ['accounts']),
+    ...mapState('clientUser', ['accounts', 'info']),
     tierContext() {
       if (this.accountId) {
         const a = (this.accounts || []).find(x => x.id === this.accountId)
@@ -147,6 +156,7 @@ export default {
       const q = new URLSearchParams()
       q.append('start', this.range[0])
       q.append('end', this.range[1])
+      if (this.accountId) q.append('account_id', this.accountId)
       fetch(clientExportUrl + '?' + q.toString(), { headers: { Authorization: 'Bearer ' + getClientToken() } })
         .then(r => r.blob()).then(b => {
           const a = document.createElement('a')
@@ -191,6 +201,17 @@ export default {
 .summary {
   .lbl { color: #909399; font-size: 13px; }
   .big { font-size: 22px; font-weight: bold; color: #ff2e63; margin-top: 4px; }
+}
+.customer-hero {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 18px; margin-bottom: 14px;
+  background: linear-gradient(120deg, #ff5f8f 0%, #ff2e63 100%);
+  border-radius: 10px; box-shadow: 0 4px 14px rgba(255, 46, 99, .28);
+  .hero-ico { font-size: 32px; color: #fff; }
+  .hero-txt { color: #fff; }
+  .hero-name { font-size: 20px; font-weight: 800; letter-spacing: 1px; line-height: 1.2; }
+  .hero-phone { font-size: 14px; margin-top: 4px; opacity: .95;
+    i { margin-right: 4px; } }
 }
 .content {
   display: flex; gap: 16px;
