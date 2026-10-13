@@ -86,7 +86,7 @@ def gen_platform_nickname(existing: set = None) -> str:
 
 
 TIER_DAILY_BUDGET = {"A": 300, "B": 600, "C": 1000}
-TIER_ITEM_RANGE = {"A": (280, 291), "B": (480, 491), "C": (980, 991)}
+TIER_ITEM_RANGE = {"A": (280, 291), "B": (580, 591), "C": (980, 991)}
 
 EXPOSURE_TIER_PRICE = {"A": 1998, "B": 2998, "C": 5998}
 EXPOSURE_TIER_RANGE = {"A": (1000, 3000), "B": (3000, 5000), "C": (5000, 10000)}
