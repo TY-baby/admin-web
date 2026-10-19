@@ -207,6 +207,7 @@ export default {
       this.form.launch_type = ''
       this.form.generated_count = 0
       this.form.heat_value = 0
+      this.form.payable_amount = ''
       if (!val || val.length < 4) return
       this.form.launch_type = val[3]
       const node = this.findAccountInOptions(val.slice(0, 3))

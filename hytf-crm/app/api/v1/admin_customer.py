@@ -102,8 +102,10 @@ def export_api(keyword_name: Optional[str] = None, keyword_douyin: Optional[str]
     type_label = LAUNCH_TYPE_LABEL.get(launch_type, "")
     value_col = "1h曝光度" if is_exposure else "总充值金额"
     headers = ["客户UID", "客户名称", "联系人", "手机号", "投放ID", "名称",
-               "投放平台名称", "消耗金额", "档位", "ID", "昵称",
-               value_col, "类型", "投放日期"]
+               "投放平台名称", "消耗金额", "档位"]
+    if not is_exposure:
+        headers += ["ID", "昵称"]
+    headers += [value_col, "类型", "投放日期"]
     rows = []
     for c in items:
         dl = getattr(c, "douyin_list", []) or []
@@ -138,9 +140,9 @@ def export_api(keyword_name: Optional[str] = None, keyword_douyin: Optional[str]
                 b_consumed = float(price_map.get(b_tier, 0) or 0)
                 ld = (b.get("launch_at") or "")[:10] or launch_date
                 for it in b["items"]:
-                    rows.append(base + [b_consumed, b_tier,
-                                        it.get("biz_code", ""), it.get("nickname", ""),
-                                        it.get("value", ""), b_type_label, ld])
+                    id_cols = [] if is_exposure else [it.get("biz_code", ""), it.get("nickname", "")]
+                    rows.append(base + [b_consumed, b_tier] + id_cols +
+                                [it.get("value", ""), b_type_label, ld])
     # 4.4：取消单元格合并
     content = export_rows_to_xlsx(headers, rows)
     fname = f"customers_{type_label}_{datetime.now().strftime('%Y%m%d%H%M%S')}.xlsx"

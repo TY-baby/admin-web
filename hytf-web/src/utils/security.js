@@ -1,9 +1,8 @@
 /**
- * 前端安全防护：防F12 / 防调试 / 防右键 / 防复制 / 防iframe嵌入
+ * 前端安全防护：防F12 / 防调试 / 防iframe嵌入（右键与复制限制已放开）
  * 说明：所有前端防护都可被绕过，仅提高门槛；核心安全依赖后端 JWT + 限流。
  */
 export function installSecurity() {
-  document.addEventListener('contextmenu', e => e.preventDefault())
 
   document.addEventListener('keydown', e => {
     const k = e.key && e.key.toUpperCase()
