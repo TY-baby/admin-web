@@ -2,7 +2,11 @@
   <div class="client-sub">
     <div class="topbar flex-between">
       <div class="logo">恒耀互娱 - 财务</div>
-      <div><el-button type="text" @click="$router.push('/client/home')">返回首页</el-button></div>
+      <div class="nav">
+        <router-link to="/client/home" class="nav-item">首页</router-link>
+        <router-link to="/client/finance" class="nav-item active">财务</router-link>
+        <router-link to="/client/launch" class="nav-item">流水明细</router-link>
+      </div>
     </div>
     <div class="page-container">
       <div class="card">
@@ -20,17 +24,7 @@
           <el-table-column label="剩余金额(元)" width="120">
             <template slot-scope="{ row }">{{ Number(row.balance || 0).toFixed(2) }}</template>
           </el-table-column>
-          <el-table-column label="类型" width="110">
-            <template slot-scope="{ row }">{{ row.launch_type_label || '未投放' }}</template>
-          </el-table-column>
-          <el-table-column label="档位" width="80">
-            <template slot-scope="{ row }">{{ row.tier || '-' }}</template>
-          </el-table-column>
-          <el-table-column label="日预算" width="100">
-            <template slot-scope="{ row }">{{ row.launch_at ? Number(row.daily_budget || 0) : '-' }}</template>
-          </el-table-column>
         </el-table>
-        <div class="text-muted mt-16">交易均为线下处理，此处仅作登记展示；投放当天数据需次日（一个工作日）后方可查询，如需充值请联系客服。</div>
       </div>
 
       <div class="card mt-16">
@@ -40,7 +34,10 @@
         </div>
         <el-table :data="invoices" border stripe v-loading="invLoading" class="mt-16">
           <el-table-column prop="id" label="申请ID" width="90" />
-          <el-table-column label="抖音ID" width="140">
+          <el-table-column label="平台" width="110">
+            <template slot-scope="{ row }">{{ platformName(row.platform_code) }}</template>
+          </el-table-column>
+          <el-table-column label="投放ID" width="140">
             <template slot-scope="{ row }">{{ row.douyin_id || '-' }}</template>
           </el-table-column>
           <el-table-column prop="amount" label="开票金额(元)" width="140" />
@@ -65,14 +62,11 @@
       </div>
     </div>
 
-    <el-dialog title="申请开票" :visible.sync="applyVisible" width="440px" :close-on-click-modal="false">
+    <el-dialog title="申请开票" :visible.sync="applyVisible" width="460px" :close-on-click-modal="false">
       <el-form ref="aform" :model="aform" :rules="arules" label-width="90px" size="small">
-        <el-form-item label="抖音ID" prop="douyin_id">
-          <el-select v-model="aform.douyin_id" filterable placeholder="请选择要开票的抖音ID" style="width:100%">
-            <el-option v-for="a in accounts" :key="a.douyin_id"
-                       :label="a.douyin_id + (a.douyin_name ? '（' + a.douyin_name + '）' : '')"
-                       :value="a.douyin_id" />
-          </el-select>
+        <el-form-item label="平台/ID" prop="cascade">
+          <el-cascader v-model="aform.cascade" :options="cascadeOptions" :props="cascaderProps"
+                       placeholder="请选择平台及投放ID" filterable style="width:100%" />
         </el-form-item>
         <el-form-item label="开票金额" prop="amount">
           <el-input v-model="aform.amount" placeholder="正数,单位元" />
@@ -100,17 +94,35 @@ export default {
     return {
       invLoading: false, saving: false, applyVisible: false, platforms: [],
       invoices: [], invTotal: 0, invQuery: { page: 1, page_size: 10 },
-      aform: { douyin_id: '', amount: '', remark: '' },
+      aform: { cascade: [], amount: '', remark: '' },
       arules: {
-        douyin_id: [{ required: true, message: '请选择抖音ID', trigger: 'change' }],
+        cascade: [{ required: true, message: '请选择平台及投放ID', trigger: 'change',
+          validator: (r, v, cb) => (v && v.length === 2) ? cb() : cb(new Error('请选择平台及投放ID')) }],
         amount: [
           { required: true, message: '请输入开票金额', trigger: 'blur' },
           { validator: (r, v, cb) => isPositiveNumber(v) ? cb() : cb(new Error('请输入大于0的金额')), trigger: 'blur' }
         ]
-      }
+      },
+      cascaderProps: { value: 'value', label: 'label', children: 'children' }
     }
   },
-  computed: { ...mapState('clientUser', ['accounts']), rows() { return this.accounts || [] } },
+  computed: {
+    ...mapState('clientUser', ['accounts']),
+    rows() { return this.accounts || [] },
+    cascadeOptions() {
+      const groups = {}
+      ;(this.accounts || []).forEach(a => {
+        const p = this.platforms.find(x => x.code === a.platform_code)
+        const pname = p ? p.name : a.platform_code
+        if (!groups[a.platform_code]) groups[a.platform_code] = { value: a.platform_code, label: pname, children: [] }
+        groups[a.platform_code].children.push({
+          value: a.douyin_id,
+          label: a.douyin_id + (a.douyin_name ? '（' + a.douyin_name + '）' : '')
+        })
+      })
+      return Object.values(groups)
+    }
+  },
   async created() {
     if (!this.accounts.length) await this.$store.dispatch('clientUser/loadAccounts')
     getPlatforms().then(({ data }) => { if (data.code === 0) this.platforms = data.data || [] })
@@ -131,7 +143,7 @@ export default {
       } finally { this.invLoading = false }
     },
     openApply() {
-      this.aform = { douyin_id: '', amount: '', remark: '' }
+      this.aform = { cascade: [], amount: '', remark: '' }
       this.applyVisible = true
       this.$nextTick(() => this.$refs.aform && this.$refs.aform.clearValidate())
     },
@@ -140,7 +152,13 @@ export default {
         if (!ok) return
         this.saving = true
         try {
-          const { data } = await applyInvoice({ ...this.aform, amount: Number(this.aform.amount) })
+          const [platformCode, douyinId] = this.aform.cascade
+          const { data } = await applyInvoice({
+            douyin_id: douyinId,
+            platform_code: platformCode,
+            amount: Number(this.aform.amount),
+            remark: this.aform.remark
+          })
           if (data.code === 0) {
             this.$message.success('申请已提交,请等待客服处理')
             this.applyVisible = false
@@ -159,7 +177,10 @@ export default {
   height: 56px; padding: 0 24px;
   background: linear-gradient(135deg, #ff5f8f 0%, #ff2e63 100%);
   box-shadow: 0 2px 12px rgba(255, 46, 99, .25);
+  display: flex; justify-content: space-between; align-items: center;
   .logo { font-weight: bold; font-size: 18px; color: #fff; }
+  .nav-item { margin: 0 12px; color: rgba(255,255,255,.85); font-size: 14px;
+    &.active { color: #fff; font-weight: bold; border-bottom: 2px solid #fff; } }
   ::v-deep .el-button--text { color: #fff; }
 }
 .card {

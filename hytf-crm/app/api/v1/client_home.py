@@ -11,10 +11,10 @@ from app.models.platform import Platform
 from app.schemas.common import ok, fail
 from app.schemas.customer import LaunchReq
 from app.services.customer_service import get_client_accounts, launch_delivery
-from app.services.douyin_service import get_home_summary, get_trend
+from app.services.douyin_service import get_home_summary, get_launch_stats, get_trend
 from app.services.novel_service import launch_novel, page_link
 from app.utils.excel_export import export_rows_to_xlsx
-from app.utils.id_generator import LAUNCH_TYPE_LABEL, load_item_batches
+from app.utils.id_generator import LAUNCH_TYPE_LABEL, gen_recharge_order_no, load_item_batches
 
 router = APIRouter()
 
@@ -75,80 +75,78 @@ def summary(db: Session = Depends(get_db), user=Depends(get_current_client)):
 @router.get("/trend")
 def trend(start: Optional[date] = None, end: Optional[date] = None,
           account_id: Optional[int] = None,
+          launch_type: Optional[str] = None,
           db: Session = Depends(get_db), user=Depends(get_current_client)):
     cid = int(user["sub"])
-    # 投放当天不可查数据：查询区间强制截止到昨天
     yesterday = date.today() - timedelta(days=1)
     end = min(end or yesterday, yesterday)
     start = min(start or end, end)
     if (end - start).days > 92:
         end = start + timedelta(days=92)
+    items = get_trend(db, cid, account_id, start, end)
+    stats = None
+    if launch_type in ("FIRST_CHARGE", "EXPOSURE"):
+        stats = get_launch_stats(db, cid, account_id, launch_type, start, end)
     return ok({"start": start.isoformat(), "end": end.isoformat(),
-               "items": get_trend(db, cid, account_id, start, end)})
+               "items": items, "stats": stats})
 
 
 @router.get("/export")
 def export_api(start: Optional[date] = None, end: Optional[date] = None,
                account_id: Optional[int] = None,
+               launch_type: Optional[str] = None,
                db: Session = Depends(get_db), user=Depends(get_current_client)):
-    """A端投放数据导出：数据源与B端用户管理导出一致，仅导出昨天及以前的投放数据
-       需求 2.1：支持按筛选的 account_id 过滤，与折线图保持一致
-       需求 2.2：按批次读取 tier / launch_type，与B端逻辑一致"""
+    """A端流水明细导出
+       2.3：必须选择类型 + ID
+       2.8.1：数值列按类型改为 首充金额 / 直播热度
+       2.8.2：首充导出增加"充值订单号"（年月日+随机8位数字）
+       2.8.3：取消"名称"字段"""
     cid = int(user["sub"])
+    if not launch_type or launch_type not in ("FIRST_CHARGE", "EXPOSURE"):
+        return fail("导出前必须选择类型（首充/直播曝光度）", code=40004)
+    if not account_id:
+        return fail("导出前必须选择投放ID", code=40004)
     yesterday = date.today() - timedelta(days=1)
     end = min(end or yesterday, yesterday)
     start = min(start or end, end)
-    s_dt = datetime.combine(start, datetime.min.time())
-    e_dt = datetime.combine(end, datetime.max.time())
-    q = (db.query(DouyinAccount)
-         .filter(DouyinAccount.customer_id == cid,
-                 DouyinAccount.launch_at.isnot(None),
-                 DouyinAccount.launch_at >= s_dt,
-                 DouyinAccount.launch_at <= e_dt))
-    if account_id:
-        q = q.filter(DouyinAccount.id == account_id)
-    accs = q.order_by(DouyinAccount.launch_at.asc()).all()
 
-    # 兼容批次投放日期在筛选区间内的情况：即使 launch_at 是最新一次，也要展开该账号所有批次
-    all_accs = (db.query(DouyinAccount)
-                .filter(DouyinAccount.customer_id == cid,
-                        DouyinAccount.launch_at.isnot(None)))
-    if account_id:
-        all_accs = all_accs.filter(DouyinAccount.id == account_id)
-    all_accs = all_accs.all()
-
+    acc = (db.query(DouyinAccount)
+           .filter(DouyinAccount.id == account_id,
+                   DouyinAccount.customer_id == cid).first())
+    if not acc:
+        return fail("投放ID不存在或不属于当前客户", code=40404)
     pname = {p.code: p.name for p in db.query(Platform).all()}
-    headers = ["投放平台名称", "投放ID", "名称", "档位", "类型", "ID", "昵称", "数值", "投放日期"]
+
+    is_first = launch_type == "FIRST_CHARGE"
+    value_col = "首充金额" if is_first else "直播热度"
+    headers = ["投放平台名称", "投放ID", "档位", "类型", "ID", "昵称", value_col, "投放日期"]
+    if is_first:
+        headers.append("充值订单号")
+
     rows = []
-    seen_ids = set()
-    for a in list(accs) + list(all_accs):
-        if a.id in seen_ids:
+    start_str = start.strftime("%Y-%m-%d")
+    end_str = end.strftime("%Y-%m-%d")
+    for b in load_item_batches(acc.generated_items):
+        b_type = b.get("launch_type") or acc.launch_type
+        if b_type != launch_type:
             continue
-        seen_ids.add(a.id)
-        launch_date = a.launch_at.strftime("%Y-%m-%d") if a.launch_at else ""
-        base = [pname.get(a.platform_code, a.platform_code), a.douyin_id, a.douyin_name]
-        batches = load_item_batches(a.generated_items)
-        if not batches:
-            rows.append(base + [a.tier or "-", LAUNCH_TYPE_LABEL.get(a.launch_type, ""),
-                                "-", "-", "", launch_date])
+        ld = (b.get("launch_at") or "")[:10]
+        if not ld or not (start_str <= ld <= end_str):
             continue
-        for b in batches:
-            ld = (b.get("launch_at") or "")[:10] or launch_date
-            # 需求 2.1：仅导出落在筛选日期区间内的批次
-            try:
-                ld_date = datetime.strptime(ld, "%Y-%m-%d").date() if ld else None
-            except Exception:
-                ld_date = None
-            if ld_date and not (start <= ld_date <= end):
-                continue
-            b_tier = b.get("tier") or a.tier or "-"
-            b_type_label = LAUNCH_TYPE_LABEL.get(b.get("launch_type") or a.launch_type, "")
-            for it in b["items"]:
-                rows.append(base + [b_tier, b_type_label,
-                                    it.get("biz_code", ""), it.get("nickname", ""),
-                                    it.get("value", ""), ld])
+        b_tier = b.get("tier") or acc.tier or "-"
+        b_type_label = LAUNCH_TYPE_LABEL.get(b_type, "")
+        for it in b.get("items") or []:
+            row = [pname.get(acc.platform_code, acc.platform_code),
+                   acc.douyin_id, b_tier, b_type_label,
+                   it.get("biz_code", ""), it.get("nickname", ""),
+                   it.get("value", ""), ld]
+            if is_first:
+                row.append(gen_recharge_order_no())
+            rows.append(row)
+
     content = export_rows_to_xlsx(headers, rows)
-    fname = f"launch_{start.isoformat()}_{end.isoformat()}.xlsx"
+    type_label = LAUNCH_TYPE_LABEL.get(launch_type, "")
+    fname = f"launch_{type_label}_{acc.douyin_id}_{start.isoformat()}_{end.isoformat()}.xlsx"
     return StreamingResponse(BytesIO(content),
                              media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                              headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(fname)}"})

@@ -5,6 +5,7 @@
       <div class="nav">
         <router-link to="/client/home" class="nav-item active">首页</router-link>
         <router-link to="/client/finance" class="nav-item">财务</router-link>
+        <router-link to="/client/launch" class="nav-item">流水明细</router-link>
       </div>
       <div class="user">
         <span>{{ info.customer_name || info.phone }}</span>
@@ -60,7 +61,7 @@
             </div>
 
             <div class="card">
-              <div class="card-title">{{ tab === 'first' ? '投放预算方案' : '投放预算方案（1h内曝光）' }}</div>
+              <div class="card-title">投放预算方案</div>
               <el-radio-group v-model="plan" class="tier-vertical">
                 <el-radio v-for="t in tierOptions" :key="t.value" :label="t.value" class="tier-item">{{ t.label }}</el-radio>
               </el-radio-group>
@@ -139,9 +140,9 @@ const FIRST_TIERS = [
   { value: 'C', label: 'C档 1000/条', price: 1000 }
 ]
 const EXPOSURE_TIERS = [
-  { value: 'A', label: 'A档 1998（1h内曝光）', price: 1998 },
-  { value: 'B', label: 'B档 2998（1h内曝光）', price: 2998 },
-  { value: 'C', label: 'C档 5998（1h内曝光）', price: 5998 }
+  { value: 'A', label: 'A档 2998', price: 2998 },
+  { value: 'B', label: 'B档 3998', price: 3998 },
+  { value: 'C', label: 'C档 6998', price: 6998 }
 ]
 
 export default {

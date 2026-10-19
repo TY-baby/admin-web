@@ -3,7 +3,12 @@
     <el-card shadow="never" class="mb-16">
       <el-form :inline="true" :model="query" size="small">
         <el-form-item label="客户名称">
-          <el-input v-model="query.keyword_name" placeholder="模糊搜索" clearable />
+          <el-select v-model="query.keyword_name" filterable remote clearable
+                     placeholder="输入关键词搜索" :remote-method="searchCustomer"
+                     :loading="custLoading" style="width:200px">
+            <el-option v-for="c in customerOptions" :key="c.id"
+                       :label="c.customer_name" :value="c.customer_name" />
+          </el-select>
         </el-form-item>
         <el-form-item label="ID">
           <el-input v-model="query.keyword_douyin" placeholder="模糊搜索" clearable />
@@ -44,14 +49,8 @@
               </el-table-column>
               <el-table-column prop="douyin_id" label="ID" width="140" />
               <el-table-column prop="douyin_name" label="名称" />
-              <el-table-column label="类型" width="110">
-                <template slot-scope="{ row: a }">{{ a.launch_type_label || '未投放' }}</template>
-              </el-table-column>
               <el-table-column prop="recharge_amount" label="充值" width="90" />
               <el-table-column prop="balance" label="剩余" width="90" />
-              <el-table-column label="档位" width="80">
-                <template slot-scope="{ row: a }">{{ a.tier || '-' }}</template>
-              </el-table-column>
               <el-table-column label="投放时间" width="160">
                 <template slot-scope="{ row: a }">{{ a.launch_at ? String(a.launch_at).replace('T',' ').slice(0,19) : '-' }}</template>
               </el-table-column>
@@ -126,6 +125,7 @@ export default {
   data() {
     return {
       loading: false, rows: [], total: 0, dateRange: [], launchRange: [], platforms: [],
+      customerOptions: [], custLoading: false,
       query: { keyword_name: '', keyword_douyin: '', keyword_phone: '', launch_type: '', page: 1, page_size: 20 }
     }
   },
@@ -133,8 +133,16 @@ export default {
     this.load(1)
     const { data } = await getPlatforms()
     if (data.code === 0) this.platforms = data.data || []
+    this.searchCustomer('')
   },
   methods: {
+    async searchCustomer(kw) {
+      this.custLoading = true
+      try {
+        const { data } = await listCustomers({ keyword_name: kw || '', page: 1, page_size: 50 })
+        if (data.code === 0) this.customerOptions = data.data.items || []
+      } finally { this.custLoading = false }
+    },
     platformName(code) {
       const p = this.platforms.find(x => x.code === code)
       return p ? p.name : (code || '-')

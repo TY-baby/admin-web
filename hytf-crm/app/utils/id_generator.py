@@ -88,13 +88,18 @@ def gen_platform_nickname(existing: set = None) -> str:
 TIER_DAILY_BUDGET = {"A": 300, "B": 600, "C": 1000}
 TIER_ITEM_RANGE = {"A": (280, 291), "B": (580, 591), "C": (980, 991)}
 
-EXPOSURE_TIER_PRICE = {"A": 1998, "B": 2998, "C": 5998}
-EXPOSURE_TIER_RANGE = {"A": (1000, 3000), "B": (3000, 5000), "C": (5000, 10000)}
+EXPOSURE_TIER_PRICE = {"A": 2998, "B": 3998, "C": 6998}
+EXPOSURE_TIER_RANGE = {"A": (800, 1001), "B": (1200, 1501), "C": (2300, 2801)}
 
 NOVEL_TIER_PRICE = EXPOSURE_TIER_PRICE
-NOVEL_READ_RANGE = {"A": (1000, 3000), "B": (3000, 5000), "C": (5000, 10000)}
+NOVEL_READ_RANGE = EXPOSURE_TIER_RANGE
 
 LAUNCH_TYPE_LABEL = {"FIRST_CHARGE": "首充", "EXPOSURE": "直播曝光度"}
+
+
+def gen_recharge_order_no() -> str:
+    """充值订单号：年月日 + 随机 8 位纯数字，例：2029080613145201"""
+    return datetime.now().strftime("%Y%m%d") + "".join(random.choices(string.digits, k=8))
 
 
 def gen_launch_items(count: int, item_range: tuple, platform_code: str = "") -> List[Dict[str, Any]]:

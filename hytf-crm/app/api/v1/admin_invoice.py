@@ -18,6 +18,7 @@ def list_api(status: Optional[str] = None,
                "items": [{"id": i.id, "customer_id": i.customer_id,
                           "customer_name": i.customer_name,
                           "douyin_id": i.douyin_id,
+                          "platform_code": i.platform_code or "",
                           "amount": float(i.amount),
                           "status": i.status, "invoice_at": i.invoice_at,
                           "processed_at": i.processed_at, "remark": i.remark} for i in items]})

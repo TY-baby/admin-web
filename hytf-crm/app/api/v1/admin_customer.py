@@ -12,7 +12,7 @@ from app.schemas.customer import CustomerCreateReq, CustomerUpdateReq, DouyinUpd
 from app.services.customer_service import (create_customer, delete_customer, delete_douyin,
                                             list_customers,
                                             to_customer_item, update_customer, update_douyin)
-from app.utils.excel_export import export_rows_to_xlsx_merged
+from app.utils.excel_export import export_rows_to_xlsx, export_rows_to_xlsx_merged
 from app.utils.id_generator import (EXPOSURE_TIER_PRICE, EXPOSURE_TIER_RANGE, LAUNCH_TYPE_LABEL,
                                     TIER_DAILY_BUDGET, TIER_ITEM_RANGE,
                                     gen_launch_items, load_item_batches)
@@ -83,7 +83,6 @@ def export_api(keyword_name: Optional[str] = None, keyword_douyin: Optional[str]
                date_from: Optional[date] = None, date_to: Optional[date] = None,
                launch_from: Optional[date] = None, launch_to: Optional[date] = None,
                db: Session = Depends(get_db), _a=Depends(get_current_admin)):
-    # 需求 3.2：导出必须选类型
     if not launch_type:
         return fail("导出前必须先选择类型（首充/直播曝光度）", code=40004)
     if launch_type not in ("FIRST_CHARGE", "EXPOSURE"):
@@ -101,27 +100,21 @@ def export_api(keyword_name: Optional[str] = None, keyword_douyin: Optional[str]
     pname = {p.code: p.name for p in db.query(Platform).all()}
     is_exposure = launch_type == "EXPOSURE"
     type_label = LAUNCH_TYPE_LABEL.get(launch_type, "")
-    # 需求 1.1：充值金额 → 消耗金额（按批次档位计算）
-    # 需求 1.2：档位/类型按批次读取，修复最新投放覆盖历史批次档位的问题
     value_col = "1h曝光度" if is_exposure else "总充值金额"
     headers = ["客户UID", "客户名称", "联系人", "手机号", "投放ID", "名称",
                "投放平台名称", "消耗金额", "档位", "ID", "昵称",
                value_col, "类型", "投放日期"]
     rows = []
-    merge_groups = []
     for c in items:
-        group_start = len(rows)
         dl = getattr(c, "douyin_list", []) or []
         if not dl:
-            rows.append([c.customer_uid, c.customer_name, c.contact_name, c.phone,
-                         "", "", "", "", "", "", "", "", "", ""])
+            continue
         for a in dl:
             launch_date = a.launch_at.strftime("%Y-%m-%d") if a.launch_at else ""
             base = [c.customer_uid, c.customer_name, c.contact_name, c.phone,
                     a.douyin_id, a.douyin_name,
                     pname.get(a.platform_code, a.platform_code)]
             if not (a.tier and a.launch_at):
-                rows.append(base + ["", "-", "-", "-", "-", "", ""])
                 continue
             batches = load_item_batches(a.generated_items)
             if not batches:
@@ -137,8 +130,10 @@ def export_api(keyword_name: Optional[str] = None, keyword_douyin: Optional[str]
             for b in batches:
                 b_tier = b.get("tier") or a.tier
                 b_type = b.get("launch_type") or a.launch_type
+                # 4.3：严格按类型过滤，另一种类型不导出
+                if b_type != launch_type:
+                    continue
                 b_type_label = LAUNCH_TYPE_LABEL.get(b_type, "")
-                # 消耗金额 = 档位单价（首充300/600/1000，曝光度1998/2998/5998），不按条数累加
                 price_map = EXPOSURE_TIER_PRICE if b_type == "EXPOSURE" else TIER_DAILY_BUDGET
                 b_consumed = float(price_map.get(b_tier, 0) or 0)
                 ld = (b.get("launch_at") or "")[:10] or launch_date
@@ -146,9 +141,8 @@ def export_api(keyword_name: Optional[str] = None, keyword_douyin: Optional[str]
                     rows.append(base + [b_consumed, b_tier,
                                         it.get("biz_code", ""), it.get("nickname", ""),
                                         it.get("value", ""), b_type_label, ld])
-        if len(rows) - 1 >= group_start:
-            merge_groups.append((group_start, len(rows) - 1))
-    content = export_rows_to_xlsx_merged(headers, rows, merge_groups, (0, 1, 2, 3))
+    # 4.4：取消单元格合并
+    content = export_rows_to_xlsx(headers, rows)
     fname = f"customers_{type_label}_{datetime.now().strftime('%Y%m%d%H%M%S')}.xlsx"
     return StreamingResponse(BytesIO(content),
                              media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

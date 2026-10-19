@@ -14,9 +14,8 @@ from app.models.platform import Platform
 from app.models.withdraw import Withdraw
 from app.schemas.common import ok, fail
 from app.schemas.withdraw import WithdrawCreateReq
-from app.utils.excel_export import export_rows_to_xlsx_merged
-from app.utils.id_generator import (EXPOSURE_TIER_PRICE, LAUNCH_TYPE_LABEL,
-                                    TIER_DAILY_BUDGET, load_item_batches, load_items)
+from app.utils.excel_export import export_rows_to_xlsx
+from app.utils.id_generator import LAUNCH_TYPE_LABEL, load_item_batches
 
 router = APIRouter()
 
@@ -33,11 +32,13 @@ def list_payees(db: Session = Depends(get_db), _a=Depends(get_current_admin)):
 def list_customers_for_cascade(keyword: Optional[str] = None,
                                db: Session = Depends(get_db),
                                _a=Depends(get_current_admin)):
+    """级联：客户 → 平台 → ID → 类型"""
     q = db.query(Customer)
     if keyword:
         q = q.filter(Customer.customer_name.like(f"%{keyword}%"))
     custs = q.order_by(Customer.created_at.desc()).limit(500).all()
     cids = [c.id for c in custs]
+    pname = {p.code: p.name for p in db.query(Platform).all()}
     acc_map: dict = {}
     if cids:
         accs = (db.query(DouyinAccount)
@@ -48,28 +49,52 @@ def list_customers_for_cascade(keyword: Optional[str] = None,
                 "id": a.id, "douyin_id": a.douyin_id,
                 "douyin_name": a.douyin_name, "nickname": a.nickname,
                 "platform_code": a.platform_code,
+                "platform_name": pname.get(a.platform_code, a.platform_code),
+                "launch_type": a.launch_type or "",
+                "tier": a.tier or "",
             })
     return ok([{"id": c.id, "customer_name": c.customer_name,
                 "accounts": acc_map.get(c.id, [])} for c in custs])
 
 
 @router.get("/preview/{account_id}")
-def preview_amount(account_id: int, db: Session = Depends(get_db),
+def preview_amount(account_id: int, launch_type: Optional[str] = None,
+                   db: Session = Depends(get_db),
                    _a=Depends(get_current_admin)):
     a = db.query(DouyinAccount).filter(DouyinAccount.id == account_id).first()
     if not a:
         return fail("投放ID不存在", code=40404)
-    items = load_items(a.generated_items)
-    payable = round(sum(float(it.get("value", 0) or 0) for it in items), 2)
+    lt = launch_type or a.launch_type or ""
+    generated = 0
+    heat = 0
+    payable = 0.0
+    for b in load_item_batches(a.generated_items):
+        b_type = b.get("launch_type") or a.launch_type
+        if lt and b_type != lt:
+            continue
+        items = b.get("items") or []
+        generated += len(items)
+        if b_type == "EXPOSURE":
+            heat += sum(int(it.get("value", 0) or 0) for it in items)
+        else:
+            payable += sum(float(it.get("value", 0) or 0) for it in items)
+    if lt == "EXPOSURE":
+        payable = 0.0
     return ok({"douyin_account_id": a.id, "douyin_id": a.douyin_id,
                "douyin_name": a.douyin_name, "nickname": a.nickname,
-               "generated_count": len(items), "payable_amount": payable})
+               "platform_code": a.platform_code,
+               "launch_type": lt,
+               "generated_count": generated,
+               "heat_value": heat,
+               "payable_amount": round(payable, 2)})
 
 
 @router.post("/create")
 def create_withdraw(body: WithdrawCreateReq,
                     db: Session = Depends(get_db),
                     admin=Depends(get_current_admin)):
+    if body.launch_type not in ("FIRST_CHARGE", "EXPOSURE"):
+        return fail("类型非法", code=40004)
     payee = db.query(Payee).filter(Payee.id == body.payee_id).first()
     if not payee:
         return fail("打款对象不存在", code=40404)
@@ -77,8 +102,6 @@ def create_withdraw(body: WithdrawCreateReq,
     if not acc:
         return fail("投放ID不存在", code=40404)
     cust = db.query(Customer).filter(Customer.id == acc.customer_id).first()
-    items = load_items(acc.generated_items)
-    payable = round(sum(float(it.get("value", 0) or 0) for it in items), 2)
     operator = admin.get("username", "")
     w = Withdraw(
         payee_id=payee.id, payee_card_no=payee.card_no,
@@ -87,16 +110,21 @@ def create_withdraw(body: WithdrawCreateReq,
         customer_name=cust.customer_name if cust else "",
         douyin_account_id=acc.id, douyin_id=acc.douyin_id,
         douyin_name=acc.douyin_name or acc.nickname,
-        launch_type=acc.launch_type or "",
-        generated_count=len(items), payable_amount=payable,
+        platform_code=acc.platform_code or "",
+        launch_type=body.launch_type,
+        generated_count=int(body.generated_count or 0),
+        heat_value=int(body.heat_value or 0),
+        payable_amount=float(body.payable_amount),
+        settle_date=body.settle_date or date.today(),
         remark=body.remark, operator=operator,
     )
     db.add(w)
     db.commit()
     db.refresh(w)
     logger.info(f"[withdraw created] id={w.id} payee={payee.display_name} "
-                f"account={acc.douyin_id} amount={payable} operator={operator}")
-    return ok({"id": w.id, "payable_amount": payable})
+                f"account={acc.douyin_id} type={body.launch_type} "
+                f"amount={body.payable_amount} settle={w.settle_date} operator={operator}")
+    return ok({"id": w.id, "payable_amount": float(w.payable_amount)})
 
 
 @router.get("/list")
@@ -107,8 +135,10 @@ def list_api(keyword: Optional[str] = None,
              db: Session = Depends(get_db), _a=Depends(get_current_admin)):
     q = db.query(Withdraw)
     if keyword:
+        # 3.1.5：模糊匹配（客户 / 打款对象 / 投放ID / 卡号）
         q = q.filter(
             (Withdraw.payee_holder_name.like(f"%{keyword}%")) |
+            (Withdraw.payee_card_no.like(f"%{keyword}%")) |
             (Withdraw.customer_name.like(f"%{keyword}%")) |
             (Withdraw.douyin_id.like(f"%{keyword}%"))
         )
@@ -121,6 +151,7 @@ def list_api(keyword: Optional[str] = None,
     total = q.count()
     rows = (q.order_by(Withdraw.created_at.desc())
             .offset((page - 1) * page_size).limit(page_size).all())
+    pname = {p.code: p.name for p in db.query(Platform).all()}
     return ok({"total": total, "page": page, "page_size": page_size,
                "items": [{
                    "id": w.id,
@@ -130,10 +161,14 @@ def list_api(keyword: Optional[str] = None,
                    "customer_name": w.customer_name,
                    "douyin_id": w.douyin_id,
                    "douyin_name": w.douyin_name,
+                   "platform_code": w.platform_code or "",
+                   "platform_name": pname.get(w.platform_code, w.platform_code or ""),
                    "launch_type": w.launch_type or "",
                    "launch_type_label": LAUNCH_TYPE_LABEL.get(w.launch_type, "") if w.launch_type else "",
                    "generated_count": w.generated_count,
+                   "heat_value": w.heat_value or 0,
                    "payable_amount": float(w.payable_amount),
+                   "settle_date": w.settle_date.strftime("%Y-%m-%d") if w.settle_date else "",
                    "remark": w.remark,
                    "operator": w.operator,
                    "created_at": w.created_at.strftime("%Y-%m-%d %H:%M:%S") if w.created_at else "",
@@ -143,69 +178,65 @@ def list_api(keyword: Optional[str] = None,
 @router.get("/export")
 def export_withdraw(keyword: Optional[str] = None,
                     launch_type: Optional[str] = None,
+                    date_from: Optional[date] = None, date_to: Optional[date] = None,
                     db: Session = Depends(get_db), _a=Depends(get_current_admin)):
-    """需求 4.2：出款管理导出 Excel
-       - 必须选择类型（首充/曝光度）
-       - 必须输入关键词（限定为一个客户）
-       - 字段与用户管理导出一致"""
+    """3.1.6：出款管理导出
+       字段：打款对象、卡号、类型、结算金额、产出ID、产出昵称、结算日期
+       首充 → 按明细展开 biz_code / nickname
+       曝光 → 产出ID/产出昵称 位置显示"热度"值"""
     if not launch_type or launch_type not in ("FIRST_CHARGE", "EXPOSURE"):
         return fail("导出前必须先选择类型（首充/曝光度）", code=40004)
-    if not keyword:
-        return fail("导出前必须输入关键词，且只能导出一个客户的数据", code=40003)
 
-    ws = (db.query(Withdraw)
-          .filter(Withdraw.launch_type == launch_type)
-          .filter(Withdraw.customer_name.like(f"%{keyword}%"))
-          .order_by(Withdraw.created_at.asc()).all())
+    q = db.query(Withdraw).filter(Withdraw.launch_type == launch_type)
+    if keyword:
+        q = q.filter(
+            (Withdraw.payee_holder_name.like(f"%{keyword}%")) |
+            (Withdraw.customer_name.like(f"%{keyword}%")) |
+            (Withdraw.douyin_id.like(f"%{keyword}%"))
+        )
+    if date_from:
+        q = q.filter(Withdraw.settle_date >= date_from)
+    if date_to:
+        q = q.filter(Withdraw.settle_date <= date_to)
+    ws = q.order_by(Withdraw.settle_date.asc(), Withdraw.id.asc()).all()
     if not ws:
-        return fail("未匹配到该客户的出款记录", code=40404)
-    cust_ids = {w.customer_id for w in ws}
-    if len(cust_ids) > 1:
-        return fail("关键词命中多个客户，请精确到唯一客户后再导出", code=40003)
+        return fail("未匹配到出款记录", code=40404)
 
-    acc_ids = [w.douyin_account_id for w in ws]
+    acc_ids = list({w.douyin_account_id for w in ws})
     accs = {a.id: a for a in db.query(DouyinAccount).filter(DouyinAccount.id.in_(acc_ids)).all()}
-    cust = db.query(Customer).filter(Customer.id == list(cust_ids)[0]).first()
-    pname = {p.code: p.name for p in db.query(Platform).all()}
-
-    is_exposure = launch_type == "EXPOSURE"
-    value_col = "1h曝光度" if is_exposure else "总充值金额"
-    headers = ["客户UID", "客户名称", "联系人", "手机号", "投放ID", "名称",
-               "投放平台名称", "消耗金额", "档位", "ID", "昵称",
-               value_col, "类型", "投放日期"]
     type_label = LAUNCH_TYPE_LABEL.get(launch_type, "")
+    is_exposure = launch_type == "EXPOSURE"
+    headers = ["打款对象", "卡号", "类型", "结算金额",
+               "热度" if is_exposure else "产出ID",
+               "" if is_exposure else "产出昵称",
+               "结算日期"]
+    if is_exposure:
+        headers = ["打款对象", "卡号", "类型", "结算金额", "热度", "结算日期"]
+
     rows = []
-    merge_groups = []
     for w in ws:
         a = accs.get(w.douyin_account_id)
-        if not a:
+        base = [w.payee_holder_name, w.payee_card_no, type_label,
+                float(w.payable_amount or 0)]
+        settle = w.settle_date.strftime("%Y-%m-%d") if w.settle_date else ""
+        if is_exposure:
+            rows.append(base + [int(w.heat_value or 0), settle])
             continue
-        group_start = len(rows)
-        base = [cust.customer_uid if cust else "", cust.customer_name if cust else w.customer_name,
-                cust.contact_name if cust else "", cust.phone if cust else "",
-                a.douyin_id, a.douyin_name, pname.get(a.platform_code, a.platform_code)]
-        batches = load_item_batches(a.generated_items)
-        if not batches:
-            rows.append(base + ["", "-", "-", "-", "-", "", ""])
-            continue
-        for b in batches:
-            b_tier = b.get("tier") or a.tier
-            b_type = b.get("launch_type") or a.launch_type
-            if b_type != launch_type:
-                continue
-            # 消耗金额 = 档位单价（首充300/600/1000，曝光度1998/2998/5998），不按条数累加
-            price_map = EXPOSURE_TIER_PRICE if b_type == "EXPOSURE" else TIER_DAILY_BUDGET
-            b_consumed = float(price_map.get(b_tier, 0) or 0)
-            ld = (b.get("launch_at") or "")[:10]
-            for it in b["items"]:
-                rows.append(base + [b_consumed, b_tier,
-                                    it.get("biz_code", ""), it.get("nickname", ""),
-                                    it.get("value", ""), type_label, ld])
-        if len(rows) - 1 >= group_start:
-            merge_groups.append((group_start, len(rows) - 1))
+        # 首充：展开每条明细的 biz_code + nickname
+        expanded = False
+        if a:
+            for b in load_item_batches(a.generated_items):
+                b_type = b.get("launch_type") or a.launch_type
+                if b_type != "FIRST_CHARGE":
+                    continue
+                for it in b.get("items") or []:
+                    rows.append(base + [it.get("biz_code", ""), it.get("nickname", ""), settle])
+                    expanded = True
+        if not expanded:
+            rows.append(base + [w.douyin_id, w.douyin_name, settle])
 
-    content = export_rows_to_xlsx_merged(headers, rows, merge_groups, (0, 1, 2, 3))
-    fname = f"withdraw_{type_label}_{keyword}_{datetime.now().strftime('%Y%m%d%H%M%S')}.xlsx"
+    content = export_rows_to_xlsx(headers, rows)
+    fname = f"withdraw_{type_label}_{datetime.now().strftime('%Y%m%d%H%M%S')}.xlsx"
     return StreamingResponse(BytesIO(content),
                              media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                              headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(fname)}"})

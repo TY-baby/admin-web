@@ -10,6 +10,7 @@ class Invoice(Base):
     customer_id: Mapped[int] = mapped_column(Integer, nullable=True, index=True)
     customer_name: Mapped[str] = mapped_column(String(50), default="")
     douyin_id: Mapped[str] = mapped_column(String(50), default="")
+    platform_code: Mapped[str] = mapped_column(String(30), default="")
     amount: Mapped[float] = mapped_column(DECIMAL(12, 2), nullable=False)
     status: Mapped[str] = mapped_column(SAEnum("PENDING", "PROCESSED", name="invoice_status"), default="PENDING")
     invoice_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

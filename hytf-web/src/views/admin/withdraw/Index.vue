@@ -3,7 +3,7 @@
     <el-card shadow="never" class="mb-16">
       <el-form :inline="true" :model="query" size="small">
         <el-form-item label="关键词">
-          <el-input v-model="query.keyword" placeholder="打款对象/客户/投放ID" clearable />
+          <el-input v-model="query.keyword" placeholder="打款对象/卡号/客户/投放ID 模糊匹配" clearable style="width:260px" />
         </el-form-item>
         <el-form-item label="类型">
           <el-select v-model="query.launch_type" placeholder="全部" clearable style="width:140px">
@@ -29,6 +29,7 @@
         <el-table-column prop="payee_holder_name" label="打款对象" width="110" />
         <el-table-column prop="payee_card_no" label="卡号" width="200" />
         <el-table-column prop="customer_name" label="客户名称" width="120" />
+        <el-table-column prop="platform_name" label="平台" width="100" />
         <el-table-column prop="douyin_id" label="投放ID" width="130" />
         <el-table-column label="类型" width="110">
           <template slot-scope="{ row }">
@@ -37,13 +38,19 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="generated_count" label="生成条数" width="90" align="center" />
-        <el-table-column label="打款金额(元)" width="120" align="right">
+        <el-table-column label="生成条数/热度" width="130" align="center">
+          <template slot-scope="{ row }">
+            <span v-if="row.launch_type === 'EXPOSURE'">{{ row.heat_value || 0 }} 热度</span>
+            <span v-else>{{ row.generated_count || 0 }} 条</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="结算金额(元)" width="120" align="right">
           <template slot-scope="{ row }">{{ Number(row.payable_amount || 0).toFixed(2) }}</template>
         </el-table-column>
+        <el-table-column prop="settle_date" label="结算日期" width="120" />
         <el-table-column prop="operator" label="操作人" width="90" />
         <el-table-column prop="created_at" label="创建时间" width="160" />
-        <el-table-column label="操作" width="80" fixed="right">
+        <el-table-column label="操作" width="80">
           <template slot-scope="{ row }">
             <el-button type="text" size="mini" style="color:#F56C6C" @click="onDelete(row)">删除</el-button>
           </template>
@@ -56,12 +63,11 @@
                      @size-change="s => { query.page_size = s; load(1) }" />
     </el-card>
 
-    <el-dialog title="新增出款" :visible.sync="dialogVisible" width="560px"
+    <el-dialog title="新增出款" :visible.sync="dialogVisible" width="600px"
                :close-on-click-modal="false" @open="onDialogOpen">
-      <el-form :model="form" label-width="100px" size="small">
+      <el-form :model="form" label-width="110px" size="small">
         <el-form-item label="打款对象" required>
-          <el-select v-model="form.payee_id" placeholder="请选择打款对象" style="width:100%"
-                     @change="onPayeeChange">
+          <el-select v-model="form.payee_id" placeholder="请选择打款对象" style="width:100%">
             <el-option v-for="p in payees" :key="p.id" :label="p.display_name" :value="p.id" />
           </el-select>
         </el-form-item>
@@ -71,19 +77,27 @@
         <el-form-item v-if="selectedPayee" label="卡号">
           <span>{{ selectedPayee.card_no }}</span>
         </el-form-item>
-        <el-form-item label="客户/ID" required>
+        <el-form-item label="客户/平台/ID/类型" required>
           <el-cascader v-model="form.cascade" :options="customerOptions"
-                       :props="cascaderProps" placeholder="请选择客户及投放ID"
+                       :props="cascaderProps" placeholder="请选择客户 → 平台 → ID → 类型"
                        style="width:100%" filterable clearable
                        @change="onCascadeChange" />
         </el-form-item>
-        <el-form-item v-if="preview" label="生成条数">
-          <span>{{ preview.generated_count }} 条</span>
+        <el-form-item v-if="form.launch_type === 'FIRST_CHARGE'" label="生成条数">
+          <el-input-number v-model="form.generated_count" :min="0" :step="1" style="width:200px" />
+          <span style="margin-left:8px;color:#909399">条</span>
         </el-form-item>
-        <el-form-item v-if="preview" label="打款金额">
-          <span style="color:#F56C6C;font-weight:bold;font-size:16px">
-            ￥{{ Number(preview.payable_amount || 0).toFixed(2) }}
-          </span>
+        <el-form-item v-if="form.launch_type === 'EXPOSURE'" label="热度">
+          <el-input-number v-model="form.heat_value" :min="0" :step="1" style="width:200px" />
+        </el-form-item>
+        <el-form-item label="结算金额" required>
+          <el-input v-model="form.payable_amount" placeholder="手动输入,单位元" style="width:200px">
+            <template slot="append">元</template>
+          </el-input>
+        </el-form-item>
+        <el-form-item label="结算日期" required>
+          <el-date-picker v-model="form.settle_date" type="date" value-format="yyyy-MM-dd"
+                          placeholder="选择结算日期" style="width:200px" />
         </el-form-item>
         <el-form-item label="备注">
           <el-input v-model="form.remark" type="textarea" :rows="2" maxlength="255" show-word-limit />
@@ -98,26 +112,29 @@
 </template>
 
 <script>
-import { listWithdraws, listPayees, listWithdrawCustomers, previewWithdraw, createWithdraw, deleteWithdraw, withdrawExportUrl } from '@/api/adminWithdraw'
+import { listWithdraws, listPayees, listWithdrawCustomers, previewWithdraw,
+         createWithdraw, deleteWithdraw, withdrawExportUrl } from '@/api/adminWithdraw'
 import { getAdminToken } from '@/utils/auth'
 
 export default {
   name: 'AdminWithdraw',
   data() {
+    const today = new Date().toISOString().slice(0, 10)
     return {
       loading: false, rows: [], total: 0, dateRange: [],
       query: { keyword: '', launch_type: '', page: 1, page_size: 20 },
       dialogVisible: false, submitting: false,
       payees: [], customerOptions: [],
-      form: { payee_id: null, cascade: [], remark: '' },
-      preview: null,
-      cascaderProps: { value: 'id', label: 'label', children: 'children' }
+      form: {
+        payee_id: null, cascade: [], launch_type: '',
+        generated_count: 0, heat_value: 0,
+        payable_amount: '', settle_date: today, remark: ''
+      },
+      cascaderProps: { value: 'value', label: 'label', children: 'children' }
     }
   },
   computed: {
-    selectedPayee() {
-      return this.payees.find(p => p.id === this.form.payee_id) || null
-    }
+    selectedPayee() { return this.payees.find(p => p.id === this.form.payee_id) || null }
   },
   created() { this.load(1) },
   methods: {
@@ -142,55 +159,98 @@ export default {
       this.dateRange = []
       this.load(1)
     },
-    openDialog() {
-      this.dialogVisible = true
-    },
+    openDialog() { this.dialogVisible = true },
     async onDialogOpen() {
-      this.form = { payee_id: null, cascade: [], remark: '' }
-      this.preview = null
+      const today = new Date().toISOString().slice(0, 10)
+      this.form = { payee_id: null, cascade: [], launch_type: '',
+                    generated_count: 0, heat_value: 0,
+                    payable_amount: '', settle_date: today, remark: '' }
       try {
         const [pRes, cRes] = await Promise.all([listPayees(), listWithdrawCustomers()])
         if (pRes.data.code === 0) this.payees = pRes.data.data || []
         if (cRes.data.code === 0) {
-          this.customerOptions = (cRes.data.data || []).map(c => ({
-            id: 'c_' + c.id, label: c.customer_name,
-            children: (c.accounts || []).map(a => ({
-              id: a.id, label: a.douyin_id + (a.douyin_name ? '（' + a.douyin_name + '）' : '')
-            }))
-          }))
+          // 4 级级联：客户 → 平台 → ID → 类型
+          this.customerOptions = (cRes.data.data || []).map(c => {
+            const byPlat = {}
+            ;(c.accounts || []).forEach(a => {
+              if (!byPlat[a.platform_code]) {
+                byPlat[a.platform_code] = { value: 'p_' + a.platform_code, label: a.platform_name || a.platform_code, children: [] }
+              }
+              const types = []
+              if (a.launch_type === 'FIRST_CHARGE' || !a.launch_type) {
+                types.push({ value: 'FIRST_CHARGE', label: '首充', isLeaf: true, accountId: a.id })
+              }
+              if (a.launch_type === 'EXPOSURE' || !a.launch_type) {
+                types.push({ value: 'EXPOSURE', label: '直播曝光度', isLeaf: true, accountId: a.id })
+              }
+              byPlat[a.platform_code].children.push({
+                value: 'a_' + a.id,
+                label: a.douyin_id + (a.douyin_name ? '（' + a.douyin_name + '）' : ''),
+                accountId: a.id,
+                children: types
+              })
+            })
+            return { value: 'c_' + c.id, label: c.customer_name, children: Object.values(byPlat) }
+          })
         }
       } catch (e) {
         this.$message.error('加载打款对象/客户数据失败，请检查后端服务')
       }
     },
-    onPayeeChange() {},
+    findAccountInOptions(cascade) {
+      let nodes = this.customerOptions
+      for (const v of cascade) {
+        const n = (nodes || []).find(x => x.value === v)
+        if (!n) return null
+        if (n.accountId) return n
+        nodes = n.children
+      }
+      return null
+    },
     async onCascadeChange(val) {
-      this.preview = null
-      if (!val || val.length < 2) return
-      const accountId = val[1]
-      const { data } = await previewWithdraw(accountId)
-      if (data.code === 0) this.preview = data.data
+      this.form.launch_type = ''
+      this.form.generated_count = 0
+      this.form.heat_value = 0
+      if (!val || val.length < 4) return
+      this.form.launch_type = val[3]
+      const node = this.findAccountInOptions(val.slice(0, 3))
+      if (!node || !node.accountId) return
+      const { data } = await previewWithdraw(node.accountId, this.form.launch_type)
+      if (data.code === 0) {
+        const d = data.data
+        this.form.generated_count = d.generated_count || 0
+        this.form.heat_value = d.heat_value || 0
+        if (this.form.launch_type === 'FIRST_CHARGE' && d.payable_amount) {
+          this.form.payable_amount = String(d.payable_amount)
+        }
+      }
     },
     async onSubmit() {
       if (!this.form.payee_id) { this.$message.warning('请选择打款对象'); return }
-      if (!this.form.cascade || this.form.cascade.length < 2) { this.$message.warning('请选择客户及投放ID'); return }
+      if (!this.form.cascade || this.form.cascade.length < 4) { this.$message.warning('请选择客户 → 平台 → ID → 类型'); return }
+      const amt = Number(this.form.payable_amount)
+      if (!amt || isNaN(amt) || amt <= 0) { this.$message.warning('请填写正确的结算金额'); return }
+      if (!this.form.settle_date) { this.$message.warning('请选择结算日期'); return }
+      const node = this.findAccountInOptions(this.form.cascade.slice(0, 3))
+      if (!node || !node.accountId) { this.$message.warning('投放ID无效'); return }
       this.submitting = true
       try {
         const { data } = await createWithdraw({
           payee_id: this.form.payee_id,
-          douyin_account_id: this.form.cascade[1],
+          douyin_account_id: node.accountId,
+          launch_type: this.form.launch_type,
+          generated_count: Number(this.form.generated_count || 0),
+          heat_value: Number(this.form.heat_value || 0),
+          payable_amount: amt,
+          settle_date: this.form.settle_date,
           remark: this.form.remark
         })
         if (data.code === 0) {
-          this.$alert('出款成功，打款金额：￥' + Number(data.data.payable_amount || 0).toFixed(2), '提示', {
-            confirmButtonText: '确定', type: 'success'
-          }).then(() => {
-            this.dialogVisible = false
-            this.load(1)
-          })
-        } else {
-          this.$message.error(data.msg || '提交失败')
-        }
+          this.$alert('出款成功，结算金额：￥' + Number(data.data.payable_amount || 0).toFixed(2), '提示',
+            { confirmButtonText: '确定', type: 'success' }).then(() => {
+              this.dialogVisible = false; this.load(1)
+            })
+        } else { this.$message.error(data.msg || '提交失败') }
       } finally { this.submitting = false }
     },
     onDelete(row) {
@@ -202,23 +262,19 @@ export default {
         }).catch(() => {})
     },
     onExport() {
-      if (!this.query.launch_type) {
-        this.$message.warning('导出前必须先选择类型（首充/曝光度）'); return
-      }
-      if (!this.query.keyword) {
-        this.$message.warning('导出前必须输入关键词，且只能导出一个客户的数据'); return
-      }
+      if (!this.query.launch_type) { this.$message.warning('导出前必须先选择类型（首充/曝光度）'); return }
       const q = new URLSearchParams()
       q.append('launch_type', this.query.launch_type)
-      q.append('keyword', this.query.keyword)
+      if (this.query.keyword) q.append('keyword', this.query.keyword)
+      if (this.dateRange && this.dateRange.length === 2) {
+        q.append('date_from', this.dateRange[0])
+        q.append('date_to', this.dateRange[1])
+      }
       fetch(withdrawExportUrl + '?' + q.toString(),
             { headers: { Authorization: 'Bearer ' + getAdminToken() } })
         .then(async r => {
           const ct = r.headers.get('content-type') || ''
-          if (ct.indexOf('json') !== -1) {
-            const j = await r.json()
-            this.$message.error(j.msg || '导出失败'); return
-          }
+          if (ct.indexOf('json') !== -1) { const j = await r.json(); this.$message.error(j.msg || '导出失败'); return null }
           return r.blob()
         })
         .then(b => {
@@ -226,7 +282,7 @@ export default {
           const a = document.createElement('a')
           a.href = URL.createObjectURL(b)
           const typeLabel = this.query.launch_type === 'EXPOSURE' ? '直播曝光度' : '首充'
-          a.download = `出款_${typeLabel}_${this.query.keyword}.xlsx`
+          a.download = `出款_${typeLabel}_${new Date().toISOString().slice(0,10)}.xlsx`
           a.click()
           URL.revokeObjectURL(a.href)
           this.$message.success('导出成功')
