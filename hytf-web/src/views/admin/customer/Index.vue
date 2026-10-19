@@ -50,6 +50,9 @@
               <el-table-column prop="douyin_id" label="ID" width="140" />
               <el-table-column prop="douyin_name" label="名称" />
               <el-table-column prop="recharge_amount" label="充值" width="90" />
+              <el-table-column label="已消耗金额(元)" width="120">
+                <template slot-scope="{ row: a }">{{ Number(a.total_consumed || 0).toFixed(2) }}</template>
+              </el-table-column>
               <el-table-column prop="balance" label="剩余" width="90" />
               <el-table-column label="投放时间" width="160">
                 <template slot-scope="{ row: a }">{{ a.launch_at ? String(a.launch_at).replace('T',' ').slice(0,19) : '-' }}</template>

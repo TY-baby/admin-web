@@ -106,6 +106,7 @@ def launch_novel(db: Session, cid: int, platform_code: str, douyin_id: str,
     a.tier = tier
     a.tier_daily_budget = price
     a.launch_type = "EXPOSURE"
+    a.has_exposure = 1
     a.daily_budget = daily_budget
     a.launch_consumed = consumed
     a.exposure_1h = exposure

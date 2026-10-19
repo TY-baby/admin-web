@@ -17,13 +17,11 @@
 
     <el-card shadow="never">
       <el-table :data="rows" border stripe v-loading="loading">
-        <el-table-column prop="id" label="ID" width="70" />
-        <el-table-column prop="customer_name" label="客户名称" />
-        <el-table-column label="抖音ID" width="140">
+        <el-table-column label="ID" width="140">
           <template slot-scope="{ row }">{{ row.douyin_id || '-' }}</template>
         </el-table-column>
         <el-table-column prop="amount" label="开票金额(元)" width="140" />
-        <el-table-column label="开票时间" width="180">
+        <el-table-column label="申请时间" width="180">
           <template slot-scope="{ row }">{{ String(row.invoice_at).replace('T',' ').slice(0,19) }}</template>
         </el-table-column>
         <el-table-column label="状态" width="100">

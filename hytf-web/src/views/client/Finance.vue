@@ -19,7 +19,7 @@
           <el-table-column prop="douyin_name" label="名称" />
           <el-table-column prop="recharge_amount" label="充值金额(元)" width="120" />
           <el-table-column label="投放成功金额(元)" width="140">
-            <template slot-scope="{ row }">{{ row.launch_at ? Number(row.launch_consumed || 0).toFixed(2) : '-' }}</template>
+            <template slot-scope="{ row }">{{ row.launch_at ? Number(row.total_consumed || 0).toFixed(2) : '-' }}</template>
           </el-table-column>
           <el-table-column label="剩余金额(元)" width="120">
             <template slot-scope="{ row }">{{ Number(row.balance || 0).toFixed(2) }}</template>

@@ -176,18 +176,14 @@ export default {
               if (!byPlat[a.platform_code]) {
                 byPlat[a.platform_code] = { value: 'p_' + a.platform_code, label: a.platform_name || a.platform_code, children: [] }
               }
-              const types = []
-              if (a.launch_type === 'FIRST_CHARGE' || !a.launch_type) {
-                types.push({ value: 'FIRST_CHARGE', label: '首充', isLeaf: true, accountId: a.id })
-              }
-              if (a.launch_type === 'EXPOSURE' || !a.launch_type) {
-                types.push({ value: 'EXPOSURE', label: '直播曝光度', isLeaf: true, accountId: a.id })
-              }
               byPlat[a.platform_code].children.push({
                 value: 'a_' + a.id,
                 label: a.douyin_id + (a.douyin_name ? '（' + a.douyin_name + '）' : ''),
                 accountId: a.id,
-                children: types
+                children: [
+                  { value: 'FIRST_CHARGE', label: '首充', isLeaf: true, accountId: a.id },
+                  { value: 'EXPOSURE', label: '直播曝光度', isLeaf: true, accountId: a.id }
+                ]
               })
             })
             return { value: 'c_' + c.id, label: c.customer_name, children: Object.values(byPlat) }

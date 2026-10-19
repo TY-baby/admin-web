@@ -11,7 +11,7 @@ from app.schemas.customer import CustomerCreateReq, CustomerUpdateReq, DouyinUpd
 from app.utils.id_generator import (EXPOSURE_TIER_PRICE, EXPOSURE_TIER_RANGE, LAUNCH_TYPE_LABEL,
                                     TIER_DAILY_BUDGET, TIER_ITEM_RANGE,
                                     append_launch_batch, gen_auto_code, gen_customer_uid,
-                                    gen_launch_items, gen_nickname, load_items)
+                                    gen_launch_items, gen_nickname, load_item_batches, load_items)
 
 AUTH_DAYS = {"D3": 3, "D7": 7, "D30": 30}
 
@@ -57,6 +57,16 @@ def _generated_count(a: DouyinAccount) -> int:
     return 0
 
 
+def calc_total_consumed(a: DouyinAccount) -> float:
+    """该 ID 累加消耗金额：所有投放批次 consumed 求和；历史无批次数据回退 launch_consumed"""
+    total = 0.0
+    for b in load_item_batches(a.generated_items):
+        total += float(b.get("consumed") or 0)
+    if total <= 0 and a.launch_consumed:
+        total = float(a.launch_consumed or 0)
+    return round(total, 2)
+
+
 def list_customers(db: Session, name=None, dyid=None, dfrom=None, dto=None,
                    page: int = 1, size: int = 20, only_ids=None,
                    launch_type: Optional[str] = None,
@@ -78,9 +88,13 @@ def list_customers(db: Session, name=None, dyid=None, dfrom=None, dto=None,
             DouyinAccount.douyin_id.like(f"%{dyid}%")).subquery()
         q = q.filter(Customer.id.in_(sub))
     if launch_type:
-        sub = db.query(DouyinAccount.customer_id).filter(
-            DouyinAccount.launch_type == launch_type).subquery()
-        q = q.filter(Customer.id.in_(sub))
+        # 修复：按历史投放标记过滤，同一 ID 先首充后曝光时两种类型均可搜到
+        acc_sub = db.query(DouyinAccount.customer_id)
+        if launch_type == "FIRST_CHARGE":
+            acc_sub = acc_sub.filter(DouyinAccount.has_first_charge == 1)
+        elif launch_type == "EXPOSURE":
+            acc_sub = acc_sub.filter(DouyinAccount.has_exposure == 1)
+        q = q.filter(Customer.id.in_(acc_sub.subquery()))
     if launch_from or launch_to:
         sub_q = db.query(DouyinAccount.customer_id).filter(DouyinAccount.launch_at.isnot(None))
         if launch_from:
@@ -95,7 +109,10 @@ def list_customers(db: Session, name=None, dyid=None, dfrom=None, dto=None,
         m = {}
         acc_q = db.query(DouyinAccount).filter(DouyinAccount.customer_id.in_(ids))
         if launch_type:
-            acc_q = acc_q.filter(DouyinAccount.launch_type == launch_type)
+            if launch_type == "FIRST_CHARGE":
+                acc_q = acc_q.filter(DouyinAccount.has_first_charge == 1)
+            elif launch_type == "EXPOSURE":
+                acc_q = acc_q.filter(DouyinAccount.has_exposure == 1)
         if launch_from:
             acc_q = acc_q.filter(DouyinAccount.launch_at >= launch_from)
         if launch_to:
@@ -218,6 +235,7 @@ def launch_delivery(db: Session, cid: int, platform_code: str, douyin_id: str,
     a.tier = tier
     a.tier_daily_budget = price
     a.launch_type = "FIRST_CHARGE"
+    a.has_first_charge = 1
     a.daily_budget = daily_budget
     a.launch_consumed = consumed
     a.generated_items = append_launch_batch(a.generated_items, items, now,
@@ -264,6 +282,7 @@ def to_customer_item(c: Customer) -> dict:
             "auto_code": a.auto_code, "nickname": a.nickname,
             "recharge_amount": float(a.recharge_amount),
             "balance": _remain_after_consume(a),
+            "total_consumed": calc_total_consumed(a),
             "tier": a.tier, "tier_daily_budget": a.tier_daily_budget,
             "launch_type": a.launch_type,
             "launch_type_label": LAUNCH_TYPE_LABEL.get(a.launch_type, "") if a.launch_type else "",

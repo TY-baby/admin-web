@@ -10,7 +10,7 @@ from app.models.douyin_account import DouyinAccount
 from app.models.platform import Platform
 from app.schemas.common import ok, fail
 from app.schemas.customer import LaunchReq
-from app.services.customer_service import get_client_accounts, launch_delivery
+from app.services.customer_service import calc_total_consumed, get_client_accounts, launch_delivery
 from app.services.douyin_service import get_home_summary, get_launch_stats, get_trend
 from app.services.novel_service import launch_novel, page_link
 from app.utils.excel_export import export_rows_to_xlsx
@@ -31,6 +31,7 @@ def accounts(db: Session = Depends(get_db), user=Depends(get_current_client)):
                 "launch_type_label": LAUNCH_TYPE_LABEL.get(a.launch_type, "") if a.launch_type else "",
                 "daily_budget": float(a.daily_budget or 0),
                 "launch_consumed": float(a.launch_consumed or 0),
+                "total_consumed": calc_total_consumed(a),
                 "launch_at": a.launch_at,
                 "recharge_amount": float(a.recharge_amount),
                 "balance": float(a.balance)}
