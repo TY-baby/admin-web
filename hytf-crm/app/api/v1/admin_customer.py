@@ -100,7 +100,7 @@ def export_api(keyword_name: Optional[str] = None, keyword_douyin: Optional[str]
     pname = {p.code: p.name for p in db.query(Platform).all()}
     is_exposure = launch_type == "EXPOSURE"
     type_label = LAUNCH_TYPE_LABEL.get(launch_type, "")
-    value_col = "1h曝光度" if is_exposure else "总充值金额"
+    value_col = "热度" if is_exposure else "总充值金额"
     headers = ["客户UID", "客户名称", "联系人", "手机号", "投放ID", "名称",
                "投放平台名称", "消耗金额", "档位"]
     if not is_exposure:

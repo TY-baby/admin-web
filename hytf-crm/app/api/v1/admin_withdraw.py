@@ -20,6 +20,26 @@ from app.utils.id_generator import LAUNCH_TYPE_LABEL, load_item_batches
 router = APIRouter()
 
 
+def _quota_stats(db: Session, a: DouyinAccount, lt: str):
+    """总生成条数/热度 与 剩余可出款额度（总量 - 历史出款累计）"""
+    generated = 0
+    heat = 0
+    for b in load_item_batches(a.generated_items):
+        b_type = b.get("launch_type") or a.launch_type
+        if lt and b_type != lt:
+            continue
+        items = b.get("items") or []
+        generated += len(items)
+        if b_type == "EXPOSURE":
+            heat += sum(int(it.get("value", 0) or 0) for it in items)
+    ws = (db.query(Withdraw)
+          .filter(Withdraw.douyin_account_id == a.id,
+                  Withdraw.launch_type == lt).all())
+    used_count = sum(int(w.generated_count or 0) for w in ws)
+    used_heat = sum(int(w.heat_value or 0) for w in ws)
+    return generated, heat, max(generated - used_count, 0), max(heat - used_heat, 0)
+
+
 @router.get("/payees")
 def list_payees(db: Session = Depends(get_db), _a=Depends(get_current_admin)):
     rows = db.query(Payee).order_by(Payee.sort.asc(), Payee.id.asc()).all()
@@ -65,28 +85,17 @@ def preview_amount(account_id: int, launch_type: Optional[str] = None,
     if not a:
         return fail("投放ID不存在", code=40404)
     lt = launch_type or a.launch_type or ""
-    generated = 0
-    heat = 0
-    payable = 0.0
-    for b in load_item_batches(a.generated_items):
-        b_type = b.get("launch_type") or a.launch_type
-        if lt and b_type != lt:
-            continue
-        items = b.get("items") or []
-        generated += len(items)
-        if b_type == "EXPOSURE":
-            heat += sum(int(it.get("value", 0) or 0) for it in items)
-        else:
-            payable += sum(float(it.get("value", 0) or 0) for it in items)
-    if lt == "EXPOSURE":
-        payable = 0.0
+    generated, heat, remain_count, remain_heat = _quota_stats(db, a, lt)
+    # v10: 返回剩余可出款额度；结算金额纯手动输入，不再计算
     return ok({"douyin_account_id": a.id, "douyin_id": a.douyin_id,
                "douyin_name": a.douyin_name, "nickname": a.nickname,
                "platform_code": a.platform_code,
                "launch_type": lt,
-               "generated_count": generated,
-               "heat_value": heat,
-               "payable_amount": round(payable, 2)})
+               "generated_count": remain_count,
+               "heat_value": remain_heat,
+               "total_generated": generated,
+               "total_heat": heat,
+               "payable_amount": 0.0})
 
 
 @router.post("/create")
@@ -103,6 +112,24 @@ def create_withdraw(body: WithdrawCreateReq,
         return fail("投放ID不存在", code=40404)
     cust = db.query(Customer).filter(Customer.id == acc.customer_id).first()
     operator = admin.get("username", "")
+    # v10: 剩余可出款额度校验（0 不允许提交，且不能超过剩余）
+    _g, _h, remain_count, remain_heat = _quota_stats(db, acc, body.launch_type)
+    if body.launch_type == "FIRST_CHARGE":
+        cnt = int(body.generated_count or 0)
+        if remain_count <= 0:
+            return fail("该ID首充剩余可出款条数为0，不允许提交", code=40005)
+        if cnt <= 0:
+            return fail("生成条数必须大于0", code=40005)
+        if cnt > remain_count:
+            return fail(f"生成条数不能超过剩余可出款条数（{remain_count}）", code=40005)
+    else:
+        hv = int(body.heat_value or 0)
+        if remain_heat <= 0:
+            return fail("该ID曝光度剩余可出款热度为0，不允许提交", code=40005)
+        if hv <= 0:
+            return fail("热度必须大于0", code=40005)
+        if hv > remain_heat:
+            return fail(f"热度不能超过剩余可出款热度（{remain_heat}）", code=40005)
     w = Withdraw(
         payee_id=payee.id, payee_card_no=payee.card_no,
         payee_bank_name=payee.bank_name, payee_holder_name=payee.display_name,

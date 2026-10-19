@@ -120,7 +120,10 @@
         <div class="lc-row"><span class="k">投放类型</span><span class="v"><em class="tag">{{ confirmInfo.typeLabel }}</em></span></div>
         <div class="lc-row"><span class="k">所选档位</span><span class="v">{{ confirmInfo.tier }} 档（{{ confirmInfo.price }} 元）</span></div>
         <div class="lc-row"><span class="k">投放预算</span><span class="v hl">￥{{ confirmInfo.budget }}</span></div>
-        <div class="lc-row"><span class="k">预计生成</span><span class="v hl">{{ confirmInfo.generated }} 条</span></div>
+        <div class="lc-row">
+          <span class="k">{{ confirmInfo.isExposure ? '预计生成热度' : '预计生成' }}</span>
+          <span class="v hl">{{ confirmInfo.isExposure ? '≈ ' + confirmInfo.generated : confirmInfo.generated + ' 条' }}</span>
+        </div>
       </div>
       <div slot="footer">
         <el-button size="small" @click="confirmVisible=false">再想想</el-button>
@@ -144,6 +147,7 @@ const EXPOSURE_TIERS = [
   { value: 'B', label: 'B档 3998', price: 3998 },
   { value: 'C', label: 'C档 6998', price: 6998 }
 ]
+const EXPOSURE_RANGES = { A: [800, 1000], B: [1200, 1500], C: [2300, 2800] }
 
 export default {
   name: 'ClientHome',
@@ -215,23 +219,33 @@ export default {
     onLaunch() {
       if (!this.validateLaunch()) return
       const tier = this.tierOptions.find(t => t.value === this.plan)
-      const generated = Math.floor(Number(this.dailyBudget) / tier.price)
-      const typeLabel = this.tab === 'first' ? '首充' : '直播曝光度'
+      const cnt = Math.floor(Number(this.dailyBudget) / tier.price)
+      const isExposure = this.tab !== 'first'
+      let generated = cnt
+      if (isExposure) {
+        const [lo, hi] = EXPOSURE_RANGES[this.plan] || [0, 0]
+        generated = 0
+        for (let i = 0; i < cnt; i++) {
+          generated += Math.floor(Math.random() * (hi - lo + 1)) + lo
+        }
+      }
+      const typeLabel = isExposure ? '直播曝光度' : '首充'
       this.confirmInfo = {
         platformName: this.platformName, id: this.currentId, typeLabel,
-        tier: this.plan, price: tier.price, budget: this.dailyBudget, generated
+        tier: this.plan, price: tier.price, budget: this.dailyBudget,
+        generated, isExposure
       }
-      this.pendingLaunch = { tier, typeLabel, generated }
+      this.pendingLaunch = { tier, typeLabel, generated, isExposure }
       this.confirmVisible = true
     },
     doConfirmLaunch() {
       this.confirmVisible = false
       if (this.pendingLaunch) {
-        const { tier, typeLabel, generated } = this.pendingLaunch
-        this.doLaunch(tier, typeLabel, generated)
+        const { tier, typeLabel, generated, isExposure } = this.pendingLaunch
+        this.doLaunch(tier, typeLabel, generated, isExposure)
       }
     },
-    async doLaunch(tier, typeLabel, generated) {
+    async doLaunch(tier, typeLabel, generated, isExposure) {
       if (this.launching) return
       this.launching = true
       sessionStorage.setItem('lastLaunch', JSON.stringify({
@@ -262,7 +276,7 @@ export default {
           this.launching = false
           if (result && result.code === 0) {
             this.$message({ type: 'success', duration: 5000,
-              message: '投放成功（' + typeLabel + ' ' + generated + ' 条），数据需等待一个工作日后方可查询' })
+              message: '投放成功（' + typeLabel + (isExposure ? ' 预计热度约 ' + generated : ' ' + generated + ' 条') + '），数据需等待一个工作日后方可查询' })
             this.$store.dispatch('clientUser/loadAccounts')
             this.$router.push('/client/launch')
           } else {

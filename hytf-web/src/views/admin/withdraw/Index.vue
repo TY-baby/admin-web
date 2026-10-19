@@ -85,10 +85,11 @@
         </el-form-item>
         <el-form-item v-if="form.launch_type === 'FIRST_CHARGE'" label="生成条数">
           <el-input-number v-model="form.generated_count" :min="0" :step="1" style="width:200px" />
-          <span style="margin-left:8px;color:#909399">条</span>
+          <span style="margin-left:8px;color:#909399">条（剩余可出款，默认带出，可下调）</span>
         </el-form-item>
         <el-form-item v-if="form.launch_type === 'EXPOSURE'" label="热度">
           <el-input-number v-model="form.heat_value" :min="0" :step="1" style="width:200px" />
+          <span style="margin-left:8px;color:#909399">剩余可出款热度，默认带出，可下调</span>
         </el-form-item>
         <el-form-item label="结算金额" required>
           <el-input v-model="form.payable_amount" placeholder="手动输入,单位元" style="width:200px">
@@ -217,14 +218,23 @@ export default {
         const d = data.data
         this.form.generated_count = d.generated_count || 0
         this.form.heat_value = d.heat_value || 0
-        if (this.form.launch_type === 'FIRST_CHARGE' && d.payable_amount) {
-          this.form.payable_amount = String(d.payable_amount)
+        if (this.form.launch_type === 'FIRST_CHARGE' && !this.form.generated_count) {
+          this.$message.warning('该ID首充剩余可出款条数为0，不允许提交')
+        }
+        if (this.form.launch_type === 'EXPOSURE' && !this.form.heat_value) {
+          this.$message.warning('该ID曝光度剩余可出款热度为0，不允许提交')
         }
       }
     },
     async onSubmit() {
       if (!this.form.payee_id) { this.$message.warning('请选择打款对象'); return }
       if (!this.form.cascade || this.form.cascade.length < 4) { this.$message.warning('请选择客户 → 平台 → ID → 类型'); return }
+      if (this.form.launch_type === 'FIRST_CHARGE' && !(Number(this.form.generated_count) > 0)) {
+        this.$message.warning('剩余生成条数为0，不允许提交'); return
+      }
+      if (this.form.launch_type === 'EXPOSURE' && !(Number(this.form.heat_value) > 0)) {
+        this.$message.warning('剩余热度为0，不允许提交'); return
+      }
       const amt = Number(this.form.payable_amount)
       if (!amt || isNaN(amt) || amt <= 0) { this.$message.warning('请填写正确的结算金额'); return }
       if (!this.form.settle_date) { this.$message.warning('请选择结算日期'); return }
