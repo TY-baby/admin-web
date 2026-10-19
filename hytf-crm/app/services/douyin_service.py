@@ -1,9 +1,10 @@
 from datetime import datetime, date, timedelta
-from typing import List
+from typing import List, Optional
 from sqlalchemy import func, and_, case
 from sqlalchemy.orm import Session
 from app.models.douyin_account import DouyinAccount
 from app.models.finance_log import FinanceLog
+from app.utils.id_generator import load_item_batches
 
 
 def get_home_summary(db: Session, cid: int) -> dict:
@@ -42,6 +43,47 @@ def get_trend(db: Session, cid: int, aid, dfrom: date, dto: date) -> List[dict]:
         out.append({"date": k, "consume": c, "recharge": rc, "balance": round(run, 2)})
         cur += timedelta(days=1)
     return out
+
+
+def get_launch_stats(db: Session, cid: int, aid: Optional[int],
+                     launch_type: str, dfrom: date, dto: date) -> dict:
+    """按类型聚合首充金额 / 首充ID数 / 热度（区间累加）
+       数据源：t_douyin_account.generated_items 中的批次记录"""
+    q = db.query(DouyinAccount).filter(
+        DouyinAccount.customer_id == cid,
+        DouyinAccount.launch_at.isnot(None))
+    if aid:
+        q = q.filter(DouyinAccount.id == aid)
+    accs = q.all()
+
+    start_str = dfrom.strftime("%Y-%m-%d")
+    end_str = dto.strftime("%Y-%m-%d")
+    first_amount = 0.0
+    first_count = 0
+    heat_total = 0
+    consume_total = 0.0
+    for a in accs:
+        for b in load_item_batches(a.generated_items):
+            b_type = b.get("launch_type") or a.launch_type
+            if b_type != launch_type:
+                continue
+            ld = (b.get("launch_at") or "")[:10]
+            if not ld or not (start_str <= ld <= end_str):
+                continue
+            items = b.get("items") or []
+            consume_total += float(b.get("consumed") or 0)
+            if launch_type == "FIRST_CHARGE":
+                first_count += len(items)
+                first_amount += sum(float(it.get("value", 0) or 0) for it in items)
+            else:
+                heat_total += sum(int(it.get("value", 0) or 0) for it in items)
+    return {
+        "launch_type": launch_type,
+        "first_amount": round(first_amount, 2),
+        "first_count": first_count,
+        "heat_total": heat_total,
+        "consume_total": round(consume_total, 2),
+    }
 
 
 def get_accounts(db: Session, cid: int) -> List[DouyinAccount]:

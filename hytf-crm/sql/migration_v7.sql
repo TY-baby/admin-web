@@ -8,16 +8,13 @@ ALTER TABLE t_withdraw
 CREATE INDEX idx_withdraw_settle_date ON t_withdraw (settle_date);
 CREATE INDEX idx_withdraw_platform ON t_withdraw (platform_code);
 
--- 回填：按 douyin_account 的 platform_code 兜底
 UPDATE t_withdraw w
     JOIN t_douyin_account a ON a.id = w.douyin_account_id
     SET w.platform_code = IFNULL(a.platform_code, '')
 WHERE w.platform_code = '' OR w.platform_code IS NULL;
 
--- 历史数据 settle_date 用 created_at 兜底
 UPDATE t_withdraw SET settle_date = DATE(created_at) WHERE settle_date IS NULL;
 
--- 开票表增加平台字段
 ALTER TABLE t_invoice
     ADD COLUMN platform_code VARCHAR(30) NOT NULL DEFAULT '' AFTER douyin_id;
 
