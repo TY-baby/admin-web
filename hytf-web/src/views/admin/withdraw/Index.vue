@@ -38,7 +38,7 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="生成条数/热度" width="130" align="center">
+        <el-table-column label="结算条数/热度" width="130" align="center">
           <template slot-scope="{ row }">
             <span v-if="row.launch_type === 'EXPOSURE'">{{ row.heat_value || 0 }} 热度</span>
             <span v-else>{{ row.generated_count || 0 }} 条</span>
