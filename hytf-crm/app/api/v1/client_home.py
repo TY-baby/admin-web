@@ -100,8 +100,9 @@ def export_api(start: Optional[date] = None, end: Optional[date] = None,
     """A端流水明细导出
        2.3：必须选择类型 + ID
        2.8.1：数值列按类型改为 首充金额 / 直播热度
-       2.8.2：首充导出增加"充值订单号"（年月日+随机8位数字）
-       2.8.3：取消"名称"字段"""
+       2.8.2：导出增加"充值订单号"（年月日+随机8位数字），首充/曝光度同规则
+       2.8.3：取消"名称"字段
+       v13：曝光度导出不含"ID""昵称"列"""
     cid = int(user["sub"])
     if not launch_type or launch_type not in ("FIRST_CHARGE", "EXPOSURE"):
         return fail("导出前必须选择类型（首充/直播曝光度）", code=40004)
@@ -120,9 +121,10 @@ def export_api(start: Optional[date] = None, end: Optional[date] = None,
 
     is_first = launch_type == "FIRST_CHARGE"
     value_col = "首充金额" if is_first else "直播热度"
-    headers = ["投放平台名称", "投放ID", "档位", "类型", "ID", "昵称", value_col, "投放日期"]
+    headers = ["投放平台名称", "投放ID", "档位", "类型"]
     if is_first:
-        headers.append("充值订单号")
+        headers += ["ID", "昵称"]
+    headers += [value_col, "投放日期", "充值订单号"]
 
     rows = []
     start_str = start.strftime("%Y-%m-%d")
@@ -138,11 +140,10 @@ def export_api(start: Optional[date] = None, end: Optional[date] = None,
         b_type_label = LAUNCH_TYPE_LABEL.get(b_type, "")
         for it in b.get("items") or []:
             row = [pname.get(acc.platform_code, acc.platform_code),
-                   acc.douyin_id, b_tier, b_type_label,
-                   it.get("biz_code", ""), it.get("nickname", ""),
-                   it.get("value", ""), ld]
+                   acc.douyin_id, b_tier, b_type_label]
             if is_first:
-                row.append(gen_recharge_order_no())
+                row += [it.get("biz_code", ""), it.get("nickname", "")]
+            row += [it.get("value", ""), ld, gen_recharge_order_no()]
             rows.append(row)
 
     content = export_rows_to_xlsx(headers, rows)
