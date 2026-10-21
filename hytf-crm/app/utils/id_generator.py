@@ -4,6 +4,8 @@ import string
 from datetime import datetime
 from typing import List, Dict, Any
 
+from app.utils.timeutil import now_cn
+
 _NICK_P = ["恒", "耀", "星", "辰", "鑫", "盛", "腾", "飞", "达", "汇", "聚", "创", "赢", "锋", "智"]
 _NICK_S = ["投手", "推广", "运营", "小助手", "工作站", "达人", "联盟", "旗舰", "先锋", "战队"]
 
