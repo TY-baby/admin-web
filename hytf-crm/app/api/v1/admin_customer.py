@@ -16,6 +16,7 @@ from app.utils.excel_export import export_rows_to_xlsx, export_rows_to_xlsx_merg
 from app.utils.id_generator import (EXPOSURE_TIER_PRICE, EXPOSURE_TIER_RANGE, LAUNCH_TYPE_LABEL,
                                     TIER_DAILY_BUDGET, TIER_ITEM_RANGE,
                                     gen_launch_items, load_item_batches)
+from app.utils.timeutil import now_cn
 
 router = APIRouter()
 
@@ -145,7 +146,7 @@ def export_api(keyword_name: Optional[str] = None, keyword_douyin: Optional[str]
                                 [it.get("value", ""), b_type_label, ld])
     # 4.4：取消单元格合并
     content = export_rows_to_xlsx(headers, rows)
-    fname = f"customers_{type_label}_{datetime.now().strftime('%Y%m%d%H%M%S')}.xlsx"
+    fname = f"customers_{type_label}_{now_cn().strftime('%Y%m%d%H%M%S')}.xlsx"
     return StreamingResponse(BytesIO(content),
                              media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                              headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(fname)}"})

@@ -2,6 +2,7 @@ from datetime import datetime
 from sqlalchemy import String, DateTime, Integer, DECIMAL
 from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import Base
+from app.utils.timeutil import now_cn
 
 
 class NovelPage(Base):
@@ -18,4 +19,4 @@ class NovelPage(Base):
     reads_cap: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     seed: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     refresh_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now_cn)

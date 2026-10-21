@@ -120,7 +120,8 @@ import { getAdminToken } from '@/utils/auth'
 export default {
   name: 'AdminWithdraw',
   data() {
-    const today = new Date().toISOString().slice(0, 10)
+    const d = new Date()
+    const today = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
     return {
       loading: false, rows: [], total: 0, dateRange: [],
       query: { keyword: '', launch_type: '', page: 1, page_size: 20 },
@@ -162,7 +163,8 @@ export default {
     },
     openDialog() { this.dialogVisible = true },
     async onDialogOpen() {
-      const today = new Date().toISOString().slice(0, 10)
+      const d = new Date()
+      const today = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
       this.form = { payee_id: null, cascade: [], launch_type: '',
                     generated_count: 0, heat_value: 0,
                     payable_amount: '', settle_date: today, remark: '' }

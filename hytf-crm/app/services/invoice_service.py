@@ -2,6 +2,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from app.models.invoice import Invoice
 from app.schemas.invoice import InvoiceCreateReq
+from app.utils.timeutil import now_cn
 
 
 def list_invoices(db: Session, page=1, size=20, status=None):
@@ -25,7 +26,7 @@ def create_invoice(db: Session, req: InvoiceCreateReq) -> Invoice:
                   douyin_id=req.douyin_id,
                   platform_code=req.platform_code or "",
                   amount=req.amount, remark=req.remark, status="PENDING",
-                  invoice_at=datetime.utcnow())
+                  invoice_at=now_cn())
     db.add(inv)
     db.commit()
     db.refresh(inv)
@@ -37,7 +38,7 @@ def process_invoice(db: Session, iid: int) -> Invoice:
     if not inv:
         raise ValueError("invoice not found")
     inv.status = "PROCESSED"
-    inv.processed_at = datetime.utcnow()
+    inv.processed_at = now_cn()
     db.commit()
     db.refresh(inv)
     return inv

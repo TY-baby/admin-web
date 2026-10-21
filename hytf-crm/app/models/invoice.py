@@ -2,6 +2,7 @@ from datetime import datetime
 from sqlalchemy import String, DateTime, Integer, DECIMAL, Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import Base
+from app.utils.timeutil import now_cn
 
 
 class Invoice(Base):
@@ -13,8 +14,8 @@ class Invoice(Base):
     platform_code: Mapped[str] = mapped_column(String(30), default="")
     amount: Mapped[float] = mapped_column(DECIMAL(12, 2), nullable=False)
     status: Mapped[str] = mapped_column(SAEnum("PENDING", "PROCESSED", name="invoice_status"), default="PENDING")
-    invoice_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    invoice_at: Mapped[datetime] = mapped_column(DateTime, default=now_cn)
     processed_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     remark: Mapped[str] = mapped_column(String(255), default="")
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now_cn)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=now_cn, onupdate=now_cn)

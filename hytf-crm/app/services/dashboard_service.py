@@ -5,6 +5,7 @@ from app.models.customer import Customer
 from app.models.douyin_account import DouyinAccount
 from app.models.finance_log import FinanceLog
 from app.models.invoice import Invoice
+from app.utils.timeutil import now_cn, today_cn
 
 
 def admin_dashboard(db: Session, days: int = 14) -> dict:
@@ -14,7 +15,7 @@ def admin_dashboard(db: Session, days: int = 14) -> dict:
     total_consume = db.query(func.coalesce(func.sum(-FinanceLog.amount), 0)).filter(
         FinanceLog.change_type == "CONSUME").scalar() or 0
 
-    now = datetime.utcnow()
+    now = now_cn()
     expiring = db.query(func.count(DouyinAccount.id)).filter(and_(
         DouyinAccount.auth_end_at.isnot(None),
         DouyinAccount.auth_end_at > now,
@@ -25,7 +26,7 @@ def admin_dashboard(db: Session, days: int = 14) -> dict:
         DouyinAccount.auth_end_at <= now)).scalar() or 0
     inv_pending = db.query(func.count(Invoice.id)).filter(Invoice.status == "PENDING").scalar() or 0
 
-    start_d = date.today() - timedelta(days=days - 1)
+    start_d = today_cn() - timedelta(days=days - 1)
     consume_expr = func.coalesce(func.sum(case((FinanceLog.change_type == "CONSUME", -FinanceLog.amount), else_=0)), 0)
     recharge_expr = func.coalesce(func.sum(case((FinanceLog.change_type == "RECHARGE", FinanceLog.amount), else_=0)), 0)
     rows = db.query(func.date(FinanceLog.stat_date).label("d"),
@@ -36,7 +37,7 @@ def admin_dashboard(db: Session, days: int = 14) -> dict:
     m = {str(r.d): r for r in rows}
 
     trend, cur, bal = [], start_d, 0.0
-    while cur <= date.today():
+    while cur <= today_cn():
         r = m.get(cur.isoformat())
         c = float(r.consume) if r else 0.0
         rc = float(r.recharge) if r else 0.0

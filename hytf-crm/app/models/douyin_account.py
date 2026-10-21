@@ -2,6 +2,7 @@ from datetime import datetime
 from sqlalchemy import String, DateTime, Integer, DECIMAL, Text, Enum as SAEnum, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import Base
+from app.utils.timeutil import now_cn
 
 
 class DouyinAccount(Base):
@@ -28,9 +29,9 @@ class DouyinAccount(Base):
     generated_items: Mapped[str] = mapped_column(Text, nullable=True)
     launch_at: Mapped[datetime] = mapped_column(DateTime, nullable=True, index=True)
     auth_duration: Mapped[str] = mapped_column(SAEnum("UNLIMITED", "D3", "D7", "D30", "CUSTOM", name="auth_duration_enum"), default="UNLIMITED")
-    auth_start_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    auth_start_at: Mapped[datetime] = mapped_column(DateTime, default=now_cn)
     auth_end_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     status: Mapped[str] = mapped_column(SAEnum("NORMAL", "DISABLED", name="account_status"), default="NORMAL")
     remark: Mapped[str] = mapped_column(String(255), default="")
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now_cn)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=now_cn, onupdate=now_cn)

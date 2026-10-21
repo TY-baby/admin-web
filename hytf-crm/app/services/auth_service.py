@@ -4,6 +4,7 @@ from app.core.config import settings
 from app.core.security import build_client_default_password, create_access_token, verify_password
 from app.models.admin_user import AdminUser
 from app.models.customer import Customer
+from app.utils.timeutil import now_cn
 
 ALL_MENUS = ["dashboard", "customer", "novel", "invoice", "withdraw", "log", "monitor", "account"]
 BUSINESS_MENUS = ["dashboard", "customer", "novel", "invoice", "withdraw"]
@@ -38,7 +39,7 @@ def admin_login(db: Session, username: str, password: str):
     a = db.query(AdminUser).filter(AdminUser.username == username).first()
     if not a or not a.is_active or not verify_password(password, a.password_hash):
         return None
-    a.last_login_at = datetime.utcnow()
+    a.last_login_at = now_cn()
     db.commit()
     token = create_access_token(str(a.id), "admin", settings.JWT_EXPIRE_MINUTES_ADMIN,
                                 extra={"username": a.username, "name": a.real_name})

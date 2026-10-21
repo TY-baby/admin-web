@@ -2,6 +2,7 @@ from datetime import datetime, date
 from sqlalchemy import String, DateTime, Integer, DECIMAL, Date
 from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import Base
+from app.utils.timeutil import now_cn
 
 
 class Withdraw(Base):
@@ -24,4 +25,4 @@ class Withdraw(Base):
     settle_date: Mapped[date] = mapped_column(Date, nullable=True, index=True)
     remark: Mapped[str] = mapped_column(String(255), default="")
     operator: Mapped[str] = mapped_column(String(50), default="")
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now_cn)

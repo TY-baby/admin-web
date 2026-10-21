@@ -15,6 +15,7 @@ from app.services.douyin_service import get_home_summary, get_launch_stats, get_
 from app.services.novel_service import launch_novel, page_link
 from app.utils.excel_export import export_rows_to_xlsx
 from app.utils.id_generator import LAUNCH_TYPE_LABEL, gen_recharge_order_no, load_item_batches
+from app.utils.timeutil import today_cn
 
 router = APIRouter()
 
@@ -79,7 +80,7 @@ def trend(start: Optional[date] = None, end: Optional[date] = None,
           launch_type: Optional[str] = None,
           db: Session = Depends(get_db), user=Depends(get_current_client)):
     cid = int(user["sub"])
-    yesterday = date.today() - timedelta(days=1)
+    yesterday = today_cn() - timedelta(days=1)
     end = min(end or yesterday, yesterday)
     start = min(start or end, end)
     if (end - start).days > 92:
@@ -108,7 +109,7 @@ def export_api(start: Optional[date] = None, end: Optional[date] = None,
         return fail("导出前必须选择类型（首充/直播曝光度）", code=40004)
     if not account_id:
         return fail("导出前必须选择投放ID", code=40004)
-    yesterday = date.today() - timedelta(days=1)
+    yesterday = today_cn() - timedelta(days=1)
     end = min(end or yesterday, yesterday)
     start = min(start or end, end)
 

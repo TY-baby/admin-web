@@ -2,6 +2,7 @@ from datetime import datetime
 from sqlalchemy import String, DateTime, Integer, DECIMAL, Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import Base
+from app.utils.timeutil import now_cn
 
 
 class FinanceLog(Base):
@@ -14,4 +15,4 @@ class FinanceLog(Base):
     balance_after: Mapped[float] = mapped_column(DECIMAL(12, 2), nullable=False)
     stat_date: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
     remark: Mapped[str] = mapped_column(String(255), default="")
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now_cn)

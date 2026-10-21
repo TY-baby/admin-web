@@ -16,6 +16,7 @@ from app.schemas.common import ok, fail
 from app.schemas.withdraw import WithdrawCreateReq
 from app.utils.excel_export import export_rows_to_xlsx
 from app.utils.id_generator import LAUNCH_TYPE_LABEL, load_item_batches
+from app.utils.timeutil import now_cn, today_cn
 
 router = APIRouter()
 
@@ -142,7 +143,7 @@ def create_withdraw(body: WithdrawCreateReq,
         generated_count=int(body.generated_count or 0),
         heat_value=int(body.heat_value or 0),
         payable_amount=float(body.payable_amount),
-        settle_date=body.settle_date or date.today(),
+        settle_date=body.settle_date or today_cn(),
         remark=body.remark, operator=operator,
     )
     db.add(w)
@@ -263,7 +264,7 @@ def export_withdraw(keyword: Optional[str] = None,
             rows.append(base + [w.douyin_id, w.douyin_name, settle])
 
     content = export_rows_to_xlsx(headers, rows)
-    fname = f"withdraw_{type_label}_{datetime.now().strftime('%Y%m%d%H%M%S')}.xlsx"
+    fname = f"withdraw_{type_label}_{now_cn().strftime('%Y%m%d%H%M%S')}.xlsx"
     return StreamingResponse(BytesIO(content),
                              media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                              headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(fname)}"})

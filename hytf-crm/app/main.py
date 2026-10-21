@@ -27,6 +27,7 @@ from app.models.admin_user import AdminUser
 from app.models.operation_log import OperationLog
 from app.models.platform import Platform
 from app.models.payee import Payee
+from app.utils.timeutil import now_cn
 
 DEFAULT_PLATFORMS = [("yingke", "映客", 1), ("qiyin", "栖音", 2),
                      ("bilibili", "哔哩哔哩", 3), ("liujianfang", "六间房", 4),
@@ -232,7 +233,7 @@ def _record_operation_log(request: Request):
         try:
             db.add(OperationLog(username=username, role=role, action=action,
                                 method=request.method, path=path, ip=ip,
-                                created_at=datetime.utcnow()))
+                                created_at=now_cn()))
             db.commit()
         finally:
             db.close()

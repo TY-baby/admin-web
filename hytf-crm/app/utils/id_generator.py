@@ -25,12 +25,12 @@ _DEFAULT_ID_LEN = (6, 10)
 
 def gen_customer_uid(existing=None) -> str:
     existing = existing or set()
-    d = datetime.now().strftime("%Y%m%d")
+    d = now_cn().strftime("%Y%m%d")
     for _ in range(200):
         uid = d + f"{random.randint(0, 99):02d}"
         if uid not in existing:
             return uid
-    return d + f"{datetime.now().microsecond % 100:02d}"
+    return d + f"{now_cn().microsecond % 100:02d}"
 
 
 def gen_auto_code(existing=None) -> str:
@@ -99,7 +99,7 @@ LAUNCH_TYPE_LABEL = {"FIRST_CHARGE": "首充", "EXPOSURE": "直播曝光度"}
 
 def gen_recharge_order_no() -> str:
     """充值订单号：年月日 + 随机 8 位纯数字，例：2029080613145201"""
-    return datetime.now().strftime("%Y%m%d") + "".join(random.choices(string.digits, k=8))
+    return now_cn().strftime("%Y%m%d") + "".join(random.choices(string.digits, k=8))
 
 
 def gen_launch_items(count: int, item_range: tuple, platform_code: str = "") -> List[Dict[str, Any]]:

@@ -12,6 +12,7 @@ from app.utils.id_generator import (EXPOSURE_TIER_PRICE, EXPOSURE_TIER_RANGE, LA
                                     TIER_DAILY_BUDGET, TIER_ITEM_RANGE,
                                     append_launch_batch, gen_auto_code, gen_customer_uid,
                                     gen_launch_items, gen_nickname, load_item_batches, load_items)
+from app.utils.timeutil import now_cn
 
 AUTH_DAYS = {"D3": 3, "D7": 7, "D30": 30}
 
@@ -152,7 +153,7 @@ def create_customer(db: Session, req: CustomerCreateReq) -> Customer:
             raise ValueError(f"投放平台不存在: {pcode}")
         if (pcode, d.douyin_id) in exists:
             raise ValueError(f"该平台下ID已存在: {d.douyin_id}")
-        start = datetime.utcnow()
+        start = now_cn()
         acc = DouyinAccount(customer_id=cust.id, platform_code=pcode,
                             douyin_id=d.douyin_id,
                             douyin_name=d.douyin_name,
@@ -200,7 +201,7 @@ def update_douyin(db: Session, aid: int, req: DouyinUpdateReq) -> DouyinAccount:
         a.balance = round(float(a.balance) + add, 2)
         db.add(FinanceLog(customer_id=a.customer_id, douyin_account_id=a.id,
                           change_type="RECHARGE", amount=add, balance_after=a.balance,
-                          stat_date=datetime.utcnow(), remark="管理员追加充值"))
+                          stat_date=now_cn(), remark="管理员追加充值"))
     if req.auth_duration is not None:
         a.auth_duration = req.auth_duration
         a.auth_end_at = _calc_end(req.auth_duration, req.auth_days_custom, a.auth_start_at)
@@ -230,7 +231,7 @@ def launch_delivery(db: Session, cid: int, platform_code: str, douyin_id: str,
     consumed = round(generated * price, 2)
     remaining = round(balance - consumed, 2)
     # 关键：一次性生成随机明细并按批次追加落库（多次投放累加，不覆盖）
-    now = datetime.utcnow()
+    now = now_cn()
     items = gen_launch_items(generated, TIER_ITEM_RANGE[tier], platform_code=platform_code)
     a.tier = tier
     a.tier_daily_budget = price

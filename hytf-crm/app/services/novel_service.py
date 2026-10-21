@@ -8,6 +8,7 @@ from app.models.finance_log import FinanceLog
 from app.models.novel_page import NovelPage
 from app.utils.id_generator import (EXPOSURE_TIER_PRICE, EXPOSURE_TIER_RANGE,
                                     append_launch_batch, gen_launch_items, gen_page_code)
+from app.utils.timeutil import now_cn
 
 NOVEL_DIR = os.environ.get("NOVEL_DIR", "/app/novel_book")
 GROW_SECONDS = 3600
@@ -47,7 +48,7 @@ fetch('/api/v1/public/novel/{code}/reads').then(function(r){return r.json();}).t
 
 
 def current_reads(p: NovelPage, now: datetime = None) -> int:
-    now = now or datetime.utcnow()
+    now = now or now_cn()
     elapsed = max(0.0, (now - p.created_at).total_seconds())
     start, cap = p.reads_start, p.reads_cap
     if elapsed >= GROW_SECONDS:
@@ -93,7 +94,7 @@ def launch_novel(db: Session, cid: int, platform_code: str, douyin_id: str,
     lo, hi = EXPOSURE_TIER_RANGE[tier]
     exposure = random.randint(lo, hi - 1)
     # 关键：一次性生成随机明细并按批次追加落库（多次投放累加，不覆盖）
-    now = datetime.utcnow()
+    now = now_cn()
     items = gen_launch_items(generated, (lo, hi), platform_code=platform_code)
     codes = {c for (c,) in db.query(NovelPage.page_code).all()}
     page = NovelPage(customer_id=cid, account_id=a.id, douyin_id=douyin_id,

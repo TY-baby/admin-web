@@ -7,6 +7,7 @@ services:
     container_name: hytf-mysql
     restart: always
     environment:
+      TZ: Asia/Shanghai
       MYSQL_ROOT_PASSWORD: hytf_root_2026
       MYSQL_DATABASE: hytf_crm
       MYSQL_USER: hytf_user
@@ -16,7 +17,7 @@ services:
       - ./hytf-crm/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "3306:3306"
-    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --default-time-zone=+08:00
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
@@ -45,6 +46,8 @@ services:
       dockerfile: Dockerfile
     container_name: hytf-backend
     restart: always
+    environment:
+      TZ: Asia/Shanghai
     env_file:
       - ./hytf-crm/.env.production
     depends_on:
@@ -66,6 +69,8 @@ services:
       dockerfile: Dockerfile
     container_name: hytf-frontend
     restart: always
+    environment:
+      TZ: Asia/Shanghai
     depends_on:
       - backend
     ports:

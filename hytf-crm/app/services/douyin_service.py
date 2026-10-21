@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.models.douyin_account import DouyinAccount
 from app.models.finance_log import FinanceLog
 from app.utils.id_generator import load_item_batches
+from app.utils.timeutil import now_cn
 
 
 def get_home_summary(db: Session, cid: int) -> dict:
@@ -99,7 +100,7 @@ def update_douyin_balance(db: Session, aid: int, change: float, log_type: str, r
     acc.balance = round(float(acc.balance) + change, 2)
     log = FinanceLog(customer_id=acc.customer_id, douyin_account_id=aid,
                      change_type=log_type, amount=change, balance_after=acc.balance,
-                     stat_date=datetime.utcnow(), remark=remark)
+                     stat_date=now_cn(), remark=remark)
     db.add(log)
     db.commit()
     db.refresh(acc)
