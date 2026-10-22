@@ -9,7 +9,7 @@ from app.models.finance_log import FinanceLog
 from app.models.platform import Platform
 from app.schemas.customer import CustomerCreateReq, CustomerUpdateReq, DouyinUpdateReq
 from app.utils.id_generator import (EXPOSURE_TIER_PRICE, EXPOSURE_TIER_RANGE, LAUNCH_TYPE_LABEL,
-                                    NOVEL_PROMO_TIER_PRICE,
+                                    NOVEL_PROMO_TIER_PRICE, PROMO_PLATFORM_CODE,
                                     TIER_DAILY_BUDGET, TIER_ITEM_RANGE,
                                     append_launch_batch, gen_auto_code, gen_customer_uid,
                                     gen_launch_items, gen_nickname, load_item_batches, load_items)
@@ -184,6 +184,57 @@ def create_customer(db: Session, req: CustomerCreateReq) -> Customer:
     return cust
 
 
+def create_novel_customer(db: Session, req) -> Customer:
+    """网文客户专用入口：无投放平台/ID，创建客户 + 一个隐藏网文推广资金账号(is_promo_only=1)。
+       登录规则与用户管理一致（手机号 + 默认密码）。"""
+    cust = db.query(Customer).filter(Customer.phone == req.phone).first()
+    if cust is not None:
+        has_promo = (db.query(DouyinAccount)
+                     .filter(DouyinAccount.customer_id == cust.id,
+                             DouyinAccount.is_promo_only == 1).first())
+        if has_promo:
+            raise ValueError("该手机号已存在网文客户")
+    if cust is None:
+        uids = {u for (u,) in db.query(Customer.customer_uid).all()}
+        cust = Customer(customer_uid=gen_customer_uid(uids),
+                        customer_name=req.customer_name,
+                        contact_name=req.contact_name,
+                        phone=req.phone,
+                        password_hash=hash_password(build_client_default_password(req.phone)),
+                        remark=req.remark)
+        db.add(cust)
+        db.flush()
+        logger.info(f"[novel customer created] uid={cust.customer_uid} phone={req.phone}")
+    else:
+        cust.customer_name = req.customer_name or cust.customer_name
+        cust.contact_name = req.contact_name or cust.contact_name
+    amount = float(req.recharge_amount or 0)
+    codes = {c for (c,) in db.query(DouyinAccount.auto_code).all()}
+    exists = {(p, i) for p, i in db.query(DouyinAccount.platform_code, DouyinAccount.douyin_id).all()}
+    promo_id = f"PROMO{cust.customer_uid}"
+    n = 1
+    while (PROMO_PLATFORM_CODE, promo_id) in exists:
+        promo_id = f"PROMO{cust.customer_uid}{n}"
+        n += 1
+    start = now_cn()
+    acc = DouyinAccount(customer_id=cust.id, platform_code=PROMO_PLATFORM_CODE,
+                        douyin_id=promo_id, douyin_name="网文推广",
+                        auto_code=gen_auto_code(codes), nickname=gen_nickname(),
+                        recharge_amount=amount, balance=amount,
+                        tier=None, tier_daily_budget=0,
+                        auth_duration="UNLIMITED", auth_start_at=start, auth_end_at=None,
+                        status="NORMAL", is_promo_only=1, remark=req.remark)
+    db.add(acc)
+    db.flush()
+    if amount > 0:
+        db.add(FinanceLog(customer_id=cust.id, douyin_account_id=acc.id,
+                          change_type="RECHARGE", amount=amount, balance_after=amount,
+                          stat_date=start, remark="网文客户录入充值"))
+    db.commit()
+    db.refresh(cust)
+    return cust
+
+
 def update_customer(db: Session, cid: int, req: CustomerUpdateReq) -> Customer:
     c = db.query(Customer).filter(Customer.id == cid).first()
     if not c:
@@ -294,6 +345,7 @@ def to_customer_item(c: Customer) -> dict:
             "total_consumed": calc_total_consumed(a),
             "tier": a.tier, "tier_daily_budget": a.tier_daily_budget,
             "launch_type": a.launch_type,
+            "is_promo_only": int(getattr(a, "is_promo_only", 0) or 0),
             "launch_type_label": LAUNCH_TYPE_LABEL.get(a.launch_type, "") if a.launch_type else "",
             "daily_budget": float(a.daily_budget or 0),
             "launch_consumed": float(a.launch_consumed or 0),

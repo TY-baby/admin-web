@@ -6,6 +6,9 @@ export const previewWithdraw = (accountId, launchType) => request({
   url: '/admin/withdraw/preview/' + accountId, method: 'get',
   params: launchType ? { launch_type: launchType } : {}
 })
+export const previewNovelWithdraw = (customerId, params) => request({
+  url: '/admin/withdraw/novel_preview/' + customerId, method: 'get', params: params || {}
+})
 export const createWithdraw = data => request({ url: '/admin/withdraw/create', method: 'post', data })
 export const deleteWithdraw = id => request({ url: '/admin/withdraw/' + id, method: 'delete' })
 export const withdrawExportUrl = '/api/v1/admin/withdraw/export'

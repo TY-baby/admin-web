@@ -9,6 +9,7 @@ from app.core.deps import get_current_admin, get_db
 from app.core.logging_conf import logger
 from app.models.customer import Customer
 from app.models.douyin_account import DouyinAccount
+from app.models.novel_promo import NovelPromo
 from app.models.payee import Payee
 from app.models.platform import Platform
 from app.models.withdraw import Withdraw
@@ -53,7 +54,7 @@ def list_payees(db: Session = Depends(get_db), _a=Depends(get_current_admin)):
 def list_customers_for_cascade(keyword: Optional[str] = None,
                                db: Session = Depends(get_db),
                                _a=Depends(get_current_admin)):
-    """级联：客户 → 平台 → ID → 类型"""
+    """级联：首充/曝光 → 客户 → 平台 → ID；网文推广 → 客户 → 平台 → 内容"""
     q = db.query(Customer)
     if keyword:
         q = q.filter(Customer.customer_name.like(f"%{keyword}%"))
@@ -61,11 +62,14 @@ def list_customers_for_cascade(keyword: Optional[str] = None,
     cids = [c.id for c in custs]
     pname = {p.code: p.name for p in db.query(Platform).all()}
     acc_map: dict = {}
+    novel_map: dict = {}
     if cids:
         accs = (db.query(DouyinAccount)
                 .filter(DouyinAccount.customer_id.in_(cids))
                 .order_by(DouyinAccount.created_at.asc()).all())
         for a in accs:
+            if int(getattr(a, "is_promo_only", 0) or 0) == 1:
+                continue
             acc_map.setdefault(a.customer_id, []).append({
                 "id": a.id, "douyin_id": a.douyin_id,
                 "douyin_name": a.douyin_name, "nickname": a.nickname,
@@ -74,8 +78,42 @@ def list_customers_for_cascade(keyword: Optional[str] = None,
                 "launch_type": a.launch_type or "",
                 "tier": a.tier or "",
             })
+        nps = db.query(NovelPromo).filter(NovelPromo.customer_id.in_(cids)).all()
+        for np in nps:
+            plat = novel_map.setdefault(np.customer_id, {})
+            node = plat.setdefault(np.platform_code,
+                                   {"platform_code": np.platform_code,
+                                    "platform_name": pname.get(np.platform_code, np.platform_code),
+                                    "contents": set()})
+            if np.promo_content:
+                node["contents"].add(np.promo_content)
     return ok([{"id": c.id, "customer_name": c.customer_name,
-                "accounts": acc_map.get(c.id, [])} for c in custs])
+                "accounts": acc_map.get(c.id, []),
+                "novel_options": [{"platform_code": v["platform_code"],
+                                   "platform_name": v["platform_name"],
+                                   "contents": sorted(v["contents"])}
+                                  for v in novel_map.get(c.id, {}).values()]}
+               for c in custs])
+
+
+@router.get("/novel_preview/{customer_id}")
+def preview_novel(customer_id: int, platform_code: Optional[str] = None,
+                  promo_content: Optional[str] = None,
+                  db: Session = Depends(get_db), _a=Depends(get_current_admin)):
+    q = db.query(NovelPromo).filter(NovelPromo.customer_id == customer_id)
+    if platform_code:
+        q = q.filter(NovelPromo.platform_code == platform_code)
+    if promo_content:
+        q = q.filter(NovelPromo.promo_content == promo_content)
+    np = q.first()
+    if not np:
+        return fail("无网文推广投放数据", code=40404)
+    a = db.query(DouyinAccount).filter(DouyinAccount.id == np.account_id).first()
+    if not a:
+        return fail("投放账号不存在", code=40404)
+    _g, _h, remain_count, _rh = _quota_stats(db, a, "NOVEL_PROMO")
+    return ok({"douyin_account_id": a.id, "platform_code": np.platform_code,
+               "promo_content": np.promo_content, "generated_count": remain_count})
 
 
 @router.get("/preview/{account_id}")
@@ -108,9 +146,27 @@ def create_withdraw(body: WithdrawCreateReq,
     payee = db.query(Payee).filter(Payee.id == body.payee_id).first()
     if not payee:
         return fail("打款对象不存在", code=40404)
-    acc = db.query(DouyinAccount).filter(DouyinAccount.id == body.douyin_account_id).first()
-    if not acc:
-        return fail("投放ID不存在", code=40404)
+    is_novel = body.launch_type == "NOVEL_PROMO"
+    if is_novel:
+        if not body.customer_id:
+            return fail("网文推广出款需选择客户/平台/内容", code=40004)
+        nq = db.query(NovelPromo).filter(NovelPromo.customer_id == body.customer_id)
+        if body.platform_code:
+            nq = nq.filter(NovelPromo.platform_code == body.platform_code)
+        if body.promo_content:
+            nq = nq.filter(NovelPromo.promo_content == body.promo_content)
+        np = nq.first()
+        if not np:
+            return fail("无网文推广投放数据", code=40404)
+        acc = db.query(DouyinAccount).filter(DouyinAccount.id == np.account_id).first()
+        if not acc:
+            return fail("投放账号不存在", code=40404)
+        platform_code = body.platform_code or np.platform_code or acc.platform_code or ""
+    else:
+        acc = db.query(DouyinAccount).filter(DouyinAccount.id == body.douyin_account_id).first()
+        if not acc:
+            return fail("投放ID不存在", code=40404)
+        platform_code = acc.platform_code or ""
     cust = db.query(Customer).filter(Customer.id == acc.customer_id).first()
     operator = admin.get("username", "")
     # v10: 剩余可出款额度校验（0 不允许提交，且不能超过剩余）
@@ -136,9 +192,10 @@ def create_withdraw(body: WithdrawCreateReq,
         payee_bank_name=payee.bank_name, payee_holder_name=payee.display_name,
         customer_id=cust.id if cust else 0,
         customer_name=cust.customer_name if cust else "",
-        douyin_account_id=acc.id, douyin_id=acc.douyin_id,
-        douyin_name=acc.douyin_name or acc.nickname,
-        platform_code=acc.platform_code or "",
+        douyin_account_id=acc.id,
+        douyin_id=(body.promo_content or "") if is_novel else acc.douyin_id,
+        douyin_name=(body.promo_content or "") if is_novel else (acc.douyin_name or acc.nickname),
+        platform_code=platform_code,
         launch_type=body.launch_type,
         generated_count=int(body.generated_count or 0),
         heat_value=int(body.heat_value or 0),

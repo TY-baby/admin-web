@@ -1,19 +1,20 @@
 <template>
-  <div class="promo">
+  <div class="promo" :class="c.theme">
     <header class="hero">
       <div class="hero-bg"></div>
       <div class="hero-inner">
-        <div class="badge"><i class="el-icon-medal"></i> 官方认证 · 恒耀互娱</div>
-        <h1 class="title">深度布局网文推广赛道<br />「平台 + 运营」双引擎驱动创作者价值</h1>
-        <p class="subtitle">直播工会宣传 · 招聘宣传 — 覆盖内容分发、数据追踪与结算服务的全链路推广能力，助力优质内容精准触达目标读者。</p>
+        <div class="badge"><i class="el-icon-medal"></i> {{ c.badge }}</div>
+        <h1 class="title" v-html="c.title"></h1>
+        <p class="subtitle">{{ c.subtitle }}</p>
         <div class="cta">
           <a class="btn btn-primary" href="#join"><i class="el-icon-s-promotion"></i> 立即合作</a>
           <a class="btn btn-ghost" href="#about"><i class="el-icon-info"></i> 了解详情</a>
         </div>
         <div class="hero-stats">
           <div class="hs"><div class="hs-num">{{ displayReads }}</div><div class="hs-lbl">页面阅读量</div></div>
-          <div class="hs"><div class="hs-num">5+</div><div class="hs-lbl">合作投放平台</div></div>
-          <div class="hs"><div class="hs-num">T+1</div><div class="hs-lbl">数据结算周期</div></div>
+          <div class="hs" v-for="s in c.stats" :key="s.lbl">
+            <div class="hs-num">{{ s.num }}</div><div class="hs-lbl">{{ s.lbl }}</div>
+          </div>
         </div>
       </div>
     </header>
@@ -23,10 +24,10 @@
         <div class="sec-head">
           <span class="sec-tag">ABOUT US</span>
           <h2>关于恒耀互娱</h2>
-          <p>恒耀互娱以「平台 + 运营」双引擎模式，为创作者与主播提供从曝光、引流到结算的一体化服务，数据透明可查、效果稳定可控。</p>
+          <p>恒耀互娱以「平台 + 运营」双引擎模式，为创作者、主播与求职者提供从曝光、引流到结算/成长的一体化服务，数据透明可查、效果稳定可控。</p>
         </div>
         <div class="cards">
-          <div class="card" v-for="f in features" :key="f.title">
+          <div class="card" v-for="f in c.features" :key="f.title">
             <div class="card-ico"><i :class="f.icon"></i></div>
             <div class="card-title">{{ f.title }}</div>
             <div class="card-desc">{{ f.desc }}</div>
@@ -37,29 +38,12 @@
       <section id="join" class="section alt">
         <div class="sec-head">
           <span class="sec-tag">JOIN US</span>
-          <h2>招募与合作方向</h2>
-          <p>无论你是内容创作者、主播，还是寻求推广合作的伙伴，这里都有适合你的位置。</p>
+          <h2>{{ c.joinTitle }}</h2>
+          <p>{{ c.joinDesc }}</p>
         </div>
-        <div class="join-grid">
-          <div class="join-card">
-            <div class="join-ico"><i class="el-icon-microphone"></i></div>
-            <h3>直播工会宣传</h3>
-            <ul>
-              <li>专业运营团队一对一扶持</li>
-              <li>流量资源与曝光位倾斜</li>
-              <li>阶梯式分成，结算透明</li>
-              <li>数据看板实时追踪效果</li>
-            </ul>
-          </div>
-          <div class="join-card">
-            <div class="join-ico"><i class="el-icon-s-custom"></i></div>
-            <h3>招聘宣传</h3>
-            <ul>
-              <li>主播 / 运营 / 推广多岗位开放</li>
-              <li>弹性工作时间，收入上不封顶</li>
-              <li>系统化培训与晋升通道</li>
-              <li>优质团队氛围与资源支持</li>
-            </ul>
+        <div class="points">
+          <div class="point" v-for="p in c.points" :key="p">
+            <i class="el-icon-check"></i><span>{{ p }}</span>
           </div>
         </div>
       </section>
@@ -67,20 +51,20 @@
       <section class="section">
         <div class="sec-head">
           <span class="sec-tag">PROCESS</span>
-          <h2>合作流程</h2>
+          <h2>{{ c.processTitle }}</h2>
         </div>
         <div class="steps">
-          <div class="step" v-for="(s, i) in steps" :key="s">
+          <div class="step" v-for="(s, i) in c.steps" :key="s">
             <div class="step-no">{{ i + 1 }}</div>
             <div class="step-txt">{{ s }}</div>
-            <i v-if="i < steps.length - 1" class="el-icon-right step-arrow"></i>
+            <i v-if="i < c.steps.length - 1" class="el-icon-right step-arrow"></i>
           </div>
         </div>
       </section>
 
       <section class="cta-band">
-        <h3>准备好开启你的推广之旅了吗？</h3>
-        <p>联系官方客服，获取专属投放方案与结算说明。</p>
+        <h3>{{ c.ctaTitle }}</h3>
+        <p>{{ c.ctaDesc }}</p>
         <a class="btn btn-light" href="#about"><i class="el-icon-service"></i> 联系客服咨询</a>
       </section>
     </main>
@@ -100,22 +84,58 @@
 </template>
 
 <script>
+const UNION = {
+  theme: 'theme-union',
+  badge: '官方认证 · 直播工会宣传',
+  title: '恒耀互娱直播工会招募<br />专业运营护航 · 流量资源倾斜',
+  subtitle: '面向主播与工会的一站式直播推广合作，提供曝光扶持、运营陪跑与透明结算，助力直播事业稳步增长。',
+  stats: [{ num: '5+', lbl: '合作直播平台' }, { num: 'T+1', lbl: '结算周期' }, { num: '1对1', lbl: '运营扶持' }],
+  features: [
+    { icon: 'el-icon-microphone', title: '主播孵化', desc: '从0到1系统化培养，专业导师全程陪跑，快速提升直播能力。' },
+    { icon: 'el-icon-data-line', title: '流量扶持', desc: '优质曝光位与流量资源倾斜，让每一场直播都被更多人看见。' },
+    { icon: 'el-icon-coin', title: '阶梯分成', desc: '分成规则公开透明，收益阶梯递增，多劳多得按时结算。' },
+    { icon: 'el-icon-service', title: '运营陪跑', desc: '专属运营团队对接，选题、话术、活动策划全方位支持。' }
+  ],
+  joinTitle: '工会合作权益',
+  joinDesc: '加入恒耀互娱直播工会，享受从资源到运营的全方位扶持。',
+  points: ['专业运营团队一对一扶持', '流量资源与首页曝光位倾斜', '阶梯式分成，结算透明及时',
+    '数据看板实时追踪直播效果', '活动策划与 PK 资源对接'],
+  processTitle: '合作流程',
+  steps: ['提交合作意向', '资质沟通匹配', '签约入驻', '直播运营扶持', '阶段结算收益'],
+  ctaTitle: '准备好开启你的直播之旅了吗？',
+  ctaDesc: '联系官方客服，获取专属工会合作方案与分成说明。'
+}
+const RECRUIT = {
+  theme: 'theme-recruit',
+  badge: '官方认证 · 招聘宣传',
+  title: '恒耀互娱诚聘英才<br />多岗位开放 · 收入上不封顶',
+  subtitle: '我们正在寻找热爱内容、渴望成长的你。主播、运营、推广多岗位开放，弹性工作、系统培训、晋升透明。',
+  stats: [{ num: '多', lbl: '在招岗位' }, { num: '弹性', lbl: '工作时间' }, { num: '上不封顶', lbl: '收入空间' }],
+  features: [
+    { icon: 'el-icon-s-custom', title: '主播', desc: '形象佳、表达力强，热爱镜头，负责日常直播与粉丝互动。' },
+    { icon: 'el-icon-setting', title: '运营', desc: '负责内容策划、数据分析与账号运营，推动直播效果增长。' },
+    { icon: 'el-icon-share', title: '推广', desc: '负责渠道拓展与投放执行，具备较强的沟通与执行力。' },
+    { icon: 'el-icon-trophy', title: '晋升通道', desc: '完善的培训体系与清晰的晋升路径，让每一分努力被看见。' }
+  ],
+  joinTitle: '岗位福利',
+  joinDesc: '我们提供有竞争力的待遇与成长空间，期待你的加入。',
+  points: ['主播 / 运营 / 推广多岗位开放', '弹性工作时间，收入上不封顶', '系统化培训与清晰晋升通道',
+    '优质团队氛围与资源支持', '五险一金与节日福利'],
+  processTitle: '应聘流程',
+  steps: ['投递简历', '简历初筛', '面试沟通', 'offer 发放', '入职培训'],
+  ctaTitle: '准备好开启你的职业新篇章了吗？',
+  ctaDesc: '联系官方客服，获取在招岗位详情与投递方式。'
+}
+
 export default {
   name: 'BookPromo',
   data() {
-    return {
-      reads: 0, displayReads: 0, dateStr: '', promoContent: '',
-      features: [
-        { icon: 'el-icon-data-line', title: '数据可视化', desc: '投放效果实时追踪，阅读量、转化率一目了然，决策有据可依。' },
-        { icon: 'el-icon-coin', title: '结算透明', desc: '阶段性结算依据清晰，分成规则公开，收益按时到账。' },
-        { icon: 'el-icon-aim', title: '精准触达', desc: '基于实时数据反馈持续优化投放策略，让优质内容找到对的人。' },
-        { icon: 'el-icon-service', title: '运营扶持', desc: '专业运营团队全程陪跑，从内容到推广提供全链路支持。' }
-      ],
-      steps: ['提交合作意向', '专属方案匹配', '签约并投放', '数据追踪优化', '阶段结算收益']
-    }
+    return { reads: 0, displayReads: 0, dateStr: '', promoContent: '' }
   },
   computed: {
-    code() { return this.$route.params.code }
+    code() { return this.$route.params.code },
+    isRecruit() { return this.promoContent === '招聘宣传' },
+    c() { return this.isRecruit ? RECRUIT : UNION }
   },
   mounted() { this.loadVisit() },
   methods: {
@@ -150,11 +170,13 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.promo { font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif; color: #2c2c3a; background: #fff; }
+.promo { font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif; color: #2c2c3a; background: #fff;
+  --c1: #ff5f8f; --c2: #ff2e63; --c3: #ff8a5b; --alt: #fff6f8; --border: #ffe3ec; }
+.promo.theme-recruit { --c1: #4d7dff; --c2: #2b5cf6; --c3: #7b5bff; --alt: #f2f6ff; --border: #dce6ff; }
 .container { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
 
 .hero { position: relative; overflow: hidden; color: #fff;
-  background: linear-gradient(135deg, #ff5f8f 0%, #ff2e63 45%, #ff8a5b 100%); }
+  background: linear-gradient(135deg, var(--c1) 0%, var(--c2) 45%, var(--c3) 100%); }
 .hero-bg { position: absolute; inset: 0;
   background:
       radial-gradient(circle at 15% 20%, rgba(255,255,255,.25), transparent 40%),
@@ -167,47 +189,45 @@ export default {
 .cta { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
 .btn { display: inline-flex; align-items: center; gap: 6px; padding: 12px 28px; border-radius: 30px;
   font-size: 15px; font-weight: bold; text-decoration: none; transition: all .25s; cursor: pointer; }
-.btn-primary { background: #fff; color: #ff2e63; box-shadow: 0 8px 20px rgba(0,0,0,.18); }
+.btn-primary { background: #fff; color: var(--c2); box-shadow: 0 8px 20px rgba(0,0,0,.18); }
 .btn-primary:hover { transform: translateY(-2px); }
 .btn-ghost { border: 1.5px solid rgba(255,255,255,.8); color: #fff; }
 .btn-ghost:hover { background: rgba(255,255,255,.15); }
-.btn-light { background: #fff; color: #ff2e63; }
+.btn-light { background: #fff; color: var(--c2); }
 .hero-stats { display: flex; justify-content: center; gap: 48px; margin-top: 44px; flex-wrap: wrap; }
 .hs-num { font-size: 32px; font-weight: 800; }
 .hs-lbl { font-size: 13px; opacity: .9; margin-top: 4px; }
 
 .section { padding: 60px 0; }
-.section.alt { background: #fff6f8; }
+.section.alt { background: var(--alt); }
 .sec-head { text-align: center; max-width: 720px; margin: 0 auto 40px; }
-.sec-tag { display: inline-block; font-size: 12px; letter-spacing: 3px; color: #ff2e63; font-weight: bold; }
+.sec-tag { display: inline-block; font-size: 12px; letter-spacing: 3px; color: var(--c2); font-weight: bold; }
 .sec-head h2 { font-size: 28px; font-weight: 800; margin: 10px 0 12px; color: #22223a; }
 .sec-head p { font-size: 15px; line-height: 1.9; color: #6b6b7b; }
 
 .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
-.card { background: #fff; border: 1px solid #ffe3ec; border-radius: 14px; padding: 26px 20px; text-align: center;
-  box-shadow: 0 6px 20px rgba(255,46,99,.06); transition: transform .25s, box-shadow .25s; }
-.card:hover { transform: translateY(-6px); box-shadow: 0 14px 30px rgba(255,46,99,.14); }
+.card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 26px 20px; text-align: center;
+  box-shadow: 0 6px 20px rgba(0,0,0,.05); transition: transform .25s, box-shadow .25s; }
+.card:hover { transform: translateY(-6px); box-shadow: 0 14px 30px rgba(0,0,0,.12); }
 .card-ico { width: 56px; height: 56px; line-height: 56px; margin: 0 auto 14px; border-radius: 50%;
-  background: linear-gradient(135deg, #ff5f8f, #ff2e63); color: #fff; font-size: 26px; }
+  background: linear-gradient(135deg, var(--c1), var(--c2)); color: #fff; font-size: 26px; }
 .card-title { font-size: 16px; font-weight: bold; margin-bottom: 8px; }
 .card-desc { font-size: 13px; line-height: 1.8; color: #77778a; }
 
-.join-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
-.join-card { background: #fff; border-radius: 16px; padding: 32px 28px; box-shadow: 0 8px 26px rgba(255,46,99,.08); }
-.join-ico { width: 60px; height: 60px; line-height: 60px; text-align: center; border-radius: 16px; font-size: 28px;
-  background: linear-gradient(135deg, #ff8a5b, #ff2e63); color: #fff; margin-bottom: 16px; }
-.join-card h3 { font-size: 20px; font-weight: 800; margin: 0 0 14px; }
-.join-card ul { margin: 0; padding-left: 20px; color: #5c5c6e; font-size: 14px; line-height: 2.1; }
+.points { max-width: 720px; margin: 0 auto; display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.point { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid var(--border);
+  border-radius: 12px; padding: 16px 18px; font-size: 15px; color: #44445a; font-weight: 600; }
+.point i { color: var(--c2); font-size: 18px; font-weight: bold; }
 
 .steps { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; }
 .step { display: flex; align-items: center; gap: 10px; }
 .step-no { width: 38px; height: 38px; line-height: 38px; text-align: center; border-radius: 50%; font-weight: bold;
-  background: linear-gradient(135deg, #ff5f8f, #ff2e63); color: #fff; }
+  background: linear-gradient(135deg, var(--c1), var(--c2)); color: #fff; }
 .step-txt { font-size: 14px; font-weight: 600; color: #44445a; }
-.step-arrow { color: #ffb3c6; font-size: 18px; margin: 0 6px; }
+.step-arrow { color: var(--c1); font-size: 18px; margin: 0 6px; opacity: .6; }
 
 .cta-band { text-align: center; padding: 54px 20px; border-radius: 18px; color: #fff;
-  background: linear-gradient(135deg, #ff5f8f 0%, #ff2e63 100%); }
+  background: linear-gradient(135deg, var(--c1) 0%, var(--c2) 100%); }
 .cta-band h3 { font-size: 24px; font-weight: 800; margin: 0 0 10px; }
 .cta-band p { opacity: .95; margin: 0 0 22px; }
 
@@ -218,7 +238,7 @@ export default {
 
 @media (max-width: 860px) {
   .cards { grid-template-columns: repeat(2, 1fr); }
-  .join-grid { grid-template-columns: 1fr; }
+  .points { grid-template-columns: 1fr; }
   .title { font-size: 28px; }
   .hero-stats { gap: 28px; }
 }

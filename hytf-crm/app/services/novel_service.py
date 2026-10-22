@@ -136,20 +136,26 @@ def launch_novel_promo(db: Session, cid: int, platform_code: str, promo_content:
     price = NOVEL_PROMO_TIER_PRICE[tier]
     if daily_budget < price:
         raise ValueError("投放预算不能小于所选档位金额")
-    accs = (db.query(DouyinAccount)
-            .filter(DouyinAccount.customer_id == cid,
-                    DouyinAccount.platform_code == platform_code,
-                    DouyinAccount.status == "NORMAL")
-            .order_by(DouyinAccount.balance.desc()).all())
-    a = next((x for x in accs if float(x.balance) >= daily_budget), None)
+    all_accs = (db.query(DouyinAccount)
+                .filter(DouyinAccount.customer_id == cid,
+                        DouyinAccount.status == "NORMAL").all())
+    # 扣费账号优先级：网文专用账号 → 所选平台账号 → 任意余额充足账号
+    a = next((x for x in all_accs
+              if int(getattr(x, "is_promo_only", 0) or 0) == 1 and float(x.balance) >= daily_budget), None)
     if not a:
-        raise ValueError("该平台下无余额充足的投放账号，无法完成网文推广投放")
+        a = next((x for x in all_accs
+                  if x.platform_code == platform_code and float(x.balance) >= daily_budget), None)
+    if not a:
+        a = next((x for x in all_accs if float(x.balance) >= daily_budget), None)
+    if not a:
+        raise ValueError("账户余额不足，无法完成网文推广投放")
     generated = int(daily_budget // price)
     consumed = round(generated * price, 2)
     remaining = round(float(a.balance) - consumed, 2)
     now = now_cn()
     existing_codes = {c for (c,) in db.query(NovelPromo.code).all()}
-    items = gen_novel_promo_items(generated, NOVEL_PROMO_READ_RANGE[tier], promo_content, existing_codes)
+    items = gen_novel_promo_items(generated, NOVEL_PROMO_READ_RANGE[tier], promo_content,
+                                  platform_code=platform_code, existing_codes=existing_codes)
     reads_total = sum(int(it.get("value", 0) or 0) for it in items)
     for it in items:
         db.add(NovelPromo(code=str(it.get("url_code")), customer_id=cid, account_id=a.id,

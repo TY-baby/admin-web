@@ -101,6 +101,8 @@ NOVEL_PROMO_TIER_PRICE = {"A": 2000, "B": 4000, "C": 6000}
 NOVEL_PROMO_READ_RANGE = {"A": (0, 4000), "B": (4000, 8000), "C": (8000, 12000)}
 NOVEL_PROMO_URL_PREFIX = "http://www.hytf.com.cn//#/book/"
 PROMO_CONTENTS = ["工会宣传", "招聘宣传"]
+PROMO_PLATFORM_CODE = "promo"
+
 
 LAUNCH_TYPE_LABEL = {"FIRST_CHARGE": "首充", "EXPOSURE": "直播曝光度", "NOVEL_PROMO": "网文推广"}
 
@@ -194,15 +196,16 @@ def gen_novel_url_code(existing: set) -> str:
 
 
 def gen_novel_promo_items(count: int, read_range: tuple, promo_content: str,
-                          existing_codes: set = None) -> List[Dict[str, Any]]:
-    """网文推广明细：每条 = {url_code, value(阅读量), promo_content}"""
+                          platform_code: str = "", existing_codes: set = None) -> List[Dict[str, Any]]:
+    """网文推广明细：每条 = {url_code, value(阅读量), promo_content, platform_code}"""
     lo, hi = read_range
     existing_codes = existing_codes if existing_codes is not None else set()
     items = []
     for _ in range(max(0, count)):
         val = random.randint(lo, hi)
         code = gen_novel_url_code(existing_codes)
-        items.append({"url_code": code, "value": val, "promo_content": promo_content})
+        items.append({"url_code": code, "value": val, "promo_content": promo_content,
+                      "platform_code": platform_code})
     return items
 
 

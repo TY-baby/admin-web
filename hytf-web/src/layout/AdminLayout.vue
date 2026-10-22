@@ -29,6 +29,7 @@ import { mapState } from 'vuex'
 const MENUS = [
   { key: 'dashboard', path: '/admin/dashboard', title: '首页', icon: 'el-icon-s-home' },
   { key: 'customer', path: '/admin/customer', title: '用户管理', icon: 'el-icon-user' },
+  { key: 'novel', path: '/admin/novel', title: '网文客户', icon: 'el-icon-notebook-2' },
   { key: 'invoice', path: '/admin/invoice', title: '开票管理', icon: 'el-icon-document' },
   { key: 'withdraw', path: '/admin/withdraw', title: '出款管理', icon: 'el-icon-money' },
   { key: 'log', path: '/admin/log', title: '日志记录', icon: 'el-icon-tickets' },

@@ -34,6 +34,15 @@ class CustomerUpdateReq(BaseModel):
     is_active: Optional[bool] = None
 
 
+class NovelCustomerCreateReq(BaseModel):
+    # 网文客户专用：无投放平台/ID
+    customer_name: str = Field(..., min_length=1, max_length=50)
+    contact_name: str = Field("", max_length=50)
+    phone: str = Field(..., pattern=r"^1[3-9]\d{9}$")
+    recharge_amount: float = Field(0, ge=0)
+    remark: str = Field("", max_length=255)
+
+
 class DouyinUpdateReq(BaseModel):
     douyin_name: Optional[str] = Field(None, max_length=50)
     # 追加充值金额（累加，不是覆盖）

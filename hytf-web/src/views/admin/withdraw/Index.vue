@@ -78,11 +78,19 @@
         <el-form-item v-if="selectedPayee" label="卡号">
           <span>{{ selectedPayee.card_no }}</span>
         </el-form-item>
-        <el-form-item label="客户/平台/ID/类型" required>
-          <el-cascader v-model="form.cascade" :options="customerOptions"
-                       :props="cascaderProps" placeholder="请选择客户 → 平台 → ID → 类型"
-                       style="width:100%" filterable clearable
-                       @change="onCascadeChange" />
+        <el-form-item label="类型" required>
+          <el-select v-model="form.launch_type" placeholder="请先选择类型" style="width:100%" @change="onTypeChange">
+            <el-option label="首充" value="FIRST_CHARGE" />
+            <el-option label="直播曝光度" value="EXPOSURE" />
+            <el-option label="网文推广" value="NOVEL_PROMO" />
+          </el-select>
+        </el-form-item>
+        <el-form-item :label="form.launch_type === 'NOVEL_PROMO' ? '客户/平台/内容' : '客户/平台/ID'" required>
+          <el-cascader v-model="form.cascade"
+                       :options="form.launch_type === 'NOVEL_PROMO' ? novelOptions : customerOptions"
+                       :props="cascaderProps" :disabled="!form.launch_type"
+                       :placeholder="form.launch_type ? '请选择' : '请先选择类型'"
+                       style="width:100%" filterable clearable @change="onCascadeChange" />
         </el-form-item>
         <el-form-item v-if="form.launch_type === 'FIRST_CHARGE' || form.launch_type === 'NOVEL_PROMO'" label="生成条数">
           <el-input-number v-model="form.generated_count" :min="0" :step="1" style="width:200px" />
@@ -115,7 +123,7 @@
 
 <script>
 import { listWithdraws, listPayees, listWithdrawCustomers, previewWithdraw,
-         createWithdraw, deleteWithdraw, withdrawExportUrl } from '@/api/adminWithdraw'
+         previewNovelWithdraw, createWithdraw, deleteWithdraw, withdrawExportUrl } from '@/api/adminWithdraw'
 import { getAdminToken } from '@/utils/auth'
 
 export default {
@@ -127,10 +135,11 @@ export default {
       loading: false, rows: [], total: 0, dateRange: [],
       query: { keyword: '', launch_type: '', page: 1, page_size: 20 },
       dialogVisible: false, submitting: false,
-      payees: [], customerOptions: [],
+      payees: [], customerOptions: [], novelOptions: [],
       form: {
         payee_id: null, cascade: [], launch_type: '',
         generated_count: 0, heat_value: 0,
+        customer_id: null, platform_code: '', promo_content: '',
         payable_amount: '', settle_date: today, remark: ''
       },
       cascaderProps: { value: 'value', label: 'label', children: 'children' }
@@ -168,13 +177,15 @@ export default {
       const today = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
       this.form = { payee_id: null, cascade: [], launch_type: '',
                     generated_count: 0, heat_value: 0,
+                    customer_id: null, platform_code: '', promo_content: '',
                     payable_amount: '', settle_date: today, remark: '' }
       try {
         const [pRes, cRes] = await Promise.all([listPayees(), listWithdrawCustomers()])
         if (pRes.data.code === 0) this.payees = pRes.data.data || []
         if (cRes.data.code === 0) {
-          // 4 级级联：客户 → 平台 → ID → 类型
-          this.customerOptions = (cRes.data.data || []).map(c => {
+          const list = cRes.data.data || []
+          // 首充/曝光：客户 → 平台 → ID
+          this.customerOptions = list.map(c => {
             const byPlat = {}
             ;(c.accounts || []).forEach(a => {
               if (!byPlat[a.platform_code]) {
@@ -183,46 +194,77 @@ export default {
               byPlat[a.platform_code].children.push({
                 value: 'a_' + a.id,
                 label: a.douyin_id + (a.douyin_name ? '（' + a.douyin_name + '）' : ''),
-                accountId: a.id,
-                children: [
-                  { value: 'FIRST_CHARGE', label: '首充', isLeaf: true, accountId: a.id },
-                  { value: 'EXPOSURE', label: '直播曝光度', isLeaf: true, accountId: a.id },
-                  { value: 'NOVEL_PROMO', label: '网文推广', isLeaf: true, accountId: a.id }
-                ]
+                isLeaf: true, accountId: a.id
               })
             })
             return { value: 'c_' + c.id, label: c.customer_name, children: Object.values(byPlat) }
           })
+          // 网文推广：客户 → 平台 → 内容
+          this.novelOptions = list.map(c => ({
+            value: 'c_' + c.id, label: c.customer_name, customerId: c.id,
+            children: (c.novel_options || []).map(p => ({
+              value: 'p_' + p.platform_code, label: p.platform_name,
+              customerId: c.id, platformCode: p.platform_code,
+              children: (p.contents || []).map(ct => ({
+                value: 'ct_' + ct, label: ct, isLeaf: true,
+                customerId: c.id, platformCode: p.platform_code, promoContent: ct
+              }))
+            }))
+          })).filter(c => c.children && c.children.length)
         }
       } catch (e) {
         this.$message.error('加载打款对象/客户数据失败，请检查后端服务')
       }
     },
-    findAccountInOptions(cascade) {
-      let nodes = this.customerOptions
-      for (const v of cascade) {
-        const n = (nodes || []).find(x => x.value === v)
-        if (!n) return null
-        if (n.accountId) return n
-        nodes = n.children
-      }
-      return null
-    },
-    async onCascadeChange(val) {
-      this.form.launch_type = ''
+    onTypeChange() {
+      this.form.cascade = []
       this.form.generated_count = 0
       this.form.heat_value = 0
       this.form.payable_amount = ''
-      if (!val || val.length < 4) return
-      this.form.launch_type = val[3]
-      const node = this.findAccountInOptions(val.slice(0, 3))
+      this.form.customer_id = null
+      this.form.platform_code = ''
+      this.form.promo_content = ''
+    },
+    findLeaf(cascade, options) {
+      let nodes = options
+      let node = null
+      for (const v of cascade) {
+        node = (nodes || []).find(x => x.value === v)
+        if (!node) return null
+        nodes = node.children
+      }
+      return node
+    },
+    async onCascadeChange(val) {
+      this.form.generated_count = 0
+      this.form.heat_value = 0
+      this.form.payable_amount = ''
+      this.form.customer_id = null
+      this.form.platform_code = ''
+      this.form.promo_content = ''
+      if (!val || val.length < 3) return
+      if (this.form.launch_type === 'NOVEL_PROMO') {
+        const node = this.findLeaf(val, this.novelOptions)
+        if (!node || !node.customerId) return
+        this.form.customer_id = node.customerId
+        this.form.platform_code = node.platformCode
+        this.form.promo_content = node.promoContent
+        const { data } = await previewNovelWithdraw(node.customerId,
+          { platform_code: node.platformCode, promo_content: node.promoContent })
+        if (data.code === 0) {
+          this.form.generated_count = data.data.generated_count || 0
+          if (!this.form.generated_count) this.$message.warning('该客户网文推广剩余可出款条数为0，不允许提交')
+        } else { this.$message.warning(data.msg || '无网文推广投放数据') }
+        return
+      }
+      const node = this.findLeaf(val, this.customerOptions)
       if (!node || !node.accountId) return
       const { data } = await previewWithdraw(node.accountId, this.form.launch_type)
       if (data.code === 0) {
         const d = data.data
         this.form.generated_count = d.generated_count || 0
         this.form.heat_value = d.heat_value || 0
-        if ((this.form.launch_type === 'FIRST_CHARGE' || this.form.launch_type === 'NOVEL_PROMO') && !this.form.generated_count) {
+        if (this.form.launch_type === 'FIRST_CHARGE' && !this.form.generated_count) {
           this.$message.warning('该ID剩余可出款条数为0，不允许提交')
         }
         if (this.form.launch_type === 'EXPOSURE' && !this.form.heat_value) {
@@ -232,7 +274,10 @@ export default {
     },
     async onSubmit() {
       if (!this.form.payee_id) { this.$message.warning('请选择打款对象'); return }
-      if (!this.form.cascade || this.form.cascade.length < 4) { this.$message.warning('请选择客户 → 平台 → ID → 类型'); return }
+      if (!this.form.launch_type) { this.$message.warning('请先选择类型'); return }
+      if (!this.form.cascade || this.form.cascade.length < 3) {
+        this.$message.warning(this.form.launch_type === 'NOVEL_PROMO' ? '请选择客户 → 平台 → 内容' : '请选择客户 → 平台 → ID'); return
+      }
       if ((this.form.launch_type === 'FIRST_CHARGE' || this.form.launch_type === 'NOVEL_PROMO')
           && !(Number(this.form.generated_count) > 0)) {
         this.$message.warning('剩余生成条数为0，不允许提交'); return
@@ -243,20 +288,28 @@ export default {
       const amt = Number(this.form.payable_amount)
       if (!amt || isNaN(amt) || amt <= 0) { this.$message.warning('请填写正确的结算金额'); return }
       if (!this.form.settle_date) { this.$message.warning('请选择结算日期'); return }
-      const node = this.findAccountInOptions(this.form.cascade.slice(0, 3))
-      if (!node || !node.accountId) { this.$message.warning('投放ID无效'); return }
+      const payload = {
+        payee_id: this.form.payee_id,
+        launch_type: this.form.launch_type,
+        generated_count: Number(this.form.generated_count || 0),
+        heat_value: Number(this.form.heat_value || 0),
+        payable_amount: amt,
+        settle_date: this.form.settle_date,
+        remark: this.form.remark
+      }
+      if (this.form.launch_type === 'NOVEL_PROMO') {
+        if (!this.form.customer_id) { this.$message.warning('网文推广出款数据无效'); return }
+        payload.customer_id = this.form.customer_id
+        payload.platform_code = this.form.platform_code
+        payload.promo_content = this.form.promo_content
+      } else {
+        const node = this.findLeaf(this.form.cascade, this.customerOptions)
+        if (!node || !node.accountId) { this.$message.warning('投放ID无效'); return }
+        payload.douyin_account_id = node.accountId
+      }
       this.submitting = true
       try {
-        const { data } = await createWithdraw({
-          payee_id: this.form.payee_id,
-          douyin_account_id: node.accountId,
-          launch_type: this.form.launch_type,
-          generated_count: Number(this.form.generated_count || 0),
-          heat_value: Number(this.form.heat_value || 0),
-          payable_amount: amt,
-          settle_date: this.form.settle_date,
-          remark: this.form.remark
-        })
+        const { data } = await createWithdraw(payload)
         if (data.code === 0) {
           this.$alert('出款成功，结算金额：￥' + Number(data.data.payable_amount || 0).toFixed(2), '提示',
             { confirmButtonText: '确定', type: 'success' }).then(() => {

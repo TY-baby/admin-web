@@ -156,7 +156,12 @@ def export_api(keyword_name: Optional[str] = None, keyword_douyin: Optional[str]
                 for it in b["items"]:
                     if is_novel:
                         url = NOVEL_PROMO_URL_PREFIX + str(it.get("url_code", ""))
-                        rows.append(base + [b_consumed, b_type_label, b_tier,
+                        pc = it.get("platform_code") or a.platform_code
+                        row = base[:]
+                        row[4] = ""
+                        row[5] = ""
+                        row[6] = pname.get(pc, pc)
+                        rows.append(row + [b_consumed, b_type_label, b_tier,
                                             url, it.get("value", ""), ld])
                         continue
                     id_cols = [] if is_exposure else [it.get("biz_code", ""), it.get("nickname", "")]

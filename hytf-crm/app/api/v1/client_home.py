@@ -31,6 +31,7 @@ def accounts(db: Session = Depends(get_db), user=Depends(get_current_client)):
                 "tier_daily_budget": a.tier_daily_budget,
                 "launch_type": a.launch_type,
                 "launch_type_label": LAUNCH_TYPE_LABEL.get(a.launch_type, "") if a.launch_type else "",
+                "is_promo_only": int(getattr(a, "is_promo_only", 0) or 0),
                 "daily_budget": float(a.daily_budget or 0),
                 "launch_consumed": float(a.launch_consumed or 0),
                 "total_consumed": calc_total_consumed(a),
@@ -138,7 +139,8 @@ def export_api(start: Optional[date] = None, end: Optional[date] = None,
                 b_tier = b.get("tier") or acc.tier or "-"
                 for it in b.get("items") or []:
                     url = NOVEL_PROMO_URL_PREFIX + str(it.get("url_code", ""))
-                    rows.append([pname.get(acc.platform_code, acc.platform_code),
+                    pc = it.get("platform_code") or acc.platform_code
+                    rows.append([pname.get(pc, pc),
                                  it.get("promo_content", ""), "网文推广", b_tier,
                                  url, it.get("value", ""), ld])
         content = export_rows_to_xlsx(headers, rows)

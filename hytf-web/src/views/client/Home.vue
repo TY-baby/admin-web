@@ -190,10 +190,13 @@ export default {
       return p ? p.name : ''
     },
     platformAccounts() {
-      return (this.accounts || []).filter(a => a.platform_code === this.platform)
+      return (this.accounts || []).filter(a => a.platform_code === this.platform && !a.is_promo_only)
     },
     platformBalance() {
       return this.platformAccounts.reduce((s, a) => s + Number(a.balance || 0), 0)
+    },
+    totalBalance() {
+      return (this.accounts || []).reduce((s, a) => s + Number(a.balance || 0), 0)
     },
     selectedAccount() {
       return (this.accounts || []).find(a => a.platform_code === this.platform && a.douyin_id === this.currentId)
@@ -235,8 +238,8 @@ export default {
         this.$message.warning('请输入投放预算'); return false
       }
       if (this.tab === 'novel') {
-        if (budget > this.platformBalance) {
-          this.$message.error('投放预算不能超过该平台账号总余额'); return false
+        if (budget > this.totalBalance) {
+          this.$message.error('投放预算不能超过账户总余额'); return false
         }
       } else {
         const acc = this.selectedAccount
@@ -435,4 +438,3 @@ export default {
     .v.hl { color: #ff2e63; font-size: 16px; font-weight: bold; }
     .tag { font-style: normal; background: #fff0f5; color: #ff2e63; padding: 2px 10px; border-radius: 10px; font-size: 12px; }
   } }
-</style>

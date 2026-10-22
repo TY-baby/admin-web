@@ -23,6 +23,7 @@ class DouyinAccount(Base):
     has_first_charge: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     has_exposure: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     has_novel_promo: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    is_promo_only: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     daily_budget: Mapped[float] = mapped_column(DECIMAL(12, 2), nullable=False, default=0)
     launch_consumed: Mapped[float] = mapped_column(DECIMAL(12, 2), nullable=False, default=0)
     exposure_1h: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
