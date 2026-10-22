@@ -8,7 +8,7 @@ engine = create_engine(settings.sqlalchemy_uri, pool_size=settings.MYSQL_POOL_SI
                        pool_recycle=3600, echo=False, future=True)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
 
-from app.models import admin_user, customer, douyin_account, finance_log, invoice  # noqa
+from app.models import admin_user, customer, douyin_account, finance_log, invoice, novel_promo  # noqa
 
 
 def init_db():

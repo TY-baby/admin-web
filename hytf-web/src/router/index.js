@@ -9,6 +9,7 @@ const routes = [
   { path: '/client/launch', name: 'ClientLaunch', component: () => import('@/views/client/Launch.vue'), meta: { title: '投放数据' } },
   { path: '/client/finance', name: 'ClientFinance', component: () => import('@/views/client/Finance.vue'), meta: { title: '财务' } },
   { path: '/admin/login', name: 'AdminLogin', component: () => import('@/views/admin/Login.vue'), meta: { title: '恒耀CRM-管理员' } },
+  { path: '/book/:code', name: 'BookPromo', component: () => import('@/views/public/BookPromo.vue'), meta: { title: '恒耀互娱' } },
   {
     path: '/admin',
     component: () => import('@/layout/AdminLayout.vue'),

@@ -6,6 +6,7 @@ from app.core.logging_conf import logger
 from app.models.douyin_account import DouyinAccount
 from app.models.finance_log import FinanceLog
 from app.models.novel_page import NovelPage
+from app.models.novel_promo import NovelPromo
 from app.utils.id_generator import (EXPOSURE_TIER_PRICE, EXPOSURE_TIER_RANGE,
                                     NOVEL_PROMO_TIER_PRICE, NOVEL_PROMO_READ_RANGE,
                                     append_launch_batch, gen_launch_items, gen_page_code,
@@ -147,8 +148,14 @@ def launch_novel_promo(db: Session, cid: int, platform_code: str, promo_content:
     consumed = round(generated * price, 2)
     remaining = round(float(a.balance) - consumed, 2)
     now = now_cn()
-    items = gen_novel_promo_items(generated, NOVEL_PROMO_READ_RANGE[tier], promo_content)
+    existing_codes = {c for (c,) in db.query(NovelPromo.code).all()}
+    items = gen_novel_promo_items(generated, NOVEL_PROMO_READ_RANGE[tier], promo_content, existing_codes)
     reads_total = sum(int(it.get("value", 0) or 0) for it in items)
+    for it in items:
+        db.add(NovelPromo(code=str(it.get("url_code")), customer_id=cid, account_id=a.id,
+                          platform_code=platform_code, promo_content=promo_content,
+                          tier=tier, base_reads=int(it.get("value", 0) or 0),
+                          visits=0, created_at=now))
     a.tier = tier
     a.tier_daily_budget = price
     a.launch_type = "NOVEL_PROMO"
