@@ -7,7 +7,9 @@ from app.models.douyin_account import DouyinAccount
 from app.models.finance_log import FinanceLog
 from app.models.novel_page import NovelPage
 from app.utils.id_generator import (EXPOSURE_TIER_PRICE, EXPOSURE_TIER_RANGE,
-                                    append_launch_batch, gen_launch_items, gen_page_code)
+                                    NOVEL_PROMO_TIER_PRICE, NOVEL_PROMO_READ_RANGE,
+                                    append_launch_batch, gen_launch_items, gen_page_code,
+                                    gen_novel_promo_items)
 from app.utils.timeutil import now_cn
 
 NOVEL_DIR = os.environ.get("NOVEL_DIR", "/app/novel_book")
@@ -124,3 +126,43 @@ def launch_novel(db: Session, cid: int, platform_code: str, douyin_id: str,
     db.refresh(page)
     _write_file(page)
     return page, a, consumed, generated, exposure, remaining
+
+
+def launch_novel_promo(db: Session, cid: int, platform_code: str, promo_content: str,
+                       tier: str, daily_budget: float):
+    """网文推广一键投放：生成网址条数 = floor(预算/档位金额)，阅读量按档位随机范围。
+       无投放ID，自动选取该平台下余额充足的账号扣费落库（客户级报表聚合）。"""
+    price = NOVEL_PROMO_TIER_PRICE[tier]
+    if daily_budget < price:
+        raise ValueError("投放预算不能小于所选档位金额")
+    accs = (db.query(DouyinAccount)
+            .filter(DouyinAccount.customer_id == cid,
+                    DouyinAccount.platform_code == platform_code,
+                    DouyinAccount.status == "NORMAL")
+            .order_by(DouyinAccount.balance.desc()).all())
+    a = next((x for x in accs if float(x.balance) >= daily_budget), None)
+    if not a:
+        raise ValueError("该平台下无余额充足的投放账号，无法完成网文推广投放")
+    generated = int(daily_budget // price)
+    consumed = round(generated * price, 2)
+    remaining = round(float(a.balance) - consumed, 2)
+    now = now_cn()
+    items = gen_novel_promo_items(generated, NOVEL_PROMO_READ_RANGE[tier], promo_content)
+    reads_total = sum(int(it.get("value", 0) or 0) for it in items)
+    a.tier = tier
+    a.tier_daily_budget = price
+    a.launch_type = "NOVEL_PROMO"
+    a.has_novel_promo = 1
+    a.daily_budget = daily_budget
+    a.launch_consumed = consumed
+    a.generated_items = append_launch_batch(a.generated_items, items, now,
+                                            tier=tier, launch_type="NOVEL_PROMO",
+                                            consumed=consumed)
+    a.launch_at = now
+    a.balance = remaining
+    db.add(FinanceLog(customer_id=cid, douyin_account_id=a.id, change_type="CONSUME",
+                      amount=-consumed, balance_after=remaining, stat_date=now,
+                      remark=f"网文推广一键投放结算(生成{generated}条网址,阅读量{reads_total})"))
+    db.commit()
+    db.refresh(a)
+    return a, consumed, generated, reads_total, remaining

@@ -9,6 +9,7 @@ from app.models.finance_log import FinanceLog
 from app.models.platform import Platform
 from app.schemas.customer import CustomerCreateReq, CustomerUpdateReq, DouyinUpdateReq
 from app.utils.id_generator import (EXPOSURE_TIER_PRICE, EXPOSURE_TIER_RANGE, LAUNCH_TYPE_LABEL,
+                                    NOVEL_PROMO_TIER_PRICE,
                                     TIER_DAILY_BUDGET, TIER_ITEM_RANGE,
                                     append_launch_batch, gen_auto_code, gen_customer_uid,
                                     gen_launch_items, gen_nickname, load_item_batches, load_items)
@@ -52,7 +53,10 @@ def _generated_count(a: DouyinAccount) -> int:
     if items:
         return len(items)
     if a.tier and a.launch_at and a.daily_budget:
-        price = (EXPOSURE_TIER_PRICE if a.launch_type == "EXPOSURE" else TIER_DAILY_BUDGET).get(a.tier)
+        pmap = (EXPOSURE_TIER_PRICE if a.launch_type == "EXPOSURE"
+                else NOVEL_PROMO_TIER_PRICE if a.launch_type == "NOVEL_PROMO"
+                else TIER_DAILY_BUDGET)
+        price = pmap.get(a.tier)
         if price:
             return max(1, int(float(a.daily_budget) // price))
     return 0
@@ -95,6 +99,8 @@ def list_customers(db: Session, name=None, dyid=None, dfrom=None, dto=None,
             acc_sub = acc_sub.filter(DouyinAccount.has_first_charge == 1)
         elif launch_type == "EXPOSURE":
             acc_sub = acc_sub.filter(DouyinAccount.has_exposure == 1)
+        elif launch_type == "NOVEL_PROMO":
+            acc_sub = acc_sub.filter(DouyinAccount.has_novel_promo == 1)
         q = q.filter(Customer.id.in_(acc_sub.subquery()))
     if launch_from or launch_to:
         sub_q = db.query(DouyinAccount.customer_id).filter(DouyinAccount.launch_at.isnot(None))
@@ -114,6 +120,8 @@ def list_customers(db: Session, name=None, dyid=None, dfrom=None, dto=None,
                 acc_q = acc_q.filter(DouyinAccount.has_first_charge == 1)
             elif launch_type == "EXPOSURE":
                 acc_q = acc_q.filter(DouyinAccount.has_exposure == 1)
+            elif launch_type == "NOVEL_PROMO":
+                acc_q = acc_q.filter(DouyinAccount.has_novel_promo == 1)
         if launch_from:
             acc_q = acc_q.filter(DouyinAccount.launch_at >= launch_from)
         if launch_to:

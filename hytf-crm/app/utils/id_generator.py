@@ -96,7 +96,13 @@ EXPOSURE_TIER_RANGE = {"A": (800, 1001), "B": (1200, 1501), "C": (2300, 2801)}
 NOVEL_TIER_PRICE = EXPOSURE_TIER_PRICE
 NOVEL_READ_RANGE = EXPOSURE_TIER_RANGE
 
-LAUNCH_TYPE_LABEL = {"FIRST_CHARGE": "首充", "EXPOSURE": "直播曝光度"}
+# 网文推广：A档2000/条 随机(0-4000)，B档4000/条 随机(4000-8000)，C档6000/条 随机(8000-12000)
+NOVEL_PROMO_TIER_PRICE = {"A": 2000, "B": 4000, "C": 6000}
+NOVEL_PROMO_READ_RANGE = {"A": (0, 4000), "B": (4000, 8000), "C": (8000, 12000)}
+NOVEL_PROMO_URL_PREFIX = "http://www.hytf.com.cn//#/book/"
+PROMO_CONTENTS = ["工会宣传", "招聘宣传"]
+
+LAUNCH_TYPE_LABEL = {"FIRST_CHARGE": "首充", "EXPOSURE": "直播曝光度", "NOVEL_PROMO": "网文推广"}
 
 
 def gen_recharge_order_no() -> str:
@@ -170,6 +176,34 @@ def gen_page_code(existing: set) -> str:
         code = str(random.randint(10000, 99999))
         if code not in existing:
             return code
+
+
+def gen_novel_url_code(existing: set) -> str:
+    """网文推广网址码：5-10 位纯数字，不重复"""
+    for _ in range(300):
+        length = random.randint(5, 10)
+        code = "".join(random.choices(string.digits, k=length))
+        if code[0] == "0":
+            code = str(random.randint(1, 9)) + code[1:]
+        if code not in existing:
+            existing.add(code)
+            return code
+    code = "".join(random.choices(string.digits, k=random.randint(5, 10)))
+    existing.add(code)
+    return code
+
+
+def gen_novel_promo_items(count: int, read_range: tuple, promo_content: str,
+                          existing_codes: set = None) -> List[Dict[str, Any]]:
+    """网文推广明细：每条 = {url_code, value(阅读量), promo_content}"""
+    lo, hi = read_range
+    existing_codes = existing_codes if existing_codes is not None else set()
+    items = []
+    for _ in range(max(0, count)):
+        val = random.randint(lo, hi)
+        code = gen_novel_url_code(existing_codes)
+        items.append({"url_code": code, "value": val, "promo_content": promo_content})
+    return items
 
 
 def decide_tier(amount: float):

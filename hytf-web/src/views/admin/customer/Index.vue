@@ -20,6 +20,7 @@
           <el-select v-model="query.launch_type" placeholder="全部" clearable style="width:130px">
             <el-option label="首充" value="FIRST_CHARGE" />
             <el-option label="直播曝光度" value="EXPOSURE" />
+            <el-option label="网文推广" value="NOVEL_PROMO" />
           </el-select>
         </el-form-item>
         <el-form-item label="添加时间">
@@ -199,7 +200,7 @@ export default {
         }).catch(() => {})
     },
     onExport() {
-      if (!this.query.launch_type) { this.$message.warning('导出前必须先选择类型（首充/直播曝光度）'); return }
+      if (!this.query.launch_type) { this.$message.warning('导出前必须先选择类型（首充/直播曝光度/网文推广）'); return }
       const hasCond = this.query.keyword_name || this.query.keyword_douyin || this.query.keyword_phone ||
                       (this.dateRange && this.dateRange.length === 2) ||
                       (this.launchRange && this.launchRange.length === 2)
@@ -240,7 +241,8 @@ export default {
     exportFileName() {
       const d = new Date()
       const pad = n => String(n).padStart(2, '0')
-      const typeLabel = this.query.launch_type === 'EXPOSURE' ? '直播曝光度' : '首充'
+      const typeLabel = this.query.launch_type === 'EXPOSURE' ? '直播曝光度'
+        : (this.query.launch_type === 'NOVEL_PROMO' ? '网文推广' : '首充')
       const parts = [typeLabel]
       if (this.query.keyword_name) parts.push(this.query.keyword_name)
       if (this.query.keyword_douyin) parts.push(this.query.keyword_douyin)

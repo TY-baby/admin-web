@@ -57,3 +57,25 @@ class LaunchReq(BaseModel):
         if v not in {"A", "B", "C"}:
             raise ValueError("tier illegal")
         return v
+
+
+class NovelPromoLaunchReq(BaseModel):
+    # 网文推广一键投放：平台 + 投放内容 + 档位 + 预算（无投放ID）
+    platform_code: str = Field(..., max_length=30)
+    promo_content: str = Field(..., max_length=20)
+    tier: str = Field(..., max_length=1)
+    daily_budget: float = Field(..., gt=0)
+
+    @field_validator("tier")
+    @classmethod
+    def _check_tier(cls, v: str) -> str:
+        if v not in {"A", "B", "C"}:
+            raise ValueError("tier illegal")
+        return v
+
+    @field_validator("promo_content")
+    @classmethod
+    def _check_content(cls, v: str) -> str:
+        if v not in {"工会宣传", "招聘宣传"}:
+            raise ValueError("promo_content illegal")
+        return v

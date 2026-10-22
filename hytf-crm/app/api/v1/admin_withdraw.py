@@ -15,7 +15,7 @@ from app.models.withdraw import Withdraw
 from app.schemas.common import ok, fail
 from app.schemas.withdraw import WithdrawCreateReq
 from app.utils.excel_export import export_rows_to_xlsx
-from app.utils.id_generator import LAUNCH_TYPE_LABEL, load_item_batches
+from app.utils.id_generator import LAUNCH_TYPE_LABEL, NOVEL_PROMO_URL_PREFIX, load_item_batches
 from app.utils.timeutil import now_cn, today_cn
 
 router = APIRouter()
@@ -103,7 +103,7 @@ def preview_amount(account_id: int, launch_type: Optional[str] = None,
 def create_withdraw(body: WithdrawCreateReq,
                     db: Session = Depends(get_db),
                     admin=Depends(get_current_admin)):
-    if body.launch_type not in ("FIRST_CHARGE", "EXPOSURE"):
+    if body.launch_type not in ("FIRST_CHARGE", "EXPOSURE", "NOVEL_PROMO"):
         return fail("类型非法", code=40004)
     payee = db.query(Payee).filter(Payee.id == body.payee_id).first()
     if not payee:
@@ -115,10 +115,10 @@ def create_withdraw(body: WithdrawCreateReq,
     operator = admin.get("username", "")
     # v10: 剩余可出款额度校验（0 不允许提交，且不能超过剩余）
     _g, _h, remain_count, remain_heat = _quota_stats(db, acc, body.launch_type)
-    if body.launch_type == "FIRST_CHARGE":
+    if body.launch_type in ("FIRST_CHARGE", "NOVEL_PROMO"):
         cnt = int(body.generated_count or 0)
         if remain_count <= 0:
-            return fail("该ID首充剩余可出款条数为0，不允许提交", code=40005)
+            return fail("该ID剩余可出款条数为0，不允许提交", code=40005)
         if cnt <= 0:
             return fail("生成条数必须大于0", code=40005)
         if cnt > remain_count:
@@ -212,8 +212,8 @@ def export_withdraw(keyword: Optional[str] = None,
        字段：打款对象、卡号、类型、结算金额、产出ID、产出昵称、结算日期
        首充 → 按明细展开 biz_code / nickname
        曝光 → 产出ID/产出昵称 位置显示"热度"值"""
-    if not launch_type or launch_type not in ("FIRST_CHARGE", "EXPOSURE"):
-        return fail("导出前必须先选择类型（首充/曝光度）", code=40004)
+    if not launch_type or launch_type not in ("FIRST_CHARGE", "EXPOSURE", "NOVEL_PROMO"):
+        return fail("导出前必须先选择类型（首充/曝光度/网文推广）", code=40004)
 
     q = db.query(Withdraw).filter(Withdraw.launch_type == launch_type)
     if keyword:
@@ -234,12 +234,13 @@ def export_withdraw(keyword: Optional[str] = None,
     accs = {a.id: a for a in db.query(DouyinAccount).filter(DouyinAccount.id.in_(acc_ids)).all()}
     type_label = LAUNCH_TYPE_LABEL.get(launch_type, "")
     is_exposure = launch_type == "EXPOSURE"
-    headers = ["打款对象", "卡号", "类型", "结算金额",
-               "热度" if is_exposure else "产出ID",
-               "" if is_exposure else "产出昵称",
-               "结算日期"]
-    if is_exposure:
+    is_novel = launch_type == "NOVEL_PROMO"
+    if is_novel:
+        headers = ["打款对象", "卡号", "类型", "结算金额", "网址", "阅读量", "结算日期"]
+    elif is_exposure:
         headers = ["打款对象", "卡号", "类型", "结算金额", "热度", "结算日期"]
+    else:
+        headers = ["打款对象", "卡号", "类型", "结算金额", "产出ID", "产出昵称", "结算日期"]
 
     rows = []
     for w in ws:
@@ -249,6 +250,19 @@ def export_withdraw(keyword: Optional[str] = None,
         settle = w.settle_date.strftime("%Y-%m-%d") if w.settle_date else ""
         if is_exposure:
             rows.append(base + [int(w.heat_value or 0), settle])
+            continue
+        if is_novel:
+            expanded = False
+            if a:
+                for b in load_item_batches(a.generated_items):
+                    if (b.get("launch_type") or a.launch_type) != "NOVEL_PROMO":
+                        continue
+                    for it in b.get("items") or []:
+                        url = NOVEL_PROMO_URL_PREFIX + str(it.get("url_code", ""))
+                        rows.append(base + [url, it.get("value", ""), settle])
+                        expanded = True
+            if not expanded:
+                rows.append(base + ["", "", settle])
             continue
         # 首充：展开每条明细的 biz_code + nickname
         expanded = False

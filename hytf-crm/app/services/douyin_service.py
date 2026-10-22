@@ -62,6 +62,8 @@ def get_launch_stats(db: Session, cid: int, aid: Optional[int],
     first_amount = 0.0
     first_count = 0
     heat_total = 0
+    novel_reads_total = 0
+    novel_url_count = 0
     consume_total = 0.0
     for a in accs:
         for b in load_item_batches(a.generated_items):
@@ -76,6 +78,9 @@ def get_launch_stats(db: Session, cid: int, aid: Optional[int],
             if launch_type == "FIRST_CHARGE":
                 first_count += len(items)
                 first_amount += sum(float(it.get("value", 0) or 0) for it in items)
+            elif launch_type == "NOVEL_PROMO":
+                novel_url_count += len(items)
+                novel_reads_total += sum(int(it.get("value", 0) or 0) for it in items)
             else:
                 heat_total += sum(int(it.get("value", 0) or 0) for it in items)
     return {
@@ -83,6 +88,8 @@ def get_launch_stats(db: Session, cid: int, aid: Optional[int],
         "first_amount": round(first_amount, 2),
         "first_count": first_count,
         "heat_total": heat_total,
+        "novel_reads_total": novel_reads_total,
+        "novel_url_count": novel_url_count,
         "consume_total": round(consume_total, 2),
     }
 

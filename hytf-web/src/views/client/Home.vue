@@ -26,6 +26,9 @@
         <div :class="['tab', tab==='exposure'?'on':'']" @click="switchTab('exposure')">
           <i class="el-icon-data-line tab-ico"></i>直播曝光度
         </div>
+        <div :class="['tab', tab==='novel'?'on':'']" @click="switchTab('novel')">
+          <i class="el-icon-reading tab-ico"></i>网文推广
+        </div>
         <div class="tabs-tip">想要进行更多自定义投放？请联系客服咨询</div>
       </div>
     </div>
@@ -42,13 +45,21 @@
               </el-select>
             </div>
 
-            <div class="card">
+            <div class="card" v-if="tab!=='novel'">
               <div class="card-title">投放ID</div>
               <el-select v-model="currentId" :placeholder="platform ? '请选择' + platformName + 'ID' : '请先选择投放平台'"
                          :disabled="!platform" style="width:100%" @change="onAccChange">
                 <el-option v-for="a in platformAccounts" :key="a.id"
                            :label="a.douyin_id + (a.douyin_name ? '（' + a.douyin_name + '）' : '')"
                            :value="a.douyin_id" />
+              </el-select>
+            </div>
+
+            <div class="card" v-else>
+              <div class="card-title">投放内容</div>
+              <el-select v-model="promoContent" placeholder="请选择投放内容" style="width:100%">
+                <el-option label="工会宣传" value="工会宣传" />
+                <el-option label="招聘宣传" value="招聘宣传" />
               </el-select>
             </div>
 
@@ -116,12 +127,15 @@
       </div>
       <div class="lc-body">
         <div class="lc-row"><span class="k">投放平台</span><span class="v">{{ confirmInfo.platformName }}</span></div>
-        <div class="lc-row"><span class="k">投放ID</span><span class="v">{{ confirmInfo.id }}</span></div>
+        <div class="lc-row">
+          <span class="k">{{ confirmInfo.isNovel ? '投放内容' : '投放ID' }}</span>
+          <span class="v">{{ confirmInfo.isNovel ? confirmInfo.promoContent : confirmInfo.id }}</span>
+        </div>
         <div class="lc-row"><span class="k">投放类型</span><span class="v"><em class="tag">{{ confirmInfo.typeLabel }}</em></span></div>
         <div class="lc-row"><span class="k">所选档位</span><span class="v">{{ confirmInfo.tier }} 档（{{ confirmInfo.price }} 元）</span></div>
         <div class="lc-row"><span class="k">投放预算</span><span class="v hl">￥{{ confirmInfo.budget }}</span></div>
         <div class="lc-row">
-          <span class="k">{{ confirmInfo.isExposure ? '预计生成热度' : '预计生成' }}</span>
+          <span class="k">{{ confirmInfo.isExposure ? '预计生成热度' : (confirmInfo.isNovel ? '预计生成网址' : '预计生成') }}</span>
           <span class="v hl">{{ confirmInfo.isExposure ? '≈ ' + confirmInfo.generated : confirmInfo.generated + ' 条' }}</span>
         </div>
       </div>
@@ -135,7 +149,7 @@
 
 <script>
 import { mapState } from 'vuex'
-import { getSummary, launchDelivery, launchNovel, getPlatforms } from '@/api/clientHome'
+import { getSummary, launchDelivery, launchNovel, launchNovelPromo, getPlatforms } from '@/api/clientHome'
 
 const FIRST_TIERS = [
   { value: 'A', label: 'A档 300/条', price: 300 },
@@ -147,13 +161,18 @@ const EXPOSURE_TIERS = [
   { value: 'B', label: 'B档 3998', price: 3998 },
   { value: 'C', label: 'C档 6998', price: 6998 }
 ]
+const NOVEL_TIERS = [
+  { value: 'A', label: 'A档 2000/条', price: 2000 },
+  { value: 'B', label: 'B档 4000/条', price: 4000 },
+  { value: 'C', label: 'C档 6000/条', price: 6000 }
+]
 const EXPOSURE_RANGES = { A: [800, 1000], B: [1200, 1500], C: [2300, 2800] }
 
 export default {
   name: 'ClientHome',
   data() {
     return {
-      tab: 'first', platform: '', currentId: '', plan: '',
+      tab: 'first', platform: '', currentId: '', plan: '', promoContent: '',
       dailyBudget: '', summary: {}, platforms: [],
       progressVisible: false, progress: 0, launching: false,
       confirmVisible: false, confirmInfo: {}, pendingLaunch: null
@@ -161,13 +180,20 @@ export default {
   },
   computed: {
     ...mapState('clientUser', ['info', 'accounts', 'currentAccount']),
-    tierOptions() { return this.tab === 'first' ? FIRST_TIERS : EXPOSURE_TIERS },
+    tierOptions() {
+      if (this.tab === 'first') return FIRST_TIERS
+      if (this.tab === 'novel') return NOVEL_TIERS
+      return EXPOSURE_TIERS
+    },
     platformName() {
       const p = this.platforms.find(x => x.code === this.platform)
       return p ? p.name : ''
     },
     platformAccounts() {
       return (this.accounts || []).filter(a => a.platform_code === this.platform)
+    },
+    platformBalance() {
+      return this.platformAccounts.reduce((s, a) => s + Number(a.balance || 0), 0)
     },
     selectedAccount() {
       return (this.accounts || []).find(a => a.platform_code === this.platform && a.douyin_id === this.currentId)
@@ -192,23 +218,31 @@ export default {
     if (data.code === 0) this.summary = data.data || {}
   },
   methods: {
-    switchTab(t) { this.tab = t; this.plan = '' },
-    onPlatformChange() { this.currentId = '' },
+    switchTab(t) { this.tab = t; this.plan = ''; this.promoContent = '' },
+    onPlatformChange() { this.currentId = ''; this.promoContent = '' },
     onAccChange(id) {
       const acc = this.platformAccounts.find(a => a.douyin_id === id)
       this.$store.commit('clientUser/SET_CURRENT', acc)
     },
     validateLaunch() {
       if (!this.platform) { this.$message.warning('请选择投放平台'); return false }
-      if (!this.currentId) { this.$message.warning('请选择要投放的ID'); return false }
+      if (this.tab === 'novel') {
+        if (!this.promoContent) { this.$message.warning('请选择投放内容'); return false }
+      } else if (!this.currentId) { this.$message.warning('请选择要投放的ID'); return false }
       if (!this.plan) { this.$message.warning('请选择档位方案'); return false }
       const budget = Number(this.dailyBudget)
       if (this.dailyBudget === '' || isNaN(budget) || budget <= 0) {
         this.$message.warning('请输入投放预算'); return false
       }
-      const acc = this.selectedAccount
-      if (acc && budget > Number(acc.balance)) {
-        this.$message.error('投放预算不能超过当前账号余额'); return false
+      if (this.tab === 'novel') {
+        if (budget > this.platformBalance) {
+          this.$message.error('投放预算不能超过该平台账号总余额'); return false
+        }
+      } else {
+        const acc = this.selectedAccount
+        if (acc && budget > Number(acc.balance)) {
+          this.$message.error('投放预算不能超过当前账号余额'); return false
+        }
       }
       const tier = this.tierOptions.find(t => t.value === this.plan)
       if (tier && budget < tier.price) {
@@ -220,7 +254,8 @@ export default {
       if (!this.validateLaunch()) return
       const tier = this.tierOptions.find(t => t.value === this.plan)
       const cnt = Math.floor(Number(this.dailyBudget) / tier.price)
-      const isExposure = this.tab !== 'first'
+      const isNovel = this.tab === 'novel'
+      const isExposure = this.tab === 'exposure'
       let generated = cnt
       if (isExposure) {
         const [lo, hi] = EXPOSURE_RANGES[this.plan] || [0, 0]
@@ -229,37 +264,41 @@ export default {
           generated += Math.floor(Math.random() * (hi - lo + 1)) + lo
         }
       }
-      const typeLabel = isExposure ? '直播曝光度' : '首充'
+      const typeLabel = isNovel ? '网文推广' : (isExposure ? '直播曝光度' : '首充')
       this.confirmInfo = {
-        platformName: this.platformName, id: this.currentId, typeLabel,
-        tier: this.plan, price: tier.price, budget: this.dailyBudget,
-        generated, isExposure
+        platformName: this.platformName, id: this.currentId, promoContent: this.promoContent,
+        typeLabel, tier: this.plan, price: tier.price, budget: this.dailyBudget,
+        generated, isExposure, isNovel
       }
-      this.pendingLaunch = { tier, typeLabel, generated, isExposure }
+      this.pendingLaunch = { tier, typeLabel, generated, isExposure, isNovel }
       this.confirmVisible = true
     },
     doConfirmLaunch() {
       this.confirmVisible = false
       if (this.pendingLaunch) {
-        const { tier, typeLabel, generated, isExposure } = this.pendingLaunch
-        this.doLaunch(tier, typeLabel, generated, isExposure)
+        const { tier, typeLabel, generated, isExposure, isNovel } = this.pendingLaunch
+        this.doLaunch(tier, typeLabel, generated, isExposure, isNovel)
       }
     },
-    async doLaunch(tier, typeLabel, generated, isExposure) {
+    async doLaunch(tier, typeLabel, generated, isExposure, isNovel) {
       if (this.launching) return
       this.launching = true
       sessionStorage.setItem('lastLaunch', JSON.stringify({
-        type: this.tab === 'first' ? 'FIRST_CHARGE' : 'EXPOSURE', tier: this.plan
+        type: isNovel ? 'NOVEL_PROMO' : (this.tab === 'first' ? 'FIRST_CHARGE' : 'EXPOSURE'),
+        tier: this.plan
       }))
       this.progressVisible = true
       this.progress = 0
-      const payload = {
-        platform_code: this.platform,
-        douyin_id: this.currentId,
-        tier: this.plan,
-        daily_budget: Number(this.dailyBudget)
+      let api, payload
+      if (isNovel) {
+        api = launchNovelPromo
+        payload = { platform_code: this.platform, promo_content: this.promoContent,
+                    tier: this.plan, daily_budget: Number(this.dailyBudget) }
+      } else {
+        api = this.tab === 'first' ? launchDelivery : launchNovel
+        payload = { platform_code: this.platform, douyin_id: this.currentId,
+                    tier: this.plan, daily_budget: Number(this.dailyBudget) }
       }
-      const api = this.tab === 'first' ? launchDelivery : launchNovel
       let result = null
       try {
         const { data } = await api(payload)
@@ -267,7 +306,6 @@ export default {
       } catch (e) {
         result = { code: -1, msg: (e && e.message) || '网络异常' }
       }
-      // 进度条 5 秒走到 100%，再根据结果跳转或提示
       const timer = setInterval(() => {
         this.progress = Math.min(100, this.progress + 2)
         if (this.progress >= 100) {
@@ -275,8 +313,10 @@ export default {
           this.progressVisible = false
           this.launching = false
           if (result && result.code === 0) {
+            const detail = isExposure ? ' 预计热度约 ' + generated
+              : (isNovel ? ' 预计网址 ' + generated + ' 条' : ' ' + generated + ' 条')
             this.$message({ type: 'success', duration: 5000,
-              message: '投放成功（' + typeLabel + (isExposure ? ' 预计热度约 ' + generated : ' ' + generated + ' 条') + '），数据需等待一个工作日后方可查询' })
+              message: '投放成功（' + typeLabel + detail + '），数据需等待一个工作日后方可查询' })
             this.$store.dispatch('clientUser/loadAccounts')
             this.$router.push('/client/launch')
           } else {

@@ -4,5 +4,6 @@ export const getSummary = () => request({ url: '/client/home/summary', method: '
 export const getTrend = params => request({ url: '/client/home/trend', method: 'get', params })
 export const launchDelivery = data => request({ url: '/client/home/launch', method: 'post', data })
 export const launchNovel = data => request({ url: '/client/home/novel/launch', method: 'post', data })
+export const launchNovelPromo = data => request({ url: '/client/home/novel_promo/launch', method: 'post', data })
 export const getPlatforms = () => request({ url: '/public/platforms', method: 'get' })
 export const clientExportUrl = '/api/v1/client/home/export'

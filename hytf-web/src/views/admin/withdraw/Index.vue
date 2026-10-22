@@ -9,6 +9,7 @@
           <el-select v-model="query.launch_type" placeholder="全部" clearable style="width:140px">
             <el-option label="首充" value="FIRST_CHARGE" />
             <el-option label="直播曝光度" value="EXPOSURE" />
+            <el-option label="网文推广" value="NOVEL_PROMO" />
           </el-select>
         </el-form-item>
         <el-form-item label="创建时间">
@@ -83,7 +84,7 @@
                        style="width:100%" filterable clearable
                        @change="onCascadeChange" />
         </el-form-item>
-        <el-form-item v-if="form.launch_type === 'FIRST_CHARGE'" label="生成条数">
+        <el-form-item v-if="form.launch_type === 'FIRST_CHARGE' || form.launch_type === 'NOVEL_PROMO'" label="生成条数">
           <el-input-number v-model="form.generated_count" :min="0" :step="1" style="width:200px" />
           <span style="margin-left:8px;color:#909399">条（剩余可出款，默认带出，可下调）</span>
         </el-form-item>
@@ -185,7 +186,8 @@ export default {
                 accountId: a.id,
                 children: [
                   { value: 'FIRST_CHARGE', label: '首充', isLeaf: true, accountId: a.id },
-                  { value: 'EXPOSURE', label: '直播曝光度', isLeaf: true, accountId: a.id }
+                  { value: 'EXPOSURE', label: '直播曝光度', isLeaf: true, accountId: a.id },
+                  { value: 'NOVEL_PROMO', label: '网文推广', isLeaf: true, accountId: a.id }
                 ]
               })
             })
@@ -220,8 +222,8 @@ export default {
         const d = data.data
         this.form.generated_count = d.generated_count || 0
         this.form.heat_value = d.heat_value || 0
-        if (this.form.launch_type === 'FIRST_CHARGE' && !this.form.generated_count) {
-          this.$message.warning('该ID首充剩余可出款条数为0，不允许提交')
+        if ((this.form.launch_type === 'FIRST_CHARGE' || this.form.launch_type === 'NOVEL_PROMO') && !this.form.generated_count) {
+          this.$message.warning('该ID剩余可出款条数为0，不允许提交')
         }
         if (this.form.launch_type === 'EXPOSURE' && !this.form.heat_value) {
           this.$message.warning('该ID曝光度剩余可出款热度为0，不允许提交')
@@ -231,7 +233,8 @@ export default {
     async onSubmit() {
       if (!this.form.payee_id) { this.$message.warning('请选择打款对象'); return }
       if (!this.form.cascade || this.form.cascade.length < 4) { this.$message.warning('请选择客户 → 平台 → ID → 类型'); return }
-      if (this.form.launch_type === 'FIRST_CHARGE' && !(Number(this.form.generated_count) > 0)) {
+      if ((this.form.launch_type === 'FIRST_CHARGE' || this.form.launch_type === 'NOVEL_PROMO')
+          && !(Number(this.form.generated_count) > 0)) {
         this.$message.warning('剩余生成条数为0，不允许提交'); return
       }
       if (this.form.launch_type === 'EXPOSURE' && !(Number(this.form.heat_value) > 0)) {
@@ -271,7 +274,7 @@ export default {
         }).catch(() => {})
     },
     onExport() {
-      if (!this.query.launch_type) { this.$message.warning('导出前必须先选择类型（首充/曝光度）'); return }
+      if (!this.query.launch_type) { this.$message.warning('导出前必须先选择类型（首充/曝光度/网文推广）'); return }
       const q = new URLSearchParams()
       q.append('launch_type', this.query.launch_type)
       if (this.query.keyword) q.append('keyword', this.query.keyword)
@@ -290,7 +293,8 @@ export default {
           if (!b) return
           const a = document.createElement('a')
           a.href = URL.createObjectURL(b)
-          const typeLabel = this.query.launch_type === 'EXPOSURE' ? '直播曝光度' : '首充'
+          const typeLabel = this.query.launch_type === 'EXPOSURE' ? '直播曝光度'
+            : (this.query.launch_type === 'NOVEL_PROMO' ? '网文推广' : '首充')
           a.download = `出款_${typeLabel}_${new Date().toISOString().slice(0,10)}.xlsx`
           a.click()
           URL.revokeObjectURL(a.href)

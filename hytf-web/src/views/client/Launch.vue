@@ -29,11 +29,12 @@
         <el-date-picker v-model="range" type="daterange" value-format="yyyy-MM-dd"
                         start-placeholder="开始" end-placeholder="结束" :clearable="false"
                         :picker-options="pickerOptions" />
-        <el-select v-model="launchType" placeholder="请选择类型" style="margin-left:12px;width:150px">
+        <el-select v-model="launchType" placeholder="请选择类型" style="margin-left:12px;width:150px" @change="onTypeChange">
           <el-option label="首充" value="FIRST_CHARGE" />
           <el-option label="直播曝光度" value="EXPOSURE" />
+          <el-option label="网文推广" value="NOVEL_PROMO" />
         </el-select>
-        <el-cascader v-model="cascade" :options="cascadeOptions" :props="cascaderProps"
+        <el-cascader v-if="launchType !== 'NOVEL_PROMO'" v-model="cascade" :options="cascadeOptions" :props="cascaderProps"
                      placeholder="平台 / ID" clearable filterable
                      style="margin-left:12px;width:280px" />
         <el-button type="primary" icon="el-icon-search" style="margin-left:8px" @click="loadTrend">查询</el-button>
@@ -120,6 +121,10 @@ export default {
       if (this.launchType === 'EXPOSURE' && this.stats) {
         list.push({ key: 'heat', title: '热度', value: this.stats.heat_total || 0 })
       }
+      if (this.launchType === 'NOVEL_PROMO' && this.stats) {
+        list.push({ key: 'novel_reads', title: '网文阅读量', value: this.stats.novel_reads_total || 0 })
+        list.push({ key: 'novel_urls', title: '网址条数', value: this.stats.novel_url_count || 0 })
+      }
       return list
     }
   },
@@ -131,16 +136,17 @@ export default {
     // 2.3：初始化不查询
   },
   methods: {
+    onTypeChange() { if (this.launchType === 'NOVEL_PROMO') this.cascade = [] },
     validate() {
-      if (!this.launchType) { this.$message.warning('请选择类型（首充/直播曝光度）'); return false }
-      if (!this.accountId) { this.$message.warning('请选择平台和ID'); return false }
+      if (!this.launchType) { this.$message.warning('请选择类型（首充/直播曝光度/网文推广）'); return false }
+      if (this.launchType !== 'NOVEL_PROMO' && !this.accountId) { this.$message.warning('请选择平台和ID'); return false }
       if (!this.range || this.range.length !== 2) { this.$message.warning('请选择日期'); return false }
       return true
     },
     async loadTrend() {
       if (!this.validate()) return
-      const params = { start: this.range[0], end: this.range[1],
-                       account_id: this.accountId, launch_type: this.launchType }
+      const params = { start: this.range[0], end: this.range[1], launch_type: this.launchType }
+      if (this.launchType !== 'NOVEL_PROMO') params.account_id = this.accountId
       const { data } = await getTrend(params)
       if (data.code === 0) {
         this.raw = data.data.items || []
@@ -155,7 +161,7 @@ export default {
       const q = new URLSearchParams()
       q.append('start', this.range[0])
       q.append('end', this.range[1])
-      q.append('account_id', this.accountId)
+      if (this.launchType !== 'NOVEL_PROMO') q.append('account_id', this.accountId)
       q.append('launch_type', this.launchType)
       fetch(clientExportUrl + '?' + q.toString(),
             { headers: { Authorization: 'Bearer ' + getClientToken() } })
@@ -170,7 +176,8 @@ export default {
           if (!b) return
           const a = document.createElement('a')
           a.href = URL.createObjectURL(b)
-          const typeLabel = this.launchType === 'EXPOSURE' ? '直播曝光度' : '首充'
+          const typeLabel = this.launchType === 'EXPOSURE' ? '直播曝光度'
+            : (this.launchType === 'NOVEL_PROMO' ? '网文推广' : '首充')
           a.download = `流水明细_${typeLabel}_${this.range[0]}_${this.range[1]}.xlsx`
           a.click()
           URL.revokeObjectURL(a.href)
@@ -179,8 +186,10 @@ export default {
     },
     applySeries() {
       const key = this.activeMod
-      const nameMap = { consume: '消费', avg: '日均消费', first_amount: '首充金额', first_count: '首充ID数', heat: '热度' }
-      const colorMap = { consume: '#F56C6C', avg: '#E6A23C', first_amount: '#67C23A', first_count: '#409EFF', heat: '#FF9800' }
+      const nameMap = { consume: '消费', avg: '日均消费', first_amount: '首充金额', first_count: '首充ID数',
+                        heat: '热度', novel_reads: '网文阅读量', novel_urls: '网址条数' }
+      const colorMap = { consume: '#F56C6C', avg: '#E6A23C', first_amount: '#67C23A', first_count: '#409EFF',
+                         heat: '#FF9800', novel_reads: '#9C27B0', novel_urls: '#00BCD4' }
       if (key === 'avg') {
         const total = (this.raw || []).reduce((s, x) => s + Number(x.consume || 0), 0)
         const avg = this.raw.length ? total / this.raw.length : 0
@@ -188,8 +197,8 @@ export default {
       } else if (key === 'consume') {
         this.series = [{ name: nameMap[key], data: this.raw.map(x => Number(x[key] || 0)), color: colorMap[key] }]
       } else {
-        // 首充金额/首充ID数/热度 是区间累加值，展示为水平线
-        const v = this.stats ? Number(this.stats[key === 'heat' ? 'heat_total' : key] || 0) : 0
+        const statKey = { heat: 'heat_total', novel_reads: 'novel_reads_total', novel_urls: 'novel_url_count' }[key] || key
+        const v = this.stats ? Number(this.stats[statKey] || 0) : 0
         this.series = [{ name: nameMap[key], data: this.raw.map(() => v), color: colorMap[key] }]
       }
     }

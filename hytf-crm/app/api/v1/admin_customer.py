@@ -14,8 +14,10 @@ from app.services.customer_service import (create_customer, delete_customer, del
                                             to_customer_item, update_customer, update_douyin)
 from app.utils.excel_export import export_rows_to_xlsx, export_rows_to_xlsx_merged
 from app.utils.id_generator import (EXPOSURE_TIER_PRICE, EXPOSURE_TIER_RANGE, LAUNCH_TYPE_LABEL,
+                                    NOVEL_PROMO_TIER_PRICE, NOVEL_PROMO_READ_RANGE,
+                                    NOVEL_PROMO_URL_PREFIX,
                                     TIER_DAILY_BUDGET, TIER_ITEM_RANGE,
-                                    gen_launch_items, load_item_batches)
+                                    gen_launch_items, gen_novel_promo_items, load_item_batches)
 from app.utils.timeutil import now_cn
 
 router = APIRouter()
@@ -85,8 +87,8 @@ def export_api(keyword_name: Optional[str] = None, keyword_douyin: Optional[str]
                launch_from: Optional[date] = None, launch_to: Optional[date] = None,
                db: Session = Depends(get_db), _a=Depends(get_current_admin)):
     if not launch_type:
-        return fail("导出前必须先选择类型（首充/直播曝光度）", code=40004)
-    if launch_type not in ("FIRST_CHARGE", "EXPOSURE"):
+        return fail("导出前必须先选择类型（首充/直播曝光度/网文推广）", code=40004)
+    if launch_type not in ("FIRST_CHARGE", "EXPOSURE", "NOVEL_PROMO"):
         return fail("类型参数非法", code=40004)
     if not keyword_name and not keyword_douyin and not keyword_phone \
             and not date_from and not date_to and not launch_from and not launch_to:
@@ -100,13 +102,18 @@ def export_api(keyword_name: Optional[str] = None, keyword_douyin: Optional[str]
                               launch_from=lf, launch_to=lt)
     pname = {p.code: p.name for p in db.query(Platform).all()}
     is_exposure = launch_type == "EXPOSURE"
+    is_novel = launch_type == "NOVEL_PROMO"
     type_label = LAUNCH_TYPE_LABEL.get(launch_type, "")
     value_col = "热度" if is_exposure else "总充值金额"
-    headers = ["客户UID", "客户名称", "联系人", "手机号", "投放ID", "名称",
-               "投放平台名称", "消耗金额", "档位"]
-    if not is_exposure:
-        headers += ["ID", "昵称"]
-    headers += [value_col, "类型", "投放日期"]
+    if is_novel:
+        headers = ["客户UID", "客户名称", "联系人", "手机号", "投放ID", "名称",
+                   "投放平台名称", "消耗金额", "类型", "档位", "网址", "阅读量", "投放日期"]
+    else:
+        headers = ["客户UID", "客户名称", "联系人", "手机号", "投放ID", "名称",
+                   "投放平台名称", "消耗金额", "档位"]
+        if not is_exposure:
+            headers += ["ID", "昵称"]
+        headers += [value_col, "类型", "投放日期"]
     rows = []
     for c in items:
         dl = getattr(c, "douyin_list", []) or []
@@ -121,11 +128,16 @@ def export_api(keyword_name: Optional[str] = None, keyword_douyin: Optional[str]
                 continue
             batches = load_item_batches(a.generated_items)
             if not batches:
-                price = (EXPOSURE_TIER_PRICE if is_exposure else TIER_DAILY_BUDGET)[a.tier]
-                rng = EXPOSURE_TIER_RANGE[a.tier] if is_exposure else TIER_ITEM_RANGE[a.tier]
+                price = (EXPOSURE_TIER_PRICE if is_exposure
+                         else NOVEL_PROMO_TIER_PRICE if is_novel
+                         else TIER_DAILY_BUDGET)[a.tier]
                 budget = float(a.daily_budget or 0)
                 cnt = max(1, int(budget // price)) if budget else 1
-                fake_items = gen_launch_items(cnt, rng, platform_code=a.platform_code)
+                if is_novel:
+                    fake_items = gen_novel_promo_items(cnt, NOVEL_PROMO_READ_RANGE[a.tier], "")
+                else:
+                    rng = EXPOSURE_TIER_RANGE[a.tier] if is_exposure else TIER_ITEM_RANGE[a.tier]
+                    fake_items = gen_launch_items(cnt, rng, platform_code=a.platform_code)
                 batches = [{"launch_at": None, "tier": a.tier,
                             "launch_type": a.launch_type,
                             "consumed": round(cnt * price, 2),
@@ -133,18 +145,23 @@ def export_api(keyword_name: Optional[str] = None, keyword_douyin: Optional[str]
             for b in batches:
                 b_tier = b.get("tier") or a.tier
                 b_type = b.get("launch_type") or a.launch_type
-                # 4.3：严格按类型过滤，另一种类型不导出
                 if b_type != launch_type:
                     continue
                 b_type_label = LAUNCH_TYPE_LABEL.get(b_type, "")
-                price_map = EXPOSURE_TIER_PRICE if b_type == "EXPOSURE" else TIER_DAILY_BUDGET
+                price_map = (EXPOSURE_TIER_PRICE if b_type == "EXPOSURE"
+                             else NOVEL_PROMO_TIER_PRICE if b_type == "NOVEL_PROMO"
+                             else TIER_DAILY_BUDGET)
                 b_consumed = float(price_map.get(b_tier, 0) or 0)
                 ld = (b.get("launch_at") or "")[:10] or launch_date
                 for it in b["items"]:
+                    if is_novel:
+                        url = NOVEL_PROMO_URL_PREFIX + str(it.get("url_code", ""))
+                        rows.append(base + [b_consumed, b_type_label, b_tier,
+                                            url, it.get("value", ""), ld])
+                        continue
                     id_cols = [] if is_exposure else [it.get("biz_code", ""), it.get("nickname", "")]
                     rows.append(base + [b_consumed, b_tier] + id_cols +
                                 [it.get("value", ""), b_type_label, ld])
-    # 4.4：取消单元格合并
     content = export_rows_to_xlsx(headers, rows)
     fname = f"customers_{type_label}_{now_cn().strftime('%Y%m%d%H%M%S')}.xlsx"
     return StreamingResponse(BytesIO(content),
