@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from app.core.deps import get_current_admin, get_db
+from app.models.douyin_account import DouyinAccount
 from app.models.platform import Platform
 from app.schemas.common import fail, ok
 from app.schemas.customer import CustomerCreateReq, CustomerUpdateReq, DouyinUpdateReq
@@ -36,7 +37,7 @@ def list_api(keyword_name: Optional[str] = None, keyword_douyin: Optional[str] =
     lt = datetime.combine(launch_to, time.max) if launch_to else None
     items, total = list_customers(db, keyword_name, keyword_douyin, df, dt, page, page_size,
                                   launch_type=launch_type, phone=keyword_phone,
-                                  launch_from=lf, launch_to=lt)
+                                  launch_from=lf, launch_to=lt, exclude_promo_only=True)
     return ok({"total": total, "page": page, "page_size": page_size,
                "items": [to_customer_item(c) for c in items]})
 
@@ -85,6 +86,7 @@ def export_api(keyword_name: Optional[str] = None, keyword_douyin: Optional[str]
                keyword_phone: Optional[str] = None, launch_type: Optional[str] = None,
                date_from: Optional[date] = None, date_to: Optional[date] = None,
                launch_from: Optional[date] = None, launch_to: Optional[date] = None,
+               promo_only: bool = False,
                db: Session = Depends(get_db), _a=Depends(get_current_admin)):
     if not launch_type:
         return fail("导出前必须先选择类型（首充/直播曝光度/网文推广）", code=40004)
@@ -97,9 +99,17 @@ def export_api(keyword_name: Optional[str] = None, keyword_douyin: Optional[str]
     dt = datetime.combine(date_to, time.max) if date_to else None
     lf = datetime.combine(launch_from, time.min) if launch_from else None
     lt = datetime.combine(launch_to, time.max) if launch_to else None
+    only_ids = None
+    exclude_promo = True
+    if promo_only:
+        only_ids = {cid for (cid,) in db.query(DouyinAccount.customer_id)
+                    .filter(DouyinAccount.is_promo_only == 1).distinct().all()}
+        if not only_ids:
+            return fail("未匹配到网文客户", code=40404)
+        exclude_promo = False
     items, _ = list_customers(db, keyword_name, keyword_douyin, df, dt, 1, 10000,
-                              launch_type=launch_type, phone=keyword_phone,
-                              launch_from=lf, launch_to=lt)
+                              only_ids=only_ids, launch_type=launch_type, phone=keyword_phone,
+                              launch_from=lf, launch_to=lt, exclude_promo_only=exclude_promo)
     pname = {p.code: p.name for p in db.query(Platform).all()}
     is_exposure = launch_type == "EXPOSURE"
     is_novel = launch_type == "NOVEL_PROMO"

@@ -76,8 +76,15 @@ def list_customers(db: Session, name=None, dyid=None, dfrom=None, dto=None,
                    page: int = 1, size: int = 20, only_ids=None,
                    launch_type: Optional[str] = None,
                    phone: Optional[str] = None,
-                   launch_from=None, launch_to=None) -> Tuple[List[Customer], int]:
+                   launch_from=None, launch_to=None,
+                   exclude_promo_only: bool = False) -> Tuple[List[Customer], int]:
     q = db.query(Customer)
+    if exclude_promo_only:
+        # 用户管理与网文客户完全隔离：排除含网文专用账号(is_promo_only)的客户
+        promo_cids = {cid for (cid,) in db.query(DouyinAccount.customer_id)
+                      .filter(DouyinAccount.is_promo_only == 1).distinct().all()}
+        if promo_cids:
+            q = q.filter(Customer.id.notin_(promo_cids))
     if only_ids is not None:
         q = q.filter(Customer.id.in_(only_ids))
     if name:
@@ -185,29 +192,20 @@ def create_customer(db: Session, req: CustomerCreateReq) -> Customer:
 
 
 def create_novel_customer(db: Session, req) -> Customer:
-    """网文客户专用入口：无投放平台/ID，创建客户 + 一个隐藏网文推广资金账号(is_promo_only=1)。
-       登录规则与用户管理一致（手机号 + 默认密码）。"""
+    """网文客户专用入口：与用户管理完全独立，手机号不可复用，始终新建客户 + 隐藏资金账号。"""
     cust = db.query(Customer).filter(Customer.phone == req.phone).first()
     if cust is not None:
-        has_promo = (db.query(DouyinAccount)
-                     .filter(DouyinAccount.customer_id == cust.id,
-                             DouyinAccount.is_promo_only == 1).first())
-        if has_promo:
-            raise ValueError("该手机号已存在网文客户")
-    if cust is None:
-        uids = {u for (u,) in db.query(Customer.customer_uid).all()}
-        cust = Customer(customer_uid=gen_customer_uid(uids),
-                        customer_name=req.customer_name,
-                        contact_name=req.contact_name,
-                        phone=req.phone,
-                        password_hash=hash_password(build_client_default_password(req.phone)),
-                        remark=req.remark)
-        db.add(cust)
-        db.flush()
-        logger.info(f"[novel customer created] uid={cust.customer_uid} phone={req.phone}")
-    else:
-        cust.customer_name = req.customer_name or cust.customer_name
-        cust.contact_name = req.contact_name or cust.contact_name
+        raise ValueError("该手机号已被占用（用户管理/网文客户），请更换手机号")
+    uids = {u for (u,) in db.query(Customer.customer_uid).all()}
+    cust = Customer(customer_uid=gen_customer_uid(uids),
+                    customer_name=req.customer_name,
+                    contact_name=req.contact_name,
+                    phone=req.phone,
+                    password_hash=hash_password(build_client_default_password(req.phone)),
+                    remark=req.remark)
+    db.add(cust)
+    db.flush()
+    logger.info(f"[novel customer created] uid={cust.customer_uid} phone={req.phone}")
     amount = float(req.recharge_amount or 0)
     codes = {c for (c,) in db.query(DouyinAccount.auto_code).all()}
     exists = {(p, i) for p, i in db.query(DouyinAccount.platform_code, DouyinAccount.douyin_id).all()}

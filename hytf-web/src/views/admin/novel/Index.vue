@@ -208,6 +208,7 @@ export default {
       }
       const q = new URLSearchParams()
       q.append('launch_type', 'NOVEL_PROMO')
+      q.append('promo_only', '1')
       if (p.keyword_name) q.append('keyword_name', p.keyword_name)
       if (p.date_from) q.append('date_from', p.date_from)
       if (p.date_to) q.append('date_to', p.date_to)

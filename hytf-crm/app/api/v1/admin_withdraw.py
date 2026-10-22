@@ -16,7 +16,8 @@ from app.models.withdraw import Withdraw
 from app.schemas.common import ok, fail
 from app.schemas.withdraw import WithdrawCreateReq
 from app.utils.excel_export import export_rows_to_xlsx
-from app.utils.id_generator import LAUNCH_TYPE_LABEL, NOVEL_PROMO_URL_PREFIX, load_item_batches
+from app.utils.id_generator import (LAUNCH_TYPE_LABEL, NOVEL_PROMO_URL_PREFIX, PROMO_CONTENTS,
+                                    load_item_batches)
 from app.utils.timeutil import now_cn, today_cn
 
 router = APIRouter()
@@ -81,17 +82,14 @@ def list_customers_for_cascade(keyword: Optional[str] = None,
         nps = db.query(NovelPromo).filter(NovelPromo.customer_id.in_(cids)).all()
         for np in nps:
             plat = novel_map.setdefault(np.customer_id, {})
-            node = plat.setdefault(np.platform_code,
-                                   {"platform_code": np.platform_code,
-                                    "platform_name": pname.get(np.platform_code, np.platform_code),
-                                    "contents": set()})
-            if np.promo_content:
-                node["contents"].add(np.promo_content)
+            plat.setdefault(np.platform_code,
+                            {"platform_code": np.platform_code,
+                             "platform_name": pname.get(np.platform_code, np.platform_code)})
     return ok([{"id": c.id, "customer_name": c.customer_name,
                 "accounts": acc_map.get(c.id, []),
                 "novel_options": [{"platform_code": v["platform_code"],
                                    "platform_name": v["platform_name"],
-                                   "contents": sorted(v["contents"])}
+                                   "contents": list(PROMO_CONTENTS)}
                                   for v in novel_map.get(c.id, {}).values()]}
                for c in custs])
 
