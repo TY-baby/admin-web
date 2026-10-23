@@ -10,7 +10,9 @@ from app.utils.timeutil import now_cn, today_cn
 
 def admin_dashboard(db: Session, days: int = 14) -> dict:
     total_customer = db.query(func.count(Customer.id)).scalar() or 0
-    total_douyin = db.query(func.count(DouyinAccount.id)).scalar() or 0
+    # ID数仅统计真实平台ID，不含网文钱包账号(is_promo_only)
+    total_douyin = db.query(func.count(DouyinAccount.id)).filter(
+        DouyinAccount.is_promo_only == 0).scalar() or 0
     total_recharge = db.query(func.coalesce(func.sum(DouyinAccount.recharge_amount), 0)).scalar() or 0
     total_consume = db.query(func.coalesce(func.sum(-FinanceLog.amount), 0)).filter(
         FinanceLog.change_type == "CONSUME").scalar() or 0

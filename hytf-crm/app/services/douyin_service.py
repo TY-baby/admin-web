@@ -14,8 +14,10 @@ def get_home_summary(db: Session, cid: int) -> dict:
     total_recharge = sum(float(a.recharge_amount) for a in accs)
     consume = db.query(func.coalesce(func.sum(-FinanceLog.amount), 0)).filter(
         and_(FinanceLog.customer_id == cid, FinanceLog.change_type == "CONSUME")).scalar() or 0
+    # 投放ID数仅统计真实平台ID，不含网文钱包账号（仅网文用户没有ID）
+    id_count = sum(1 for a in accs if int(getattr(a, "is_promo_only", 0) or 0) != 1)
     return {"total_balance": float(total_balance), "total_recharge": float(total_recharge),
-            "total_consume": float(consume), "account_count": len(accs)}
+            "total_consume": float(consume), "account_count": id_count}
 
 
 def get_trend(db: Session, cid: int, aid, dfrom: date, dto: date) -> List[dict]:

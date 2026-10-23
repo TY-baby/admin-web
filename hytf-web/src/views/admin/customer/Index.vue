@@ -52,10 +52,7 @@
           <template slot-scope="{ row }">
             <el-table :data="row.douyin_list" size="mini" border>
               <el-table-column label="平台" width="100">
-                <template slot-scope="{ row: a }">
-                  <el-tag v-if="a.is_promo_only" size="mini" type="danger">网文钱包</el-tag>
-                  <template v-else>{{ platformName(a.platform_code) }}</template>
-                </template>
+                <template slot-scope="{ row: a }">{{ a.is_promo_only ? '-' : platformName(a.platform_code) }}</template>
               </el-table-column>
               <el-table-column label="ID" width="140">
                 <template slot-scope="{ row: a }">{{ a.is_promo_only ? '-' : a.douyin_id }}</template>
@@ -105,7 +102,7 @@
           </template>
         </el-table-column>
         <el-table-column label="ID数" width="80">
-          <template slot-scope="{ row }">{{ (row.douyin_list || []).length }}</template>
+          <template slot-scope="{ row }">{{ (row.douyin_list || []).filter(a => !a.is_promo_only).length }}</template>
         </el-table-column>
         <el-table-column label="总充值" width="100">
           <template slot-scope="{ row }">{{ (row.douyin_list||[]).reduce((s,a)=>s+Number(a.recharge_amount||0),0).toFixed(2) }}</template>
