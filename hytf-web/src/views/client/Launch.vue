@@ -90,6 +90,7 @@ export default {
     cascadeOptions() {
       const groups = {}
       ;(this.accounts || []).forEach(a => {
+        if (a.is_promo_only) return
         const p = this.platforms.find(x => x.code === a.platform_code)
         const pname = p ? p.name : a.platform_code
         if (!groups[a.platform_code]) groups[a.platform_code] = { value: a.platform_code, label: pname, children: [] }
