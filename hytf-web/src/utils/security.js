@@ -16,10 +16,18 @@ export function installSecurity() {
   const detect = () => {
     const wDiff = window.outerWidth - window.innerWidth > threshold
     const hDiff = window.outerHeight - window.innerHeight > threshold
+    let mask = document.getElementById('hy-dev-mask')
     if (wDiff || hDiff) {
-      try {
-        document.body.innerHTML = '<div style="padding:40px;text-align:center;font-size:18px;color:#c00">检测到调试工具已打开，为保障账户安全，页面已停止渲染。请关闭后刷新。</div>'
-      } catch (_) {}
+      if (!mask) {
+        mask = document.createElement('div')
+        mask.id = 'hy-dev-mask'
+        mask.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#f5f7fa;' +
+          'display:flex;align-items:center;justify-content:center;font-size:18px;color:#c00'
+        mask.textContent = '检测到调试工具已打开，为保障账户安全，页面已临时隐藏，关闭后将自动恢复。'
+        document.body.appendChild(mask)
+      }
+    } else if (mask) {
+      mask.remove()
     }
   }
   setInterval(detect, 1500)
