@@ -77,13 +77,17 @@ def list_customers(db: Session, name=None, dyid=None, dfrom=None, dto=None,
                    launch_type: Optional[str] = None,
                    phone: Optional[str] = None,
                    launch_from=None, launch_to=None,
-                   exclude_promo_only: bool = False) -> Tuple[List[Customer], int]:
+                   customer_type: Optional[str] = None) -> Tuple[List[Customer], int]:
     q = db.query(Customer)
-    if exclude_promo_only:
-        # 用户管理与网文客户完全隔离：排除含网文专用账号(is_promo_only)的客户
+    if customer_type in ("normal", "novel"):
+        # 统一列表后的类型筛选：novel=名下有网文钱包账号；normal=没有
         promo_cids = {cid for (cid,) in db.query(DouyinAccount.customer_id)
                       .filter(DouyinAccount.is_promo_only == 1).distinct().all()}
-        if promo_cids:
+        if customer_type == "novel":
+            if not promo_cids:
+                return [], 0
+            q = q.filter(Customer.id.in_(promo_cids))
+        elif promo_cids:
             q = q.filter(Customer.id.notin_(promo_cids))
     if only_ids is not None:
         q = q.filter(Customer.id.in_(only_ids))
@@ -192,20 +196,29 @@ def create_customer(db: Session, req: CustomerCreateReq) -> Customer:
 
 
 def create_novel_customer(db: Session, req) -> Customer:
-    """网文客户专用入口：与用户管理完全独立，手机号不可复用，始终新建客户 + 隐藏资金账号。"""
+    """网文客户统一入口：手机号已存在且无网文钱包时，直接给老客户挂钱包；
+    否则新建客户 + 隐藏钱包账号。生成逻辑（钱包账号规则）保持不变。"""
     cust = db.query(Customer).filter(Customer.phone == req.phone).first()
     if cust is not None:
-        raise ValueError("该手机号已被占用（用户管理/网文客户），请更换手机号")
-    uids = {u for (u,) in db.query(Customer.customer_uid).all()}
-    cust = Customer(customer_uid=gen_customer_uid(uids),
-                    customer_name=req.customer_name,
-                    contact_name=req.contact_name,
-                    phone=req.phone,
-                    password_hash=hash_password(build_client_default_password(req.phone)),
-                    remark=req.remark)
-    db.add(cust)
-    db.flush()
-    logger.info(f"[novel customer created] uid={cust.customer_uid} phone={req.phone}")
+        has = (db.query(DouyinAccount)
+               .filter(DouyinAccount.customer_id == cust.id,
+                       DouyinAccount.is_promo_only == 1).first())
+        if has is not None:
+            raise ValueError("该客户已开通网文推广，无需重复添加")
+        cust.customer_name = req.customer_name or cust.customer_name
+        cust.contact_name = req.contact_name or cust.contact_name
+        logger.info(f"[novel wallet attached] uid={cust.customer_uid} phone={req.phone}")
+    else:
+        uids = {u for (u,) in db.query(Customer.customer_uid).all()}
+        cust = Customer(customer_uid=gen_customer_uid(uids),
+                        customer_name=req.customer_name,
+                        contact_name=req.contact_name,
+                        phone=req.phone,
+                        password_hash=hash_password(build_client_default_password(req.phone)),
+                        remark=req.remark)
+        db.add(cust)
+        db.flush()
+        logger.info(f"[novel customer created] uid={cust.customer_uid} phone={req.phone}")
     amount = float(req.recharge_amount or 0)
     codes = {c for (c,) in db.query(DouyinAccount.auto_code).all()}
     exists = {(p, i) for p, i in db.query(DouyinAccount.platform_code, DouyinAccount.douyin_id).all()}

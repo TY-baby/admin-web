@@ -2,6 +2,12 @@
   <el-dialog :title="title" :visible.sync="visible" width="780px" :close-on-click-modal="false">
     <el-form ref="form" :model="form" :rules="rules" label-width="110px" size="small">
       <template v-if="mode === 'create' || mode === 'append'">
+        <el-form-item v-if="mode === 'create'" label="客户类型">
+          <el-radio-group v-model="form.customer_type" @change="onCustomerTypeChange">
+            <el-radio label="normal">普通客户</el-radio>
+            <el-radio label="novel">仅网文客户</el-radio>
+          </el-radio-group>
+        </el-form-item>
         <el-form-item label="客户名称" prop="customer_name">
           <el-input v-model="form.customer_name" maxlength="50" show-word-limit />
         </el-form-item>
@@ -11,13 +17,19 @@
         <el-form-item label="手机号" prop="phone">
           <el-input v-model="form.phone" maxlength="11" placeholder="A端登录账号,默认密码=手机号+123" />
         </el-form-item>
-        <el-form-item label="投放平台" prop="selected_platforms">
+        <el-form-item v-if="isNovelCreate" label="充值金额" prop="novel_recharge">
+          <el-input v-model="form.novel_recharge" placeholder="正整数,单位元(网文钱包余额)" />
+        </el-form-item>
+        <el-form-item v-if="!isNovelCreate" label="投放平台" prop="selected_platforms">
           <el-select v-model="form.selected_platforms" multiple placeholder="请选择平台（可多选）" style="width:100%"
                      @change="onPlatformSelect">
             <el-option v-for="p in platforms" :key="p.code" :label="p.name" :value="p.code" />
           </el-select>
         </el-form-item>
-        <el-form-item label="备注">
+        <el-form-item v-if="!isNovelCreate" label="备注">
+          <el-input v-model="form.remark" type="textarea" :rows="2" maxlength="255" />
+        </el-form-item>
+        <el-form-item v-if="isNovelCreate" label="备注">
           <el-input v-model="form.remark" type="textarea" :rows="2" maxlength="255" />
         </el-form-item>
 
@@ -133,7 +145,7 @@
 </template>
 
 <script>
-import { createCustomer, updateCustomer, updateDouyin } from '@/api/adminCustomer'
+import { createCustomer, createNovelCustomer, updateCustomer, updateDouyin } from '@/api/adminCustomer'
 import { getPlatforms } from '@/api/clientHome'
 import { isPhone, isPositiveInt } from '@/utils/validate'
 
@@ -168,9 +180,16 @@ export default {
         recharge_amount: [
           { required: true, message: '请输入充值金额', trigger: 'blur' },
           { validator: (r, v, cb) => isPositiveInt(v) ? cb() : cb(new Error('请输入正整数')), trigger: 'blur' }
+        ],
+        novel_recharge: [
+          { required: true, message: '请输入充值金额', trigger: 'blur' },
+          { validator: (r, v, cb) => isPositiveInt(v) ? cb() : cb(new Error('请输入正整数')), trigger: 'blur' }
         ]
       }
     }
+  },
+  computed: {
+    isNovelCreate() { return this.mode === 'create' && this.form.customer_type === 'novel' }
   },
   async created() {
     const { data } = await getPlatforms()
@@ -184,10 +203,17 @@ export default {
     buildEmpty() {
       return {
         customer_name: '', contact_name: '', phone: '', remark: '',
+        customer_type: 'normal', novel_recharge: '',
         selected_platforms: [], douyin_list: [],
         is_active_inv: true,
         douyin_name: '', recharge_amount: '', auth_duration: 'UNLIMITED',
         auth_days_custom: null, status: 'NORMAL'
+      }
+    },
+    onCustomerTypeChange(v) {
+      if (v === 'novel') {
+        this.form.selected_platforms = []
+        this.form.douyin_list = []
       }
     },
     onPlatformSelect(codes) {
@@ -246,12 +272,24 @@ export default {
     async submit() {
       this.$refs.form.validate(async ok => {
         if (!ok) return
-        if ((this.mode === 'create' || this.mode === 'append') && !this.form.douyin_list.length) {
+        const needAccounts = this.mode === 'append' ||
+            (this.mode === 'create' && this.form.customer_type === 'normal')
+        if (needAccounts && !this.form.douyin_list.length) {
           this.$message.warning('请至少添加一个平台ID'); return
         }
         this.saving = true
         try {
-          if (this.mode === 'create' || this.mode === 'append') {
+          if (this.isNovelCreate) {
+            const { data } = await createNovelCustomer({
+              customer_name: this.form.customer_name,
+              contact_name: this.form.contact_name,
+              phone: this.form.phone,
+              recharge_amount: Number(this.form.novel_recharge || 0),
+              remark: this.form.remark
+            })
+            if (data.code === 0) { this.$message.success('保存成功'); this.visible = false; this.$emit('ok') }
+            else { this.$message.error(data.msg || '保存失败') }
+          } else if (this.mode === 'create' || this.mode === 'append') {
             const payload = {
               customer_name: this.form.customer_name,
               contact_name: this.form.contact_name,

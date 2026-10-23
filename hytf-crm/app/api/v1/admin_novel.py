@@ -6,10 +6,8 @@ from sqlalchemy.orm import Session
 from app.core.deps import get_current_admin, get_db
 from app.models.douyin_account import DouyinAccount
 from app.models.novel_promo import NovelPromo
-from app.schemas.common import ok, fail
-from app.schemas.customer import NovelCustomerCreateReq
-from app.services.customer_service import (create_novel_customer, list_customers,
-                                            to_customer_item)
+from app.schemas.common import ok
+from app.services.customer_service import list_customers, to_customer_item
 
 router = APIRouter()
 
@@ -20,7 +18,7 @@ def list_api(keyword_name: Optional[str] = None,
              launch_from: Optional[date] = None, launch_to: Optional[date] = None,
              page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=200),
              db: Session = Depends(get_db), _a=Depends(get_current_admin)):
-    """网文客户列表：仅含网文专用账号(is_promo_only)的客户，与用户管理完全隔离"""
+    """网文投放统计只读视图：仅含钱包账号(is_promo_only)的客户；增删改统一在用户管理操作"""
     df = datetime.combine(date_from, time.min) if date_from else None
     dt = datetime.combine(date_to, time.max) if date_to else None
     lf = datetime.combine(launch_from, time.min) if launch_from else None
@@ -51,13 +49,3 @@ def list_api(keyword_name: Optional[str] = None,
         d["promo_account_id"] = promo_acc.get("id") if promo_acc else (accs[0].get("id") if accs else None)
         out.append(d)
     return ok({"total": total, "page": page, "page_size": page_size, "items": out})
-
-
-@router.post("/customer/create")
-def create_novel_customer_api(body: NovelCustomerCreateReq,
-                              db: Session = Depends(get_db), _a=Depends(get_current_admin)):
-    try:
-        c = create_novel_customer(db, body)
-        return ok({"id": c.id, "customer_uid": c.customer_uid})
-    except ValueError as e:
-        return fail(str(e), code=40002)

@@ -23,6 +23,12 @@
             <el-option label="网文推广" value="NOVEL_PROMO" />
           </el-select>
         </el-form-item>
+        <el-form-item label="客户类型">
+          <el-select v-model="query.customer_type" placeholder="全部" clearable style="width:130px">
+            <el-option label="普通客户" value="normal" />
+            <el-option label="网文客户" value="novel" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="添加时间">
           <el-date-picker v-model="dateRange" type="daterange" value-format="yyyy-MM-dd"
                           start-placeholder="开始" end-placeholder="结束" />
@@ -46,9 +52,14 @@
           <template slot-scope="{ row }">
             <el-table :data="row.douyin_list" size="mini" border>
               <el-table-column label="平台" width="100">
-                <template slot-scope="{ row: a }">{{ platformName(a.platform_code) }}</template>
+                <template slot-scope="{ row: a }">
+                  <el-tag v-if="a.is_promo_only" size="mini" type="danger">网文钱包</el-tag>
+                  <template v-else>{{ platformName(a.platform_code) }}</template>
+                </template>
               </el-table-column>
-              <el-table-column prop="douyin_id" label="ID" width="140" />
+              <el-table-column label="ID" width="140">
+                <template slot-scope="{ row: a }">{{ a.is_promo_only ? '-' : a.douyin_id }}</template>
+              </el-table-column>
               <el-table-column prop="douyin_name" label="名称" />
               <el-table-column prop="recharge_amount" label="充值" width="90" />
               <el-table-column label="已消耗金额(元)" width="120">
@@ -75,7 +86,8 @@
               <el-table-column label="操作" width="120">
                 <template slot-scope="{ row: a }">
                   <el-button size="mini" type="text" @click="openEdit(row, a)">编辑</el-button>
-                  <el-button size="mini" type="text" style="color:#F56C6C" @click="onDeleteDouyin(row, a)">删除</el-button>
+                  <el-button v-if="!a.is_promo_only" size="mini" type="text" style="color:#F56C6C"
+                             @click="onDeleteDouyin(row, a)">删除</el-button>
                 </template>
               </el-table-column>
             </el-table>
@@ -85,6 +97,13 @@
         <el-table-column prop="customer_name" label="客户名称" />
         <el-table-column prop="contact_name" label="联系人" width="100" />
         <el-table-column prop="phone" label="手机号" width="120" />
+        <el-table-column label="客户类型" width="110">
+          <template slot-scope="{ row }">
+            <el-tag v-if="row.customer_type === 'novel_mix'" size="mini" type="warning">网文+投放</el-tag>
+            <el-tag v-else-if="row.customer_type === 'novel'" size="mini" type="danger">网文</el-tag>
+            <el-tag v-else size="mini">普通</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="ID数" width="80">
           <template slot-scope="{ row }">{{ (row.douyin_list || []).length }}</template>
         </el-table-column>
@@ -130,7 +149,8 @@ export default {
     return {
       loading: false, rows: [], total: 0, dateRange: [], launchRange: [], platforms: [],
       customerOptions: [], custLoading: false,
-      query: { keyword_name: '', keyword_douyin: '', keyword_phone: '', launch_type: '', page: 1, page_size: 20 }
+      query: { keyword_name: '', keyword_douyin: '', keyword_phone: '', launch_type: '',
+               customer_type: '', page: 1, page_size: 20 }
     }
   },
   async created() {
@@ -179,7 +199,8 @@ export default {
       } finally { this.loading = false }
     },
     reset() {
-      this.query = { keyword_name: '', keyword_douyin: '', keyword_phone: '', launch_type: '', page: 1, page_size: 20 }
+      this.query = { keyword_name: '', keyword_douyin: '', keyword_phone: '', launch_type: '',
+                     customer_type: '', page: 1, page_size: 20 }
       this.dateRange = []
       this.launchRange = []
       this.load(1)

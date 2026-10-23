@@ -9,8 +9,10 @@ from app.core.deps import get_current_admin, get_db
 from app.models.douyin_account import DouyinAccount
 from app.models.platform import Platform
 from app.schemas.common import fail, ok
-from app.schemas.customer import CustomerCreateReq, CustomerUpdateReq, DouyinUpdateReq
-from app.services.customer_service import (create_customer, delete_customer, delete_douyin,
+from app.schemas.customer import (CustomerCreateReq, CustomerUpdateReq, DouyinUpdateReq,
+                                  NovelCustomerCreateReq)
+from app.services.customer_service import (create_customer, create_novel_customer,
+                                            delete_customer, delete_douyin,
                                             list_customers,
                                             to_customer_item, update_customer, update_douyin)
 from app.utils.excel_export import export_rows_to_xlsx, export_rows_to_xlsx_merged
@@ -29,6 +31,7 @@ def list_api(keyword_name: Optional[str] = None, keyword_douyin: Optional[str] =
              keyword_phone: Optional[str] = None, launch_type: Optional[str] = None,
              date_from: Optional[date] = None, date_to: Optional[date] = None,
              launch_from: Optional[date] = None, launch_to: Optional[date] = None,
+             customer_type: Optional[str] = None,
              page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=200),
              db: Session = Depends(get_db), _a=Depends(get_current_admin)):
     df = datetime.combine(date_from, time.min) if date_from else None
@@ -37,15 +40,42 @@ def list_api(keyword_name: Optional[str] = None, keyword_douyin: Optional[str] =
     lt = datetime.combine(launch_to, time.max) if launch_to else None
     items, total = list_customers(db, keyword_name, keyword_douyin, df, dt, page, page_size,
                                   launch_type=launch_type, phone=keyword_phone,
-                                  launch_from=lf, launch_to=lt, exclude_promo_only=True)
-    return ok({"total": total, "page": page, "page_size": page_size,
-               "items": [to_customer_item(c) for c in items]})
+                                  launch_from=lf, launch_to=lt, customer_type=customer_type)
+    ids = [c.id for c in items]
+    flag = {}
+    if ids:
+        for cid, po in (db.query(DouyinAccount.customer_id, DouyinAccount.is_promo_only)
+                        .filter(DouyinAccount.customer_id.in_(ids)).all()):
+            t = flag.setdefault(cid, {"w": 0, "r": 0})
+            if int(po or 0) == 1:
+                t["w"] = 1
+            else:
+                t["r"] = 1
+    out = []
+    for c in items:
+        it = to_customer_item(c)
+        t = flag.get(c.id, {"w": 0, "r": 0})
+        it["customer_type"] = ("novel_mix" if t["w"] and t["r"]
+                               else "novel" if t["w"] else "normal")
+        out.append(it)
+    return ok({"total": total, "page": page, "page_size": page_size, "items": out})
 
 
 @router.post("/create")
 def create_api(body: CustomerCreateReq, db: Session = Depends(get_db), _a=Depends(get_current_admin)):
     try:
         c = create_customer(db, body)
+        return ok({"id": c.id, "customer_uid": c.customer_uid})
+    except ValueError as e:
+        return fail(str(e), code=40002)
+
+
+@router.post("/novel/create")
+def create_novel_api(body: NovelCustomerCreateReq,
+                     db: Session = Depends(get_db), _a=Depends(get_current_admin)):
+    """统一入口：新增仅网文客户 / 老客户开通网文钱包"""
+    try:
+        c = create_novel_customer(db, body)
         return ok({"id": c.id, "customer_uid": c.customer_uid})
     except ValueError as e:
         return fail(str(e), code=40002)
@@ -100,24 +130,22 @@ def export_api(keyword_name: Optional[str] = None, keyword_douyin: Optional[str]
     lf = datetime.combine(launch_from, time.min) if launch_from else None
     lt = datetime.combine(launch_to, time.max) if launch_to else None
     only_ids = None
-    exclude_promo = True
     if promo_only:
         only_ids = {cid for (cid,) in db.query(DouyinAccount.customer_id)
                     .filter(DouyinAccount.is_promo_only == 1).distinct().all()}
         if not only_ids:
             return fail("未匹配到网文客户", code=40404)
-        exclude_promo = False
     items, _ = list_customers(db, keyword_name, keyword_douyin, df, dt, 1, 10000,
                               only_ids=only_ids, launch_type=launch_type, phone=keyword_phone,
-                              launch_from=lf, launch_to=lt, exclude_promo_only=exclude_promo)
+                              launch_from=lf, launch_to=lt)
     pname = {p.code: p.name for p in db.query(Platform).all()}
     is_exposure = launch_type == "EXPOSURE"
     is_novel = launch_type == "NOVEL_PROMO"
     type_label = LAUNCH_TYPE_LABEL.get(launch_type, "")
     value_col = "热度" if is_exposure else "总充值金额"
     if is_novel:
-        headers = ["客户UID", "客户名称", "联系人", "手机号", "投放ID", "名称",
-                   "投放平台名称", "消耗金额", "类型", "档位", "网址", "阅读量", "投放日期"]
+        headers = ["客户UID", "客户名称", "联系人", "手机号", "投放平台名称",
+                   "消耗金额", "类型", "档位", "网址", "阅读量", "投放日期"]
     else:
         headers = ["客户UID", "客户名称", "联系人", "手机号", "投放ID", "名称",
                    "投放平台名称", "消耗金额", "档位"]
@@ -167,14 +195,10 @@ def export_api(keyword_name: Optional[str] = None, keyword_douyin: Optional[str]
                     if is_novel:
                         url = NOVEL_PROMO_URL_PREFIX + str(it.get("url_code", ""))
                         pc = it.get("platform_code") or a.platform_code
-                        row = base[:]
-                        row[4] = ""
-                        row[5] = ""
-                        row[6] = pname.get(pc, pc)
-                        rows.append(row + [b_consumed, b_type_label, b_tier,
-                                            url, it.get("value", ""), ld])
+                        rows.append([c.customer_uid, c.customer_name, c.contact_name, c.phone,
+                                     pname.get(pc, pc), b_consumed, b_type_label, b_tier,
+                                     url, it.get("value", ""), ld])
                         continue
-                    id_cols = [] if is_exposure else [it.get("biz_code", ""), it.get("nickname", "")]
                     rows.append(base + [b_consumed, b_tier] + id_cols +
                                 [it.get("value", ""), b_type_label, ld])
     content = export_rows_to_xlsx(headers, rows)
