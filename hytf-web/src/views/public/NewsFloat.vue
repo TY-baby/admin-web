@@ -34,7 +34,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.news-float { position: fixed; right: 22px; top: 50%; transform: translateY(-50%); width: 300px; z-index: 999;
+.news-float { position: fixed; right: 22px; top: 50%; transform: translateY(-50%); width: 450px; z-index: 999;
   background: #fff; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.15); overflow: hidden;
   border: 1px solid var(--border);
   --c1: #ff5f8f; --c2: #ff2e63; --c3: #ff8a5b; --border: #ffe3ec; }
@@ -42,7 +42,7 @@ export default {
 .nf-head { display: flex; align-items: center; gap: 6px; padding: 10px 14px; color: #fff;
   font-weight: bold; font-size: 14px; background: linear-gradient(135deg, var(--c1), var(--c2)); }
 .nf-more { margin-left: auto; font-size: 12px; opacity: .9; font-weight: normal; }
-.nf-list { list-style: none; margin: 0; padding: 0; height: 270px; overflow-y: auto; }
+.nf-list { list-style: none; margin: 0; padding: 0; height: 470px; overflow-y: auto; }
 .nf-list li { padding: 8px 14px; border-bottom: 1px dashed #eee; cursor: pointer; transition: background .2s; }
 .nf-list li:last-child { border-bottom: none; }
 .nf-list li:hover { background: #f7f8fc; }
@@ -52,7 +52,7 @@ export default {
 .nf-list::-webkit-scrollbar { width: 4px; }
 .nf-list::-webkit-scrollbar-thumb { background: #d8d8e2; border-radius: 2px; }
 @media (max-width: 860px) {
-  .news-float { width: 220px; right: 10px; }
-  .nf-list { height: 216px; }
+  .news-float { width: 300px; right: 10px; }
+  .nf-list { height: 324px; }
 }
 </style>
