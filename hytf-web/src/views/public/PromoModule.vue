@@ -61,5 +61,28 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import './PromoDetail.vue';
+.detail { font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif; color: #2c2c3a; background: #fff;
+  --c1: #ff5f8f; --c2: #ff2e63; --c3: #ff8a5b; --border: #ffe3ec; }
+.detail.theme-recruit { --c1: #4d7dff; --c2: #2b5cf6; --c3: #7b5bff; --border: #dce6ff; }
+.d-container { max-width: 860px; margin: 0 auto; padding: 0 20px 50px; }
+.d-hero { color: #fff; text-align: center; padding: 56px 20px 44px;
+  background: linear-gradient(135deg, var(--c1) 0%, var(--c2) 45%, var(--c3) 100%); }
+.d-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px; border-radius: 20px;
+  background: rgba(255,255,255,.18); font-size: 13px; letter-spacing: 1px; }
+.d-hero h1 { font-size: 32px; font-weight: 800; margin: 18px 0 10px; text-shadow: 0 4px 18px rgba(0,0,0,.18); }
+.d-sub { font-size: 15px; opacity: .95; margin: 0; }
+.d-block { margin-top: 44px; }
+.d-title { font-size: 21px; font-weight: 800; color: #22223a; line-height: 1.6;
+  border-left: 4px solid var(--c2); padding-left: 14px; margin: 0 0 18px; }
+.d-para { font-size: 16px; line-height: 2; text-indent: 2em; color: #44445a; margin: 14px 0; text-align: justify; }
+.d-actions { display: flex; gap: 14px; justify-content: center; margin-top: 48px; flex-wrap: wrap; }
+.d-btn { display: inline-flex; align-items: center; gap: 6px; padding: 12px 28px; border-radius: 30px;
+  font-size: 15px; font-weight: bold; text-decoration: none; cursor: pointer; transition: all .25s; }
+.d-btn-primary { background: linear-gradient(135deg, var(--c1), var(--c2)); color: #fff;
+  box-shadow: 0 8px 20px rgba(0,0,0,.15); }
+.d-btn-primary:hover { transform: translateY(-2px); }
+.d-btn-ghost { border: 1.5px solid var(--c2); color: var(--c2); }
+.d-btn-ghost:hover { background: var(--c2); color: #fff; }
+.d-footer { background: #22223a; color: #8a8a9a; text-align: center; padding: 30px 20px; font-size: 12px; line-height: 1.8; }
+.d-foot-brand { font-size: 17px; font-weight: bold; color: #fff; letter-spacing: 2px; margin-bottom: 10px; }
 </style>
