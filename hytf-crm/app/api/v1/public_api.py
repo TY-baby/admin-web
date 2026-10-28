@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.core.deps import get_db
+from app.models.customer import Customer
 from app.models.novel_page import NovelPage
 from app.models.novel_promo import NovelPromo
 from app.models.platform import Platform
@@ -30,7 +31,8 @@ def reads_api(code: str, db: Session = Depends(get_db)):
 
 @router.get("/novel_promo/{code}")
 def novel_promo_visit(code: str, db: Session = Depends(get_db)):
-    """网文推广落地页访问：每打开一次访问量 +1，返回展示阅读量（基础值 + 访问次数）"""
+    """网文推广落地页访问：每打开一次访问量 +1，返回展示阅读量（基础值 + 访问次数）
+       同时返回投放时记录的客户名称与联系方式（用于落地页动态文案与合作弹窗）"""
     p = db.query(NovelPromo).filter(NovelPromo.code == code).first()
     if not p:
         return fail("page not found", code=40404)
@@ -39,6 +41,10 @@ def novel_promo_visit(code: str, db: Session = Depends(get_db)):
     db.refresh(p)
     base = int(p.base_reads or 0)
     visits = int(p.visits or 0)
+    cust = db.query(Customer).filter(Customer.id == p.customer_id).first()
     return ok({"code": p.code, "promo_content": p.promo_content,
                "base_reads": base, "visits": visits, "reads": base + visits,
-               "date": p.created_at.strftime("%Y-%m-%d") if p.created_at else ""})
+               "date": p.created_at.strftime("%Y-%m-%d") if p.created_at else "",
+               "company_name": cust.customer_name if cust else "",
+               "contact_name": cust.contact_name if cust else "",
+               "phone": cust.phone if cust else ""})

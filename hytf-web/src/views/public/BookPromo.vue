@@ -4,11 +4,11 @@
       <div class="hero-bg"></div>
       <div class="hero-inner">
         <div class="badge"><i class="el-icon-medal"></i> {{ c.badge }}</div>
-        <h1 class="title" v-html="c.title"></h1>
+        <h1 class="title" v-html="fill(c.title)"></h1>
         <p class="subtitle">{{ c.subtitle }}</p>
         <div class="cta">
-          <a class="btn btn-primary" href="#join"><i class="el-icon-s-promotion"></i> 立即合作</a>
-          <a class="btn btn-ghost" href="#about"><i class="el-icon-info"></i> 了解详情</a>
+          <a class="btn btn-primary" href="javascript:;" @click="openContact"><i class="el-icon-s-promotion"></i> 立即合作</a>
+          <a class="btn btn-ghost" href="javascript:;" @click="goDetail"><i class="el-icon-info"></i> 了解详情</a>
         </div>
         <div class="hero-stats">
           <div class="hs"><div class="hs-num">{{ displayReads }}</div><div class="hs-lbl">页面阅读量</div></div>
@@ -23,11 +23,11 @@
       <section id="about" class="section">
         <div class="sec-head">
           <span class="sec-tag">ABOUT US</span>
-          <h2>关于恒耀互娱</h2>
-          <p>恒耀互娱以「平台 + 运营」双引擎模式，为创作者、主播与求职者提供从曝光、引流到结算/成长的一体化服务，数据透明可查、效果稳定可控。</p>
+          <h2>关于{{ company }}</h2>
+          <p>{{ company }}以「平台 + 运营」双引擎模式，为创作者、主播与求职者提供从曝光、引流到结算/成长的一体化服务，数据透明可查、效果稳定可控。</p>
         </div>
         <div class="cards">
-          <div class="card" v-for="f in c.features" :key="f.title">
+          <div class="card" v-for="(f, i) in c.features" :key="f.title" @click="goModule(i)" style="cursor:pointer">
             <div class="card-ico"><i :class="f.icon"></i></div>
             <div class="card-title">{{ f.title }}</div>
             <div class="card-desc">{{ f.desc }}</div>
@@ -39,7 +39,7 @@
         <div class="sec-head">
           <span class="sec-tag">JOIN US</span>
           <h2>{{ c.joinTitle }}</h2>
-          <p>{{ c.joinDesc }}</p>
+          <p>{{ fill(c.joinDesc) }}</p>
         </div>
         <div class="points">
           <div class="point" v-for="p in c.points" :key="p">
@@ -65,21 +65,28 @@
       <section class="cta-band">
         <h3>{{ c.ctaTitle }}</h3>
         <p>{{ c.ctaDesc }}</p>
-        <a class="btn btn-light" href="#about"><i class="el-icon-service"></i> 联系客服咨询</a>
       </section>
     </main>
 
     <footer class="footer">
       <div class="container">
-        <div class="foot-brand">恒耀互娱 · HYTF</div>
+        <div class="foot-brand">{{ company }} · HYTF</div>
         <p class="foot-meta">
           <span v-if="dateStr">发布日期：{{ dateStr }}</span>
-          <span>来源：恒耀互娱官方</span>
+          <span>来源：{{ company }}官方</span>
           <span>阅读量：{{ displayReads }}</span>
         </p>
         <p class="foot-note">版权声明：转载此文是出于传递更多信息之目的。广告内容请自行辨别，本站不参与任何推荐与导购。</p>
       </div>
     </footer>
+
+    <el-dialog title="合作联系" :visible.sync="contactVisible" width="420px">
+      <div class="contact-box">
+        <div class="c-item"><span class="c-lbl">客户名称</span><span class="c-val">{{ company }}</span></div>
+        <div class="c-item"><span class="c-lbl">联系方式</span><span class="c-val">{{ phone || '暂未提供' }}</span></div>
+      </div>
+      <span slot="footer"><el-button type="primary" @click="contactVisible = false">我知道了</el-button></span>
+    </el-dialog>
   </div>
 </template>
 
@@ -87,7 +94,7 @@
 const UNION = {
   theme: 'theme-union',
   badge: '官方认证 · 直播工会宣传',
-  title: '恒耀互娱直播工会招募<br />专业运营护航 · 流量资源倾斜',
+  title: '{company}直播工会招募<br />专业运营护航 · 流量资源倾斜',
   subtitle: '面向主播与工会的一站式直播推广合作，提供曝光扶持、运营陪跑与透明结算，助力直播事业稳步增长。',
   stats: [{ num: '5+', lbl: '合作直播平台' }, { num: 'T+1', lbl: '结算周期' }, { num: '1对1', lbl: '运营扶持' }],
   features: [
@@ -97,7 +104,7 @@ const UNION = {
     { icon: 'el-icon-service', title: '运营陪跑', desc: '专属运营团队对接，选题、话术、活动策划全方位支持。' }
   ],
   joinTitle: '工会合作权益',
-  joinDesc: '加入恒耀互娱直播工会，享受从资源到运营的全方位扶持。',
+  joinDesc: '加入{company}直播工会，享受从资源到运营的全方位扶持。',
   points: ['专业运营团队一对一扶持', '流量资源与首页曝光位倾斜', '阶梯式分成，结算透明及时',
     '数据看板实时追踪直播效果', '活动策划与 PK 资源对接'],
   processTitle: '合作流程',
@@ -108,7 +115,7 @@ const UNION = {
 const RECRUIT = {
   theme: 'theme-recruit',
   badge: '官方认证 · 招聘宣传',
-  title: '恒耀互娱诚聘英才<br />多岗位开放 · 收入上不封顶',
+  title: '{company}诚聘英才<br />多岗位开放 · 收入上不封顶',
   subtitle: '我们正在寻找热爱内容、渴望成长的你。主播、运营、推广多岗位开放，弹性工作、系统培训、晋升透明。',
   stats: [{ num: '多', lbl: '在招岗位' }, { num: '弹性', lbl: '工作时间' }, { num: '上不封顶', lbl: '收入空间' }],
   features: [
@@ -130,7 +137,8 @@ const RECRUIT = {
 export default {
   name: 'BookPromo',
   data() {
-    return { reads: 0, displayReads: 0, dateStr: '', promoContent: '' }
+    return { reads: 0, displayReads: 0, dateStr: '', promoContent: '',
+      company: '', phone: '', contactVisible: false }
   },
   computed: {
     code() { return this.$route.params.code },
@@ -139,6 +147,10 @@ export default {
   },
   mounted() { this.loadVisit() },
   methods: {
+    fill(t) { return String(t || '').replace(/\{company\}/g, this.company) },
+    openContact() { this.contactVisible = true },
+    goDetail() { this.$router.push('/book/' + this.code + '/detail') },
+    goModule(i) { this.$router.push('/book/' + this.code + '/module/' + i) },
     loadVisit() {
       const base = (process.env.VUE_APP_API_BASE || '') + '/api/v1/public/novel_promo/'
       fetch(base + encodeURIComponent(this.code))
@@ -148,6 +160,9 @@ export default {
               this.reads = Number(d.data.reads || 0)
               this.dateStr = d.data.date || ''
               this.promoContent = d.data.promo_content || ''
+              this.company = d.data.company_name || ''
+              this.phone = d.data.phone || ''
+              if (this.company) document.title = this.company
               this.animateReads()
             }
           })
@@ -235,6 +250,12 @@ export default {
 .foot-brand { font-size: 18px; font-weight: bold; color: #fff; letter-spacing: 2px; }
 .foot-meta { font-size: 13px; margin: 12px 0; span { margin: 0 12px; } }
 .foot-note { font-size: 12px; color: #8a8a9a; line-height: 1.8; max-width: 720px; margin: 0 auto; }
+
+.contact-box { padding: 6px 4px; }
+.c-item { display: flex; align-items: center; padding: 12px 0; border-bottom: 1px dashed #eee; font-size: 15px; }
+.c-item:last-child { border-bottom: none; }
+.c-lbl { width: 90px; color: #888; flex-shrink: 0; }
+.c-val { font-weight: bold; color: #333; }
 
 @media (max-width: 860px) {
   .cards { grid-template-columns: repeat(2, 1fr); }

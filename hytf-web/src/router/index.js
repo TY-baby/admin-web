@@ -10,6 +10,8 @@ const routes = [
   { path: '/client/finance', name: 'ClientFinance', component: () => import('@/views/client/Finance.vue'), meta: { title: '财务' } },
   { path: '/admin/login', name: 'AdminLogin', component: () => import('@/views/admin/Login.vue'), meta: { title: '恒耀CRM-管理员' } },
   { path: '/book/:code', name: 'BookPromo', component: () => import('@/views/public/BookPromo.vue'), meta: { title: '恒耀互娱' } },
+  { path: '/book/:code/detail', name: 'PromoDetail', component: () => import('@/views/public/PromoDetail.vue'), meta: { title: '详情' } },
+  { path: '/book/:code/module/:idx', name: 'PromoModule', component: () => import('@/views/public/PromoModule.vue'), meta: { title: '详情' } },
   {
     path: '/admin',
     component: () => import('@/layout/AdminLayout.vue'),
