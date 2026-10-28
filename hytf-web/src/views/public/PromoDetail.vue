@@ -17,7 +17,7 @@
       </div>
     </main>
     <footer class="d-footer">
-      <div class="d-foot-brand">{{ company }} · HYTF</div>
+      <div class="d-foot-brand">{{ company }}</div>
       <p>版权声明：转载此文是出于传递更多信息之目的。广告内容请自行辨别，本站不参与任何推荐与导购。</p>
     </footer>
 

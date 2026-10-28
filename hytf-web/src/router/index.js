@@ -12,6 +12,7 @@ const routes = [
   { path: '/book/:code', name: 'BookPromo', component: () => import('@/views/public/BookPromo.vue'), meta: { title: '恒耀互娱' } },
   { path: '/book/:code/detail', name: 'PromoDetail', component: () => import('@/views/public/PromoDetail.vue'), meta: { title: '详情' } },
   { path: '/book/:code/module/:idx', name: 'PromoModule', component: () => import('@/views/public/PromoModule.vue'), meta: { title: '详情' } },
+  { path: '/news/:idx', name: 'NewsDetail', component: () => import('@/views/public/NewsDetail.vue'), meta: { title: '新闻资讯' } },
   {
     path: '/admin',
     component: () => import('@/layout/AdminLayout.vue'),

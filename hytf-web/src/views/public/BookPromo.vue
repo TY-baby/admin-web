@@ -1,5 +1,6 @@
 <template>
   <div class="promo" :class="c.theme">
+    <news-float :theme="c.theme"></news-float>
     <header class="hero">
       <div class="hero-bg"></div>
       <div class="hero-inner">
@@ -70,7 +71,7 @@
 
     <footer class="footer">
       <div class="container">
-        <div class="foot-brand">{{ company }} · HYTF</div>
+        <div class="foot-brand">{{ company }}</div>
         <p class="foot-meta">
           <span v-if="dateStr">发布日期：{{ dateStr }}</span>
           <span>来源：{{ company }}官方</span>
@@ -91,6 +92,8 @@
 </template>
 
 <script>
+import NewsFloat from './NewsFloat.vue'
+
 const UNION = {
   theme: 'theme-union',
   badge: '官方认证 · 直播工会宣传',
@@ -136,6 +139,7 @@ const RECRUIT = {
 
 export default {
   name: 'BookPromo',
+  components: { NewsFloat },
   data() {
     return { reads: 0, displayReads: 0, dateStr: '', promoContent: '',
       company: '', phone: '', contactVisible: false }
